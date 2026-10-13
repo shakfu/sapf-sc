@@ -49,6 +49,11 @@ public:
 	// A synth parameter. Compilation replaces it with an output of a Control UGen.
 	bool isParam = false;
 	double paramDefault = 0.;
+	// Compilation lowers an audio-rate node to control rate when all its consumers are control
+	// rate, unless its rate is fixed: soundin and ugen nodes, whose meaning depends on the rate.
+	bool fixedRate = false;
+	P<UGenNode> krOf;        // set on the node kr returns: the audio-rate node it copies
+	bool endGate = false;    // an EnvGen from endAfter: 1, then 0 when a finite signal ends
 
 	UGenNode(const char* inName, int inRate, std::vector<V> inInputs, int inNumOutputs, int inSpecial, bool inPure);
 
@@ -82,7 +87,11 @@ inline int rateOf(Arg v) { return isSig(v) ? ((Sig*)v.o())->rate() : rateIR; }
 V popGraphIn(Thread& th, const char* msg);
 
 // Makes a UGen. Returns a Sig for one output, a list of Sigs for several.
-V makeUGen(const char* name, int rate, std::vector<V> inputs, int numOutputs = 1, int special = 0, bool pure = true);
+V makeUGen(const char* name, int rate, std::vector<V> inputs, int numOutputs = 1, int special = 0, bool pure = true,
+	bool fixedRate = false);
+
+// sapf's kr: a control-rate version of `v`. Reals and control-rate Sigs return unchanged.
+V toKR(Arg v);
 
 // SC operators by special index. Folds when the inputs are constants.
 V graphUnary(Thread& th, int special, Arg a);

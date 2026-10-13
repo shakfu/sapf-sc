@@ -20,6 +20,8 @@ def test_matches_sapf(case, compile_sapf, tmp_path):
     tail = got[len(ref) :]
     assert np.abs(tail).max(initial=0) < 1e-4 and np.all(tail[64:] == 0), "synth continues after the signal ends"
     got = got[: len(ref)]
+    if case.delay:
+        ref, got = ref[: -case.delay], got[case.delay :]
     diff = np.abs(ref - got)
     if case.mode == "rms":
         ratio = np.sqrt(np.mean(diff**2)) / np.sqrt(np.mean(ref**2))

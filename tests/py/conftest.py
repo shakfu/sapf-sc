@@ -1,5 +1,6 @@
 """Helpers: compile sapf expressions to SCgf, and render SynthDefs with nanosynth's NRT scsynth."""
 
+import ctypes
 import os
 import struct
 import subprocess
@@ -11,6 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 SAPF = Path(os.environ.get("SAPF_BIN", ROOT / "build" / "sapf"))
 SR = 48000
+_libc = ctypes.CDLL(None)
 
 
 @pytest.fixture(scope="session")
@@ -70,6 +72,7 @@ def render(defbytes: bytes, name: str, seconds: float, workdir: Path, channels: 
     score.add(seconds, OscMessage("/c_set", 0, 0))
     out = workdir / f"{name}.wav"
     score.render(out, sample_rate=SR, sample_format="float", output_channels=channels)
+    _libc.fflush(None)  # scsynth logs through C stdio; flush so capfd sees its errors
     return read_wav_float(out)[: int(seconds * SR)]
 
 

@@ -6,7 +6,7 @@ Each word keeps sapf's arguments and units and converts them for the SC UGen. Fi
 
 - **approx**: SC's algorithm differs from sapf's. The figure is the RMS of the difference over the RMS of sapf's output.
 
-All UGens run at audio rate.
+UGens run at audio rate unless `kr` lowers them; see the README. Fidelity is measured at audio rate. A 30 Hz `sinosc kr` matches sapf within 0.6% RMS once delayed one block; the error grows with frequency.
 
 ## Oscillators
 
@@ -65,6 +65,9 @@ A `maxdelay` of 0 means the delay time, which must then be a constant.
 | `fade2` | `XFade2` | exact within 1e-3 |
 | `sah` | `Latch` | exact |
 | `clip` `wrap` `fold` | `Clip` `Wrap` `Fold` | exact; reals compute in the interpreter |
+| `line` | `Line`, then ends | exact |
+| `xline` | `XLine`, then ends; across zero, a cubed `Line` between cube roots, as sapf | exact |
+| `iwrap` `ifold` | none; reals only | exact |
 | `fadein` | `EnvGen`, exponential | exact |
 | `fadeout` | `EnvGen`, exponential, frees the synth | exact |
 
@@ -82,4 +85,4 @@ Operators with no SC equivalent (`erf`, `tgamma`, the character tests and others
 
 ## Not mapped
 
-sapf words with no SC UGen of the same algorithm are not defined: `saw`, `square`, `tri`, `pulse`, `blip`, `osc` and the other wavetable oscillators, `dsf1`, `dsf3`, `vosim`, `smoothsaw`, `klank`, `adsr` and the other envelopes, `lpf1`, `hpf1`, `apf`, `lsf`, `hsf`, `peq`, `hilbert`. `ugen` reaches any SC UGen directly.
+sapf words with no SC UGen of the same algorithm are not defined: `saw`, `square`, `tri`, `pulse`, `blip`, `osc` and the other wavetable oscillators, `dsf1`, `dsf3`, `vosim`, `smoothsaw`, `klank`, `adsr`, `lines`, `curves` and the other envelopes, `lpf1`, `hpf1`, `apf`, `lsf`, `hsf`, `peq`, `hilbert`. `ugen` reaches any SC UGen directly.

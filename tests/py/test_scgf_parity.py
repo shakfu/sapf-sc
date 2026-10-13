@@ -6,7 +6,7 @@ import math
 
 from conftest import decode_scgf
 from nanosynth import SynthDefBuilder
-from nanosynth.ugens import DC, CombN, LFSaw, Out, Pan2, SinOsc
+from nanosynth.ugens import DC, K2A, CombN, LFSaw, Out, Pan2, SinOsc
 
 
 def build(name, fn, **params):
@@ -81,3 +81,25 @@ def test_nan_constants_share_an_index(compile_sapf):
     # decode_scgf raises IndexError on an out-of-range constant index.
     graph = decode_scgf(compile_sapf("100 0 sinosc 0 0 / * 0 0 / +"))
     assert len(graph["constants"]) == 3  # 100, 0 and one NaN
+
+
+def test_kr_lowers_its_inputs(compile_sapf):
+    def fn(b):
+        mod = SinOsc.kr(frequency=3) * 100 + 300
+        Out.ar(bus=0, source=SinOsc.ar(frequency=mod))
+
+    assert compile_sapf("3 0 sinosc 100 * kr 300 + 0 sinosc") == build("t", fn)
+
+
+def test_kr_multi_output_stays_one_ugen(compile_sapf):
+    def fn(b):
+        pan = Pan2.kr(source=SinOsc.kr(frequency=440), position=0.3)
+        Out.ar(bus=0, source=[K2A.ar(source=pan[0]), K2A.ar(source=pan[1])])
+
+    assert compile_sapf("440 0 sinosc .3 pan2 kr") == build("t", fn)
+
+
+def test_list_times_zero_is_silence(compile_sapf):
+    # sapf's mul maps an internal ToZero op over a list multiplied by 0.
+    graph = decode_scgf(compile_sapf("[300 301] 0 sinosc 0 *"))
+    assert [u[0] for u in graph["ugens"]] == ["DC", "DC", "Out"]

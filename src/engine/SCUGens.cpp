@@ -10,6 +10,7 @@
 // docs/ugens.md lists the mappings.
 
 #include "Graph.hpp"
+#include "Scsynth.hpp"
 #include "MathFuns.hpp"
 #include <algorithm>
 #include <cstdlib>
@@ -379,6 +380,18 @@ static void clip_(Thread& th, Prim* prim) { range(th, "clip", "Clip", clampf); }
 static void wrap_(Thread& th, Prim* prim) { range(th, "wrap", "Wrap", sc_wrap); }
 static void fold_(Thread& th, Prim* prim) { range(th, "fold", "Fold", sc_fold); }
 
+// Integer wrap and fold have no SC UGen; they take reals only.
+static void irange(Thread& th, const char* name, int64_t (*f)(int64_t, int64_t, int64_t))
+{
+	int64_t hi = th.popInt(name);
+	int64_t lo = th.popInt(name);
+	int64_t in = th.popInt(name);
+	th.push((double)f(in, lo, hi));
+}
+
+static void iwrap_(Thread& th, Prim* prim) { irange(th, "iwrap", sc_iwrap); }
+static void ifold_(Thread& th, Prim* prim) { irange(th, "ifold", sc_ifold); }
+
 ////////////////////////////////////////////////////////////////////////////////
 // envelopes
 
@@ -401,7 +414,9 @@ static V envGen(std::vector<double> levels, std::vector<V> times, int shape, int
 V endAfter(Thread& th, Arg in, Arg frames)
 {
 	V seconds = mul(th, graphBinary(th, opSub, frames, .5), makeUGen("SampleDur", rateIR, {}));
-	return mul(th, in, envGen({1., 1., 0.}, {seconds, 0.}, shapeLinear, 2));
+	V gate = envGen({1., 1., 0.}, {seconds, 0.}, shapeLinear, 2);
+	((Sig*)gate.o())->node->endGate = true;
+	return mul(th, in, gate);
 }
 
 // Seconds to frames at the server's rate, rounded as sapf rounds them.
@@ -431,6 +446,31 @@ static void fadeout_(Thread& th, Prim* prim)
 	th.push(mul(th, in, graphBinary(th, opSub, env, .001)));
 }
 
+// sapf's line and xline are finite: the synth frees itself after dur.
+static void line_(Thread& th, Prim* prim)
+{
+	double end = th.popFloat("line : end");
+	double start = th.popFloat("line : start");
+	double dur = th.popFloat("line : dur");
+	th.push(endAfter(th, makeUGen("Line", rateAR, {start, end, dur, 0.}), secondsToFrames(th, dur)));
+}
+
+// Across zero sapf cubes a linear ramp between cube roots, which XLine cannot do.
+static void xline_(Thread& th, Prim* prim)
+{
+	double end = th.popFloat("xline : end");
+	double start = th.popFloat("xline : start");
+	double dur = th.popFloat("xline : dur");
+	V ramp;
+	if (sc_sgn(start) != sc_sgn(end) || start == 0. || end == 0.) {
+		V line = makeUGen("Line", rateAR, {sc_sgn(start) * cbrt(fabs(start)), sc_sgn(end) * cbrt(fabs(end)), dur, 0.});
+		ramp = graphUnary(th, opCubed, line);
+	} else {
+		ramp = makeUGen("XLine", rateAR, {start, end, dur, 0.});
+	}
+	th.push(endAfter(th, ramp, secondsToFrames(th, dur)));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // SuperCollider access
 
@@ -438,7 +478,7 @@ static void soundin_(Thread& th, Prim* prim)
 {
 	POP(chan, "soundin");
 	V bus = add(th, makeUGen("NumOutputBuses", rateIR, {}), chan);
-	th.push(makeUGen("In", rateAR, {bus}));
+	th.push(makeUGen("In", rateAR, {bus}, 1, 0, true, true)); // In.kr reads control buses
 }
 
 static void ctl_(Thread& th, Prim* prim)
@@ -476,7 +516,36 @@ static void ugen_(Thread& th, Prim* prim)
 		inputs.push_back(in);
 	}
 	if (numOutputs < 0) throw errOutOfRange;
-	th.push(makeUGen(((String*)name.o())->s, rate, inputs, numOutputs, 0, numOutputs > 0));
+	th.push(makeUGen(((String*)name.o())->s, rate, inputs, numOutputs, 0, numOutputs > 0, true));
+}
+
+static void kr_(Thread& th, Prim* prim)
+{
+	th.push(toKR(popGraphIn(th, "kr : in")));
+}
+
+// Each play sends a new def, so a running synth keeps the def it started with.
+static int gPlayCount = 0;
+
+static void play_(Thread& th, Prim* prim)
+{
+	V channels = th.pop();
+	std::string name = "sapf-play-" + std::to_string(++gPlayCount);
+	std::string def = compileSynthDef(th, channels, name);
+	// /s_new with node ID -1 (let the server choose), add to head of the root group.
+	std::string snew = oscMessage("/s_new", {{OscArg::String, 0, name}, {OscArg::Int, -1, ""},
+		{OscArg::Int, 0, ""}, {OscArg::Int, 0, ""}});
+	std::string err = scsynthSendSync({oscMessage("/d_recv", {{OscArg::Blob, 0, def}, {OscArg::Blob, 0, snew}})});
+	if (!err.empty()) {
+		post("play : scsynth at %s: %s. Start one with 'make server' or set SAPF_SCSYNTH.\n",
+			scsynthAddress().c_str(), err.c_str());
+		throw errFailed;
+	}
+}
+
+static void stop_(Thread& th, Prim* prim)
+{
+	scsynthSend(oscMessage("/g_deepFree", {{OscArg::Int, 0, ""}}));
 }
 
 // The file goes to $SAPF_SYNTHDEFS, or the current directory when it is unset.
@@ -557,13 +626,20 @@ void AddSCUGenOps()
 	DEFMCX(sah, 2, "(in trigger --> out) sample and hold. Latch.")
 	DEFMCX(clip, 3, "(in lo hi --> out) constrain the input to the bounds by clipping. Clip.")
 	DEFMCX(wrap, 3, "(in lo hi --> out) constrain the input to the bounds by wrapping. Wrap.")
+	DEFMCX(iwrap, 3, "(in lo hi --> out) constrain the integer input to the bounds by wrapping. reals only.")
+	DEFMCX(ifold, 3, "(in lo hi --> out) constrain the integer input to the bounds by folding. reals only.")
 	DEFMCX(fold, 3, "(in lo hi --> out) constrain the input to the bounds by folding at the edges. Fold.")
 
+	DEFMCX(line, 3, "(dur start end --> out) linear ramp from start to end in dur seconds, then the synth ends. Line.")
+	DEFMCX(xline, 3, "(dur start end --> out) exponential ramp from start to end in dur seconds, then the synth ends. XLine.")
 	DEFMCX(fadein, 2, "(in fadeTime --> out) fade in. EnvGen.")
 	DEFMCX(fadeout, 3, "(in sustainTime fadeTime --> out) fade out after sustain, then free the synth. EnvGen.")
 
 	DEFMCX(soundin, 1, "(channel --> out) hardware input channel, from 0. In.")
+	DEFMCX(kr, 1, "(in --> out) control-rate version of in. UGens feeding only control-rate UGens become control rate too.")
 	DEF(ctl, 2, 1, "(default name --> out) control-rate synth parameter. Control.")
 	DEF(ugen, 4, 1, "(inputs name rate numOutputs --> out) any SuperCollider UGen. inputs is a list, name a string, rate 'ar 'kr or 'ir.")
+	DEF(play, 1, 0, "(channels -->) sends channels as a SynthDef to scsynth at $SAPF_SCSYNTH (default 127.0.0.1:57110) and starts a synth.")
+	vm.def("stop", 0, 0, stop_, "(-->) frees every synth on the scsynth that play uses.");
 	vm.def(">sd", 2, 0, writesd_, "(channels name -->) writes channels as SynthDef name to name.scsyndef in $SAPF_SYNTHDEFS or the current directory.");
 }

@@ -52,15 +52,34 @@ V popGraphIn(Thread& th, const char* msg)
 	return v;
 }
 
-V makeUGen(const char* name, int rate, std::vector<V> inputs, int numOutputs, int special, bool pure)
+static V outputsOf(P<UGenNode> const& node)
 {
-	P<UGenNode> node = new UGenNode(name, rate, std::move(inputs), numOutputs, special, pure);
+	int numOutputs = node->numOutputs;
 	if (numOutputs == 1)
 		return new Sig(node, 0);
 	P<List> list = new List(itemTypeV, numOutputs);
 	for (int i = 0; i < numOutputs; ++i)
 		list->add(V(new Sig(node, i)));
 	return list;
+}
+
+V makeUGen(const char* name, int rate, std::vector<V> inputs, int numOutputs, int special, bool pure, bool fixedRate)
+{
+	P<UGenNode> node = new UGenNode(name, rate, std::move(inputs), numOutputs, special, pure);
+	node->fixedRate = fixedRate;
+	return outputsOf(node);
+}
+
+V toKR(Arg v)
+{
+	if (!isSig(v)) return v;
+	Sig* s = (Sig*)v.o();
+	UGenNode* u = s->node();
+	if (u->rate != rateAR) return v;
+	if (u->fixedRate) return makeUGen("A2K", rateKR, {v});
+	P<UGenNode> copy = new UGenNode(u->name.c_str(), rateKR, u->inputs, u->numOutputs, u->special, u->pure);
+	copy->krOf = u;
+	return new Sig(copy, s->index);
 }
 
 V makeParam(const char* name, double value)
@@ -147,6 +166,7 @@ static V compositeUnary(Thread& th, const std::string& name, Arg a)
 V Sig::unaryOp(Thread& th, UnaryOp* op)
 {
 	std::string name = op->Name();
+	if (name == "ToZero") return 0.; // sapf's list * 0 maps this over the list
 	auto it = gUnaryMap.find(name);
 	if (it != gUnaryMap.end())
 		return graphUnary(th, it->second, this);
@@ -325,16 +345,123 @@ void collect(UGenNode* u, std::vector<UGenNode*>& out, std::map<UGenNode*, bool>
 		if (isSig(in)) collect(((Sig*)in.o())->node(), out, seen);
 }
 
+// The graph compiled for one def. Graph values are immutable and may go into other defs, so the
+// compiler works on copies of the nodes reachable from the channels.
+struct WorkGraph {
+	std::map<UGenNode*, bool> used;               // originals referenced directly
+	std::map<UGenNode*, P<UGenNode>> work;        // original -> copy
+	std::map<UGenNode*, P<UGenNode>> krWork;      // original -> copy of its kr version
+	std::map<std::pair<UGenNode*, int>, V> a2k;   // (original, output) -> A2K of its copy
+
+	void markUsed(Arg v)
+	{
+		if (!isSig(v)) return;
+		UGenNode* u = ((Sig*)v.o())->node();
+		if (u->krOf) {
+			for (Arg in : u->inputs) markUsed(in);
+			return;
+		}
+		if (used[u]) return;
+		used[u] = true;
+		for (Arg in : u->inputs) markUsed(in);
+	}
+
+	UGenNode* copyOf(UGenNode* u, int rate, std::map<UGenNode*, P<UGenNode>>& memo)
+	{
+		auto it = memo.find(u);
+		if (it != memo.end()) return it->second();
+		P<UGenNode> c = new UGenNode(u->name.c_str(), rate, {}, u->numOutputs, u->special, u->pure);
+		c->serial = u->serial;
+		c->isParam = u->isParam;
+		c->paramDefault = u->paramDefault;
+		c->fixedRate = u->fixedRate;
+		c->endGate = u->endGate;
+		memo[u] = c;
+		for (Arg in : u->inputs) c->inputs.push_back(remap(in));
+		return c();
+	}
+
+	// kr copies of one node merge into one. When the node is also used at audio rate, its kr
+	// uses read it through A2K, so a random UGen stays one source.
+	V remap(Arg v)
+	{
+		if (!isSig(v)) return v;
+		Sig* s = (Sig*)v.o();
+		UGenNode* u = s->node();
+		if (!u->krOf)
+			return new Sig(copyOf(u, u->rate, work), s->index);
+		UGenNode* orig = u->krOf();
+		if (!used[orig])
+			return new Sig(copyOf(orig, rateKR, krWork), s->index);
+		auto key = std::make_pair(orig, s->index);
+		if (!a2k.count(key))
+			a2k[key] = makeUGen("A2K", rateKR, {V(new Sig(copyOf(orig, orig->rate, work), s->index))});
+		return a2k[key];
+	}
+};
+
+// In sapf, anything computed from a finite signal ends with it. A channel that depends on end
+// gates is multiplied by them, so it is zero from the frame its signal ends, not from the end
+// of the block in which the synth frees.
+V endChannel(Thread& th, Arg chan)
+{
+	if (!isSig(chan)) return chan;
+	std::vector<UGenNode*> nodes;
+	std::map<UGenNode*, bool> seen;
+	collect(((Sig*)chan.o())->node(), nodes, seen);
+	V out = chan;
+	for (UGenNode* u : nodes) {
+		if (!u->endGate || u == ((Sig*)chan.o())->node()) continue;
+		out = graphBinary(th, opMul, out, V(new Sig(u, 0)));
+	}
+	return out;
+}
+
+// Lowers audio-rate nodes to control rate where every consumer is a control-rate sapf UGen. Out,
+// which consumes the channels, is audio rate. So is a ugen node: a control-rate analysis UGen
+// such as Amplitude reads its whole audio input, not one sample per block.
+void inferRates(const std::vector<V>& chans)
+{
+	std::vector<UGenNode*> nodes;
+	std::map<UGenNode*, bool> seen;
+	std::map<UGenNode*, std::vector<UGenNode*>> consumers;
+	std::map<UGenNode*, bool> feedsOut;
+	for (Arg c : chans) {
+		if (!isSig(c)) continue;
+		feedsOut[((Sig*)c.o())->node()] = true;
+		collect(((Sig*)c.o())->node(), nodes, seen);
+	}
+	for (UGenNode* u : nodes)
+		for (Arg in : u->inputs)
+			if (isSig(in)) consumers[((Sig*)in.o())->node()].push_back(u);
+	for (bool changed = true; changed;) {
+		changed = false;
+		for (UGenNode* u : nodes) {
+			if (u->rate != rateAR || u->fixedRate || feedsOut[u] || consumers[u].empty()) continue;
+			auto& cs = consumers[u];
+			if (std::all_of(cs.begin(), cs.end(), [](UGenNode* c) { return c->rate == rateKR && !c->fixedRate; })) {
+				u->rate = rateKR;
+				changed = true;
+			}
+		}
+	}
+}
+
 } // namespace
 
 std::string compileSynthDef(Thread& th, Arg channels, const std::string& name)
 {
-	std::vector<V> chans;
-	flattenChannels(th, channels, chans);
-	if (chans.empty()) {
+	std::vector<V> original;
+	flattenChannels(th, channels, original);
+	if (original.empty()) {
 		post(">sd : no channels\n");
 		throw errFailed;
 	}
+	WorkGraph g;
+	for (Arg c : original) g.markUsed(c);
+	std::vector<V> chans;
+	for (Arg c : original) chans.push_back(endChannel(th, g.remap(c)));
+	inferRates(chans);
 
 	// Out.ar takes audio-rate inputs only.
 	std::vector<V> outInputs = {0.};
@@ -364,38 +491,19 @@ std::string compileSynthDef(Thread& th, Arg channels, const std::string& name)
 			throw errFailed;
 		}
 	}
-	P<UGenNode> control;
-	std::map<UGenNode*, int> paramIndex;
 	if (!params.empty()) {
-		control = new UGenNode("Control", rateKR, {}, (int)params.size(), 0, true);
+		P<UGenNode> control = new UGenNode("Control", rateKR, {}, (int)params.size(), 0, true);
+		std::map<UGenNode*, int> paramIndex;
 		for (size_t i = 0; i < params.size(); ++i) paramIndex[params[i]] = (int)i;
+		for (UGenNode* u : rest)
+			for (V& in : u->inputs)
+				if (isSig(in) && ((Sig*)in.o())->node->isParam)
+					in = new Sig(control, paramIndex[((Sig*)in.o())->node()]);
 		rest.insert(rest.begin(), control());
+		g.work[nullptr] = control; // keep it alive with the other copies
 	}
 
-	// Graph values are immutable and may go into other defs, so the compiler works on copies,
-	// with parameters remapped to the Control.
-	std::vector<P<UGenNode>> copies;
-	std::map<UGenNode*, UGenNode*> copyOf;
-	for (UGenNode* u : rest) {
-		copies.push_back(new UGenNode(u->name.c_str(), u->rate, {}, u->numOutputs, u->special, u->pure));
-		copyOf[u] = copies.back()();
-	}
-	for (UGenNode* u : rest) {
-		for (Arg in : u->inputs) {
-			if (!isSig(in)) {
-				copyOf[u]->inputs.push_back(in);
-				continue;
-			}
-			Sig* s = (Sig*)in.o();
-			if (s->node->isParam)
-				copyOf[u]->inputs.push_back(V(new Sig(copyOf[control()], paramIndex[s->node()])));
-			else
-				copyOf[u]->inputs.push_back(V(new Sig(copyOf[s->node()], s->index)));
-		}
-	}
-	std::vector<UGenNode*> ordered;
-	for (UGenNode* u : rest) ordered.push_back(copyOf[u]);
-	ordered = sortTopologically(ordered);
+	std::vector<UGenNode*> ordered = sortTopologically(rest);
 
 	std::map<UGenNode*, int> ugenIndex;
 	for (size_t i = 0; i < ordered.size(); ++i) ugenIndex[ordered[i]] = (int)i;

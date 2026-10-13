@@ -2231,37 +2231,6 @@ static void expdiv1z_(Thread& th, Prim* prim)
 	th.push(new List(g));
 }
 
-static void line_(Thread& th, Prim* prim)
-{
-	Z end = th.popFloat("line : end");
-	Z start = th.popFloat("line : start");
-	Z dur = th.popFloat("line : dur");
-	double n = std::max(1., floor(dur * th.rate.sampleRate + .5));
-	Z step = (end - start) / n;
-	
-	Gen* g = new NByz(th, start, step, (int64_t)n);
-	th.push(new List(g));
-}
-
-static void xline_(Thread& th, Prim* prim)
-{
-	Z end = th.popFloat("xline : end");
-	Z start = th.popFloat("xline : start");
-	Z dur = th.popFloat("xline : dur");
-	double n = std::max(1., floor(dur * th.rate.sampleRate + .5));
-	
-	Gen* g;
-	if (sc_sgn(start) != sc_sgn(end) || start == 0. || end == 0.) {
-		start = sc_sgn(start) * pow(fabs(start), kOneThird);
-		end = sc_sgn(end) * pow(fabs(end), kOneThird);
-		Z step = (end - start) / n;		
-		g = new NCubicLinez(th, start, step, (int64_t)n);
-	} else {
-		Z step = pow(end/start, 1. / n);
-		g = new NGrowz(th, start, step, (int64_t)n);
-	}
-	th.push(new List(g));
-}
 
 
 static void grow_(Thread& th, Prim* prim)
@@ -7238,8 +7207,6 @@ void AddStreamOps()
 	DEFMCX(lindiv1z, 3, "(n start end --> series) returns a signal of n equal steps from start up to but not including end.") 
 	DEFMCX(expdiv1z, 3, "(n start end --> series)  returns a signal of n exponentially spaced steps from start up to but not including end.") 
 
-	DEFMCX(line, 3, "(dur start end --> z) return a signal ramping linearly from start to end in dur seconds.") // mcx
-	DEFMCX(xline, 3, "(dur start end --> z) return a signal ramping exponentially from start to end in dur seconds.") // mcx
 
 	vm.addBifHelp("\n*** list reduction operations ***");
 	DEFAM(reduce, aak, "(list value fun --> value) applies fun to each item in list and the current value to get a new value. returns the ending value.")

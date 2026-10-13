@@ -18,6 +18,7 @@ set(ENGINE_SOURCES
 	Types.cpp
 	Graph.cpp
 	SCUGens.cpp
+	Scsynth.cpp
 	VM.cpp
 )
 

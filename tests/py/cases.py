@@ -22,6 +22,7 @@ class Case:
     channels: int = 1
     seconds: float = 0.1
     ref_expr: str | None = None
+    delay: int = 0  # frames the render lags the reference
 
 
 A = "100 0 sinosc .9 * .0123 +"  # zero crossings fall between samples
@@ -86,6 +87,13 @@ CASES = [
     Case("fold", f"{SIN} 1.5 * -.5 .7 fold"),
     Case("fadein", "100 0 sinosc .05 fadein"),
     Case("fadeout", "100 0 sinosc .03 .04 fadeout", 1e-3),
+    # Control rate computes once per 64-frame block. K2A interpolates from the previous block,
+    # so the output lags one block.
+    Case("kr", "30 0 sinosc kr", .01, "rms", ref_expr="30 0 sinosc", delay=64),
+    Case("line", ".05 -.5 .8 line"),
+    Case("line_mod", ".05 200 800 line 0 sinosc", 1e-3),
+    Case("xline", ".05 .01 .8 xline"),
+    Case("xline_zero", ".05 -.5 .8 xline"),
     # Taking part of a UGen ends the synth.
     Case("N", "100 0 sinosc 2000 N"),
     Case("T", "100 0 sinosc .03 T"),
