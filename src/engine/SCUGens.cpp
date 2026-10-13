@@ -380,6 +380,14 @@ static void clip_(Thread& th, Prim* prim) { range(th, "clip", "Clip", clampf); }
 static void wrap_(Thread& th, Prim* prim) { range(th, "wrap", "Wrap", sc_wrap); }
 static void fold_(Thread& th, Prim* prim) { range(th, "fold", "Fold", sc_fold); }
 
+static void madd_(Thread& th, Prim* prim)
+{
+	POP(c, "*+");
+	POP(b, "*+");
+	POP(a, "*+");
+	th.push(add(th, mul(th, a, b), c));
+}
+
 // Integer wrap and fold have no SC UGen; they take reals only.
 static void irange(Thread& th, const char* name, int64_t (*f)(int64_t, int64_t, int64_t))
 {
@@ -626,6 +634,7 @@ void AddSCUGenOps()
 	DEFMCX(sah, 2, "(in trigger --> out) sample and hold. Latch.")
 	DEFMCX(clip, 3, "(in lo hi --> out) constrain the input to the bounds by clipping. Clip.")
 	DEFMCX(wrap, 3, "(in lo hi --> out) constrain the input to the bounds by wrapping. Wrap.")
+	vm.defmcx("*+", 3, madd_, "(a b c --> out) multiply add. a b * c +");
 	DEFMCX(iwrap, 3, "(in lo hi --> out) constrain the integer input to the bounds by wrapping. reals only.")
 	DEFMCX(ifold, 3, "(in lo hi --> out) constrain the integer input to the bounds by folding. reals only.")
 	DEFMCX(fold, 3, "(in lo hi --> out) constrain the input to the bounds by folding at the edges. Fold.")

@@ -15,3 +15,9 @@ Found while generating `tests/fixtures/ref` from `../sapf` (macOS arm64, Acceler
 ## Multichannel `>sf` drops frames
 
 `[a b] @ 4800 N "x" >sf` writes 2400 frames, and frames from 512 onward are wrong. 512 is the block size. Single-channel writes are correct.
+
+## `unspell` reads uninitialized memory
+
+`[97 98 99] unspell` aborts with SIGTRAP (macOS arm64).
+
+`vlistToString` and `zlistToString` (`src/engine/StreamOps.cpp`) construct the `String` before filling its buffer. That constructor takes the buffer and hashes it at once, so it hashes uninitialized memory with no terminator. sapf-sc fills the buffer first.

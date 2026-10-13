@@ -82,7 +82,9 @@ pytest runs six suites:
 
 ## Prelude
 
-`sapf-prelude.txt` is sapf's prelude without the 26 definitions that use DSP words sapf-sc does not map, such as `lines`, `curves`, `hilbert` and `fft`, or that build on them, such as `adsrenv` and the `*-syn` instruments. Load it with `-p sapf-prelude.txt` or `$SAPF_PRELUDE`. `sapf-examples.txt` is unchanged and still uses words that no longer exist.
+`sapf-prelude.txt` is sapf's prelude without the 26 definitions that use DSP words sapf-sc does not map, such as `lines`, `curves`, `hilbert` and `fft`, or that build on them, such as `adsrenv` and the `*-syn` instruments. Load it with `-p sapf-prelude.txt` or `$SAPF_PRELUDE`.
+
+`sapf-examples.txt` keeps the 68 of sapf's 312 examples that run, 15 of them sounds. The rest use words with no SC mapping, most often `lfnoise3`, `klank`, `wavefill`/`osc`, `seq`/`iseq`, `steps`, `saw`, the mouse controls and `ola`, or sapf's live-patching `zplug`.
 
 ## License
 

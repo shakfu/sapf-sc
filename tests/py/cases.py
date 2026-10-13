@@ -131,6 +131,7 @@ for op in BINARY:
 for op in STEPPED:
     CASES.append(Case(f"op2_{_id(op)}", f"{A} {B} {op}", 1e-3, max_bad=5))
 CASES += [
+    Case("op3_madd", f"{A} {B} {POS} *+", 1e-3),
     Case("op2_pow", f"{POS} {B} ^", 1e-3),
     # Original sapf computes b - a for two signals.
     Case("op2_minus", f"{A} {B} -", 1e-3, ref_expr=f"{A} {B} neg +"),
