@@ -3,11 +3,11 @@ name = "sapf-sc"
 version = "0.0.1"
 description = "sapf interpreter for SuperCollider"
 requires-python = ">=3.10"
-dependencies = ["nanosynth>=0.4.0"]
+license = "GPL-3.0-or-later"
+dependencies = []
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "nanosynth[numpy]>=0.4.1"]
 
 [tool.pytest.ini_options]
-pythonpath = ["poc"]
-testpaths = ["tests"]
+testpaths = ["tests/py"]
