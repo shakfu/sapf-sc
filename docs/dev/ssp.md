@@ -26,7 +26,7 @@ State as of 2026-10-14, on the Linux machine, ../ssp branch `sapf` (`c1290dd`).
 
 ## Known differences from sapf
 
-- `log`, `log2` and `log10` of a negative input: sapf gives NaN. On Linux x86, scsynth's UnaryOpUGen takes the `log_nova` SIMD path when `NOVA_SIMD` is on (`server/plugins/UnaryOpUGens.cpp:1058`) and returns finite values. Whether the SSP's ARM build takes that path is not known.
+- `log`, `log2` and `log10` of a negative input: sapf gives NaN. On Linux x86, scsynth's UnaryOpUGen takes the `log_nova` SIMD path when `NOVA_SIMD` is on (`server/plugins/UnaryOpUGens.cpp:1058`) and returns finite values. On the SSP (ARM, also built with `NOVA_SIMD`) all three give NaN, as sapf does (../ssp `plugins/sapf/tests/run_server_on_ssp.sh`, 2026-10-14). Why ARM differs is not traced; nova-simd falling back to scalar `std::log` without an ARM vector type is a guess.
 
 ## Related sapf-sc work
 
