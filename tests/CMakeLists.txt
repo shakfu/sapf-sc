@@ -97,6 +97,11 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
+# sapf exits 0 whatever a case prints; a failed case prints *** FAILED ***, a thrown one error:
+set_tests_properties(smoke test_equals test_tuples test_stack test_size_reverse test_conditionals test_math
+	test_arrays test_streams test_ordering test_at test_filter test_deep_mapping test_forms test_inheritance
+	PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED;error:")
+
 # sapf's language test suite; prints Passed when every case holds
 add_test(
     NAME unit_tests_txt

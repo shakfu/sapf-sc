@@ -36,7 +36,9 @@
 #include <climits>
 #include <mutex>
 
+#ifndef USE_REPLXX
 #define USE_REPLXX 1
+#endif
 
 #if USE_REPLXX
 extern "C" {

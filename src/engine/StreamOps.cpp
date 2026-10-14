@@ -1404,7 +1404,7 @@ struct VGen : public Gen
 {
 	ZIn _a;
 	
-	VGen(Thread& th, Arg a) : Gen(th, itemTypeV, true), _a(a) {}
+	VGen(Thread& th, Arg a) : Gen(th, itemTypeV, a.isFinite()), _a(a) {}  // upstream: always finite
 	virtual const char* TypeName() const override { return "VGen"; }
     	
 	virtual void pull(Thread& th) override {
@@ -1435,7 +1435,7 @@ struct ZGen : public Gen
 {
 	VIn _a;
 	
-	ZGen(Thread& th, Arg a) : Gen(th, itemTypeZ, true), _a(a) {}
+	ZGen(Thread& th, Arg a) : Gen(th, itemTypeZ, a.isFinite()), _a(a) {}  // upstream: always finite
 	virtual const char* TypeName() const override { return "VGen"; }
     	
 	virtual void pull(Thread& th) override {

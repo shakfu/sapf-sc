@@ -46,9 +46,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libraries" FORCE)
 
-# Replxx for cross-platform line editing
-set(REPLXX_BUILD_EXAMPLES OFF CACHE BOOL "Disable replxx examples" FORCE)
-add_subdirectory(thirdparty/replxx)
+# Replxx for the REPL's line editing; off for an embedding host, such as the SSP plugin
+option(SAPF_REPLXX "Line editing with replxx" ON)
+if(SAPF_REPLXX)
+	set(REPLXX_BUILD_EXAMPLES OFF CACHE BOOL "Disable replxx examples" FORCE)
+	add_subdirectory(thirdparty/replxx)
+endif()
 
 add_subdirectory(src/engine)
 

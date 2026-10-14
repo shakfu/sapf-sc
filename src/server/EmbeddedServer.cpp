@@ -205,7 +205,7 @@ private:
 		WorldOptions o;
 		o.mRealTime = true;
 		o.mNumOutputBusChannels = envInt("SAPF_OUTPUTS", 2);
-		o.mNumInputBusChannels = envInt("SAPF_INPUTS", 2);
+		o.mNumInputBusChannels = envInt("SAPF_INPUTS", 0);  // an input stream can block boot when another client holds the device
 		o.mPreferredSampleRate = envInt("SAPF_SR", 0);
 		o.mUGensPluginPath = plugins.c_str();
 		o.mLoadGraphDefs = 0;  // else it loads every def in SC's default folders

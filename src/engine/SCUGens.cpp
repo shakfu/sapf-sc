@@ -774,14 +774,20 @@ static Items readItems(Thread& th, std::vector<V> streams, const char* msg, bool
 {
 	Items it = {streams.size(), {}, false};
 	std::vector<BothIn> in(streams.size());
+	// Values pulled from each list that says it is finite, -1 for others. Counted, not measured
+	// with length(): that forces the whole list, and Z's lists say finite when they are not.
+	std::vector<int64_t> pulled(streams.size(), -1);
+	auto count = [&](size_t j) {
+		if (pulled[j] >= 0 && ++pulled[j] > kMaxItems) {
+			post("%s : more than %d values\n", msg, kMaxItems);
+			throw errOutOfRange;
+		}
+	};
 	for (size_t j = 0; j < streams.size(); ++j) {
 		Arg s = streams[j];
 		if (s.isList() && s.isFinite()) {
 			it.finite = true;
-			if (((List*)s.o())->length(th) > kMaxItems) {
-				post("%s : more than %d values\n", msg, kMaxItems);
-				throw errOutOfRange;
-			}
+			pulled[j] = 0;
 		} else if (!s.isReal() && !s.isList()) {
 			wrongType(msg, "Real or list of reals", s);
 		}
@@ -789,6 +795,7 @@ static Items readItems(Thread& th, std::vector<V> streams, const char* msg, bool
 	}
 	V first;
 	if (lead && !in[0].one(th, first) && first.isReal()) {
+		count(0);
 		*lead = first.f;
 	} else if (lead) {
 		post("%s : no values\n", msg);
@@ -802,10 +809,16 @@ static Items readItems(Thread& th, std::vector<V> streams, const char* msg, bool
 				it.finite = true;
 				goto done;
 			}
+			count(j);
 			if (!v.isReal()) wrongType(msg, "Real", v);
 			row[j] = v.f;
 		}
 		if (!keep || keep(row.data())) it.v.insert(it.v.end(), row.begin(), row.end());
+	}
+	// stopped at a limit: a finite list must end here too
+	for (size_t j = 0; j < streams.size(); ++j) {
+		V v;
+		if (pulled[j] >= 0 && !in[j].one(th, v)) count(j);
 	}
 done:
 	if (it.rows() == 0) {

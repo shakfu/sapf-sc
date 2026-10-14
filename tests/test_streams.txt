@@ -25,6 +25,9 @@
 "ord  1000 N Z ordz 1000 N equals"
 "[1 2 3] Z V [1 2 3] equals"
 "[1 2 3] Z [1 2 3] equals not"
+"ord Z finite not"
+"ordz V finite not"
+"[1 2 3] Z finite"
 ] aa pr cr
 \s [ "Testing : " pr s pr cr
 	s compile !

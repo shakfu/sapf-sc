@@ -39,7 +39,6 @@ target_include_directories(
 	sapf_engine
 	PUBLIC
 	${SAPF_ROOT}/include
-	${SAPF_ROOT}/thirdparty/replxx/include
 )
 
 if(MSVC)
@@ -61,7 +60,12 @@ else()
 	)
 endif()
 
-target_link_libraries(sapf_engine PUBLIC replxx)
+if(SAPF_REPLXX)
+	target_include_directories(sapf_engine PUBLIC ${SAPF_ROOT}/thirdparty/replxx/include)
+	target_link_libraries(sapf_engine PUBLIC replxx)
+else()
+	target_compile_definitions(sapf_engine PUBLIC USE_REPLXX=0)
+endif()
 
 if(APPLE)
 	target_link_libraries(

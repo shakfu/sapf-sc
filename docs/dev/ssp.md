@@ -1,21 +1,21 @@
 # ssp: state and tasks
 
-State as of 2026-10-14. ../ssp is not checked out on the Linux machine used for sapf-sc's Linux check (see next-steps.md), so nothing below has run there.
+State as of 2026-10-14, on the Linux machine, ../ssp branch `sapf` (`c1290dd`).
 
 ## State
 
-- `scsy`, in ../ssp `plugins/scsynth`, plays sapf-sc's `>nrt` scores (`.osc`) and loads `// @buf` sidecar lines. The work is uncommitted in the macOS checkout of ../ssp.
-- Its tests ran on macOS only, against a scratch build of libscsynth. The old session built libsndfile and libscsynth by hand: without `--exclude-libs`, with `-undefined dynamic_lookup` for the plugins, and with `SC_Filesystem_unix.cpp` compiled for macOS. It then built `scsynth_test.cpp` and `scsy_test.cpp` against them. That build is gone.
-- `plugins/scsynth/CMakeLists.txt` gained an include path for `ScsynthEngine.cpp` (`sndfile.h`). No build has used it yet.
+- `scsy`, in ../ssp `plugins/scsynth`, plays sapf-sc's `>nrt` scores (`.osc`) and loads `// @buf` sidecar lines. Committed as `0301b27`.
+- `make test` passes on Linux: 169 tests. The scsy tests compile the plugin sources with their own flags (`plugins/scsynth/tests/test_scsynth.py`), not through `plugins/scsynth/CMakeLists.txt`. They run `scripts/build_deps.sh host` only when `build/deps/host/lib/libscsynth.a` is missing.
+- `make ssp` passes. It is the first build to use the `sndfile.h` include path in `plugins/scsynth/CMakeLists.txt`. Output: `build.cmake.ssp/plugins/scsynth/SCSYNTH_artefacts/Release/VST3/scsy.vst3/Contents/armv7l-linux/scsy.so`.
+- World lifetime: `ScWorld::close` calls `World_Cleanup(world_, false)` and unloads the UGens only when the last open World closes (`plugins/scsynth/Source/ScWorld.cpp`). Scores run in the realtime World: a worker thread sends their bundles ahead of its clock. No NRT World runs, so sapf-sc's `Graph_Calc` segfault cannot occur. Inferred from the code; no test opens two Worlds.
+- Patching: ../ssp does not use FetchContent. `scripts/build_deps.sh` applies each patch to `build/deps/src` once, skipping it when a reverse dry run succeeds. An edited patch fails that check, then fails to apply over the old one, which stops the script. Delete the patched source directory to re-apply. Inferred from the script; not run.
+- Device test (2026-10-14): three files play on the SSP in scsy built from `c1290dd`. `sapftex.osc` (`ola` klank texture, 20 s), `sapfosc.osc` (`sawTbl osc`, 30 wave-table buffers, 1.2 MB), and `sapfloop.scsyndef` with sidecar `// @buf 0 loop.wav`.
+- `>nrt` writes a score when values are left on the stack, without a warning. A typo dropped `osc` from a test score this way.
 
 ## Tasks
 
-1. Commit the scsy work in the macOS checkout, so a Linux checkout can get it.
-2. On Linux, run ../ssp's `make test`. It runs `scripts/build_deps.sh host`, then the tests in `plugins/scsynth/tests`. This is the first build that uses the new `sndfile.h` include path.
-3. Run the SSP cross build.
-4. Check that scsy's libscsynth does not unload plugins when a World ends. In sapf-sc, an NRT World ending called `World_Cleanup(world, true)` and `dlclose`d the UGen plugins under a running realtime World, which segfaulted in `Graph_Calc`. `cmake/patch-supercollider.sh` changes that call to `World_Cleanup(world, false)`. This matters only if scsy creates or ends more than one World per process, or ends one while another runs. Not checked.
-5. If ../ssp patches SuperCollider's source through FetchContent's `PATCH_COMMAND`, check whether editing the patch re-runs it. FetchContent compares only the command string; sapf-sc puts the script's SHA-256 in the command (`cmake/EmbeddedScsynth.cmake`). Not checked.
-6. Play a sapf-sc score on the SSP: `>nrt` writes `name.osc`, and `>sd` writes the sidecar `name.txt`; copy any `@buf` files beside them.
+1. A `sapf` SSP plugin for live coding: the interpreter with its own `ScWorld`, ttyp's keyboard input, a multi-line editor, the prelude loaded at start. Design: ../ssp docs/dev/sapf-plugin.md. Step 1 (the interpreter on the SSP) passed 2026-10-14. Its sapf-sc changes: `SAPF_REPLXX` (CMake option, default ON), and `Array::setSize`/`addSize` taking `int64_t`: as `size_t`, `Gen::produce`'s negative delta became 2^32 - k on 32-bit ARM and crashed every list operation. Steps 2 and 4 still need `ScsynthServer::now()`, a `post` hook and an interrupt flag.
+2. Compiler-dependent graphs: with the same seed, gcc and clang builds write different defs for six examples (e.g. `rocks on rails`): UGen order and random draws follow function argument evaluation order, which C++ leaves unspecified. That cause is inferred from gcc vs clang; the code is not located yet.
 
 ## Known differences from sapf
 

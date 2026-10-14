@@ -29,6 +29,7 @@ SIG = "100 0 sinosc"
         ("100 0 sawTbl osc", "osc reads scsynth buffers"),
         ("100 0 #[1 2 3] osc", "wave table"),
         ("1 1025 to 1 0 impulse seq", "more than 1024 values"),
+        ("1 1025 to Z 1 0 impulse seq", "more than 1024 values"),
         (f"{SIG} 1 0 impulse seq", "got Sig"),
     ],
 )

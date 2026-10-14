@@ -27,9 +27,11 @@ The embedded server reads these when it starts:
 | Variable | Meaning | Default |
 |-|-|-|
 | `SAPF_DEVICE` | audio device, by name | the system's |
-| `SAPF_OUTPUTS`, `SAPF_INPUTS` | channels | 2, 2 |
+| `SAPF_OUTPUTS`, `SAPF_INPUTS` | channels | 2, 0 |
 | `SAPF_SR` | sample rate | the device's |
 | `SAPF_PLUGINS` | UGen plugin folder | `plugins/` beside the executable |
+
+Inputs default to 0. With an input stream, scsynth can hang at boot while another program holds the capture device. Set `SAPF_INPUTS` to use `soundin`; without inputs it reads silence.
 
 `>sf` renders to a file instead, as sapf's does: `channels "name" >sf` writes `name.wav` to `$SAPF_RECORDINGS`, or the temp folder, at the interpreter's rate (`-r`), until the first channel ends. A channel ends where `N`, `T`, `line` and the other finite words end it; `>sf` refuses channels that never end, or end when a signal decides, as a finite `seq` does. The embedded scsynth renders the `>nrt` score in NRT mode, so `ola` voices, wave tables and samples come out as `play` would play them. `>sfo` then opens the file.
 
@@ -97,7 +99,7 @@ scsynth starts a synth at the start of the 64-frame block that holds its time, s
 | `kr` | `(in --> out)` | Control-rate version of `in`. `soundin` and `ugen` keep their rate; `kr` reads them through `A2K`. |
 | `ctl` | `(default name --> sig)` | A control-rate synth parameter. Names must be unique in a def. |
 | `ugen` | `(inputs name rate numOutputs --> out)` | Any SC UGen. `rate` is `'ar`, `'kr` or `'ir`. |
-| `soundin` | `(channel --> sig)` | Hardware input `channel`, from 0. |
+| `soundin` | `(channel --> sig)` | Hardware input `channel`, from 0. The embedded server needs `SAPF_INPUTS`. |
 
 ```
 440 'freq ctl 0 sinosc .1 'amp ctl * "sine" >sd

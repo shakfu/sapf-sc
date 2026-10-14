@@ -31,3 +31,7 @@ Probable cause, not verified: `fillWaveTable` interleaves magnitudes and angles,
 ## `lpf` scales its coefficients more than once at a constant freq
 
 `LPF::pull` (`src/engine/FilterUGens.cpp`) has two branches. With a constant freq it divides `b1` by `a0`, then computes `b0` from the scaled `b1` and divides again, and `b2` from the scaled `b0` and divides a third time. The branch for a varying freq divides once. `SAW 1000 lpf` therefore differs from `SAW 0 0 sinosc 1000 + lpf` by 6.6% RMS; the second matches SC's `LPF` exactly.
+
+## `Z` and `V` call every output finite
+
+`[2 0 1] cyc finite` gives 0; `[2 0 1] cyc Z finite` gives 1. `ZGen` and `VGen` (`src/engine/StreamOps.cpp`) pass `true` as the `Gen` finite flag whatever their input. Original sapf rarely asks; sapf-sc's `seq` and `iseq` measured a finite list with `length()`, which forced `pat picks $/ Z` (three examples, `native algorhythms`) until memory ran out. Both now pass `a.isFinite()`, and `readItems` counts values instead of calling `length()`.
