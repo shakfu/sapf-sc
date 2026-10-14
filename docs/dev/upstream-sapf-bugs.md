@@ -2,6 +2,18 @@
 
 Found while generating `tests/fixtures/ref` from `../sapf` (macOS arm64, Accelerate). `tests/py/cases.py` works around each with `ref_expr` or per-channel rendering.
 
+Policy: sapf-sc computes what sapf's code and documentation describe, not what upstream outputs. A bug in code sapf-sc compiles is fixed, with a test of the correct result; reference renders keep the bug and `ref_expr` names the correct expression. Running old sapf programs with identical output is not a goal.
+
+| Bug | sapf-sc |
+|-|-|
+| Signal minus signal is reversed | fixed in `BinaryOp_minus::loopz` |
+| `ratiosemi` divides | fixed in `sc_ratiosemi` |
+| Multichannel `>sf` drops frames | not compiled: scsynth renders `>sf` |
+| `unspell` reads uninitialized memory | fixed |
+| Classic wavetables | not compiled: `saw`, `square`, `tri`, `pulse` are SC UGens |
+| `lpf` coefficients | not compiled: `lpf` is SC's `LPF` |
+| `Z` and `V` call every output finite | fixed |
+
 ## Signal minus signal is reversed
 
 `#[1 2 3] #[10 20 30] -` gives `#[9 18 27]`; `[1 2 3] [10 20 30] -` gives `[-9 -18 -27]`.

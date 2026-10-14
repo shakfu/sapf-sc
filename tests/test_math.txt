@@ -3,6 +3,11 @@
 [
 "1 2 + 3 equals"
 "2 3 * 6 equals"
+"#[1 2 3] #[10 20 30] - #[-9 -18 -27] equals"
+"#[1 2 3] 10 - #[-9 -8 -7] equals"
+"10 #[1 2 3] - #[9 8 7] equals"
+"2 ratiosemi 12 equals"
+"4 ratiosemi 24 equals"
 "[1 2] 10 * [10 20] equals"
 "[1 2] 10 ba * [10 20] equals"
 "[1 2] [10 20] ba + [11 22] equals"

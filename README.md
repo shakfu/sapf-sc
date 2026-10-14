@@ -55,12 +55,16 @@ To use a server of your own, set `SAPF_SCSYNTH` to its `host:port`; `play` and `
 
 - UGens run at audio rate. `kr` gives a control-rate copy, and an audio-rate UGen that feeds only control-rate sapf UGens becomes control rate too: `.4 0 lfsaw 2 * kr` computes the LFSaw at control rate. A UGen also used at audio rate stays one UGen, read through `A2K`, so a noise source is not split in two. Inputs of a `ugen` node stay audio rate, because a control-rate analysis UGen such as `Amplitude` reads every input sample. A control-rate channel reaches `Out` through `K2A`, one block late.
 
+- Where original sapf has a bug, sapf-sc computes what sapf's code and documentation describe. Signal minus signal, `ratiosemi`, and `Z` or `V` on an infinite stream differ from sapf; see [docs/dev/upstream-sapf-bugs.md](docs/dev/upstream-sapf-bugs.md).
+
 ## Polyphony
 
 `ola` (sapf's overlap add) returns `In.ar` on a private bus, so effects after it compile into the main def. Each sound is its own synth writing to that bus:
 
 - `play` starts the main synth, then a thread that starts each voice at its time, .2 s ahead in a timed bundle. The voices stop when sapf exits; run a file with `-i` to keep them going.
+
 - `>nrt` writes an NRT score (scsynth's non-real-time command file) with the main def and every voice up to a time. `scsynth -N name.osc _ out.wav 48000 WAV float` renders it.
+
 - `>sd` rejects `ola`: one SynthDef cannot start synths.
 
 On the SSP, `scsy` plays a `>nrt` score: Load it as a def. Its main def takes `p1`..`p16` and the sidecar; its voices start on schedule and the score loops at its length, so random choices repeat after that. Voices that compile alike share one def; `scsy` holds at most 900. See `scsy`'s README in the SSP repo. Private buses run from 512 to 959, below the 32 buses `scsy` keeps for controls.
@@ -81,7 +85,9 @@ scsynth starts a synth at the start of the 64-frame block that holds its time, s
 ```
 
 - `play` loads the file into scsynth by its absolute path.
+
 - `>nrt` writes the path as given. On the SSP a relative path is relative to the score's folder.
+
 - `>sd` writes `// @buf N path` lines into the sidecar, `name.txt`, and keeps its other lines. `scsy` loads the files before the synth starts; copy them beside the def.
 
 ## Words added

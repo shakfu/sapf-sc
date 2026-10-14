@@ -412,7 +412,7 @@ inline double sc_semiratio(double key)
 
 inline double sc_ratiosemi(double ratio)
 {
-	return 0.08333333333333333333333333 * sc_log2(ratio);
+	return 12. * sc_log2(ratio);  // upstream divided by 12
 }
 
 inline double sc_keyratio(double key, double invedo)

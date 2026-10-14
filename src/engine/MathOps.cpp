@@ -980,7 +980,7 @@ DEFINE_BINOP_FLOATVV1(nextafter, nextafter(a, b), vvnextafter(out, const_cast<Z*
 					//LOOP(i,n) { out[i] = *aa; aa += bstride; }
 				}
 			} else {
-				vDSP_vsubD(aa, astride, bb, bstride, out, 1, n);
+				vDSP_vsubD(bb, bstride, aa, astride, out, 1, n);  // vDSP computes second minus first; upstream passed a first
 				//LOOP(i,n) { Z a = *aa; Z b = *bb; out[i] = a + b; aa += astride; bb += bstride; }
 			}
 		}
