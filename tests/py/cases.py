@@ -172,12 +172,13 @@ UNARY = [
     "neg", "abs", "ceil", "floor", "frac", "sgn", "^2", "^3", "e^", "sin", "cos", "tan", "asin",
     "acos", "atan", "sinh", "cosh", "tanh", "distort", "softclip", "/2", "*2", "++", "--", "cmpl",
     "biuni", "unibi", "sin1", "cos1", "degrad", "raddeg", "2^", "10^", "sigm", "~", "0=", "0<",
-    "0>", "0>=", "0<=", "dbamp", "log", "log2", "log10",
+    "0>", "0>=", "0<=", "dbamp",
 ]
-# Below zero sapf returns NaN where SC's sqrt and ampdb keep the sign. 1/ near zero magnifies
-# SinOsc's float32 error. Pitch conversions get inputs in range.
-POSITIVE = ["sqrt", "rsqrt", "ampdb", "1/", "nnhz", "hznn", "ohz", "hzo", "semiratio", "centsratio",
-            "ratiocents"]
+# Below zero sapf returns NaN where SC's sqrt and ampdb keep the sign, and SC's SIMD logs (Linux)
+# return finite values. 1/ near zero magnifies SinOsc's float32 error. Pitch conversions get
+# inputs in range.
+POSITIVE = ["sqrt", "rsqrt", "ampdb", "log", "log2", "log10", "1/", "nnhz", "hznn", "ohz", "hzo",
+            "semiratio", "centsratio", "ratiocents"]
 BINARY = [
     "+", "*", "/", "%", "==", "!=", "<", ">", "<=", ">=", "&", "|", "atan2", "hypot", "ring1",
     "ring2", "ring3", "ring4", "difsq", "sumsq", "sqsum", "sqdif", "absdif", "thresh", "amclip",

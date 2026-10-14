@@ -1,6 +1,8 @@
 """Renders tests/py/cases.py with original sapf into tests/fixtures/ref.
 
-    SAPF_ORIG=/path/to/original/sapf uv run python scripts/make_reference.py
+    SAPF_ORIG=/path/to/original/sapf uv run python scripts/make_reference.py [case names]
+
+With case names, renders only those cases.
 
 Original sapf's multichannel >sf drops frames, so each channel is rendered alone and interleaved here.
 """
@@ -37,7 +39,10 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         env = dict(os.environ, SAPF_RECORDINGS=tmp, SAPF_PRELUDE="/dev/null", SAPF_LOG=f"{tmp}/log")
+        names = set(sys.argv[1:])
         for c in CASES:
+            if names and c.name not in names:
+                continue
             expr = c.ref_expr or c.expr
             frames = int(c.seconds * SR)
             lines = [f'{expr} = sig'] + [

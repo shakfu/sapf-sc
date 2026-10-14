@@ -29,10 +29,14 @@ def server():
         [sys.executable, str(ROOT / "scripts" / "server.py"), "--port", str(PORT)],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
-    line = proc.stdout.readline()
-    if "scsynth on" not in line:
+    lines = []  # ALSA prints probe warnings on Linux before the server is up
+    for line in proc.stdout:
+        lines.append(line)
+        if "scsynth on" in line:
+            break
+    else:
         proc.kill()
-        pytest.skip(f"cannot boot scsynth: {line}")
+        pytest.skip(f"cannot boot scsynth: {''.join(lines[-5:])}")
     yield proc
     proc.terminate()
     proc.wait(timeout=10)

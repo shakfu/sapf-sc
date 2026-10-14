@@ -19,10 +19,15 @@ FetchContent_Declare(sndfile
 	URL https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz
 	URL_HASH SHA256=3799ca9924d3125038880367bf1468e53a1b7e3686a934f098b7e1d286cdb80e
 	EXCLUDE_FROM_ALL)
+# The script's hash, an argument it ignores, puts its contents into the command, so editing it
+# re-runs the patch on an existing build tree; FetchContent compares only the command string.
+set(SAPF_SC_PATCH ${CMAKE_CURRENT_LIST_DIR}/patch-supercollider.sh)
+file(SHA256 ${SAPF_SC_PATCH} SAPF_SC_PATCH_HASH)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${SAPF_SC_PATCH})
 FetchContent_Declare(supercollider
 	URL https://github.com/supercollider/supercollider/releases/download/Version-3.14.1/SuperCollider-3.14.1-Source.tar.bz2
 	URL_HASH SHA256=ee640c68777ae697682066ce5c4a8b7e56c5b223e76c79c13b5be5387ee55bb2
-	PATCH_COMMAND sh ${CMAKE_CURRENT_LIST_DIR}/patch-supercollider.sh
+	PATCH_COMMAND sh ${SAPF_SC_PATCH} ${SAPF_SC_PATCH_HASH}
 	EXCLUDE_FROM_ALL)
 
 # libsndfile: static, no external codecs (no Ogg, FLAC or MPEG)
