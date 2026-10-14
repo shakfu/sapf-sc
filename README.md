@@ -21,6 +21,8 @@ build/sapf
 stop
 ```
 
+`stop` also ends the scheduling of `ola` voices.
+
 Any scsynth works, e.g. SuperCollider's own: `scsynth -u 57110`. `$SAPF_SCSYNTH` sets another `host:port`. `play` waits up to 1 s for scsynth to confirm the def and reports an error otherwise. A def over about 64 KB does not fit in one UDP packet; write it with `>sd` and load it instead.
 
 ## Model
@@ -35,9 +37,40 @@ Any scsynth works, e.g. SuperCollider's own: `scsynth -u 57110`. `$SAPF_SCSYNTH`
 
 - `N`, `NZ` and `T` on a `Sig` end it: an `EnvGen` drops to zero after that many frames or seconds and frees the synth. `line`, `xline` and `fadeout` end the same way. As in sapf, a channel computed from a finite signal is zero from the frame that signal ends.
 
+- `seq`, `iseq`, `steps` and `imps` read their value streams when the def compiles and store them in a `Dseq`. A finite stream ends the signal. An infinite stream keeps its first 1024 values and loops its period, or all 1024 values if none repeats. Random streams therefore repeat after 1024 values.
+
 - Durations convert to frames at the server's sample rate (`SampleRate.ir`), not the interpreter's.
 
 - UGens run at audio rate. `kr` gives a control-rate copy, and an audio-rate UGen that feeds only control-rate sapf UGens becomes control rate too: `.4 0 lfsaw 2 * kr` computes the LFSaw at control rate. A UGen also used at audio rate stays one UGen, read through `A2K`, so a noise source is not split in two. Inputs of a `ugen` node stay audio rate, because a control-rate analysis UGen such as `Amplitude` reads every input sample. A control-rate channel reaches `Out` through `K2A`, one block late.
+
+## Polyphony
+
+`ola` (sapf's overlap add) returns `In.ar` on a private bus, so effects after it compile into the main def. Each sound is its own synth writing to that bus:
+
+- `play` starts the main synth, then a thread that starts each voice at its time, .2 s ahead in a timed bundle. The voices stop when sapf exits; run a file with `-i` to keep them going.
+- `>nrt` writes an NRT score (scsynth's non-real-time command file) with the main def and every voice up to a time. `scsynth -N name.osc _ out.wav 48000 WAV float` renders it.
+- `>sd` rejects `ola`: one SynthDef cannot start synths.
+
+On the SSP, `scsy` plays a `>nrt` score: Load it as a def. Its main def takes `p1`..`p16` and the sidecar; its voices start on schedule and the score loops at its length, so random choices repeat after that. Voices that compile alike share one def; `scsy` holds at most 900. See `scsy`'s README in the SSP repo. Private buses run from 512 to 959, below the 32 buses `scsy` keeps for controls.
+
+scsynth starts a synth at the start of the 64-frame block that holds its time, so a voice can start up to 63 frames early. `OffsetOut` would start it on the exact frame but crashes scsynth's NRT renderer.
+
+## Wave tables
+
+`wavefill`, `sawTbl`, `sqrTbl`, `triTbl` and `parTbl` return sapf data: 30 third-octave tables of 4096 samples in one signal. `osc` plays them with `VOsc` over 30 consecutive scsynth buffers from 512 upward, picking tables by frequency as sapf does. `play` and `>nrt` load the buffers, so a `>nrt` score carries its tables to the SSP; `>sd` rejects `osc`, because a SynthDef cannot load buffers. Original sapf's tables are broken, so these follow the formula its code describes; see [docs/dev/upstream-sapf-bugs.md](docs/dev/upstream-sapf-bugs.md).
+
+## Samples
+
+`sf>` and `playbuf` play a WAV or AIFF file with `PlayBuf` from one of scsynth's buffers 0..63. `sf>` plays it once at rate 1, as sapf's `sf>` reads it: one signal per channel, ending with the file. Neither resamples a file recorded at another rate; sapf did not either.
+
+```
+"loop.wav" 1 1 playbuf 0 at .5 * play       ; looped, first channel
+"hit.wav" sf> play                           ; once
+```
+
+- `play` loads the file into scsynth by its absolute path.
+- `>nrt` writes the path as given. On the SSP a relative path is relative to the score's folder.
+- `>sd` writes `// @buf N path` lines into the sidecar, `name.txt`, and keeps its other lines. `scsy` loads the files before the synth starts; copy them beside the def.
 
 ## Words added
 
@@ -45,7 +78,10 @@ Any scsynth works, e.g. SuperCollider's own: `scsynth -u 57110`. `$SAPF_SCSYNTH`
 |-|-|-|
 | `>sd` | `(channels name -->)` | Writes `name.scsyndef`. |
 | `play` | `(channels -->)` | Sends the def to scsynth and starts a synth. |
-| `stop` | `(-->)` | Frees every synth on that scsynth. |
+| `stop` | `(-->)` | Frees every synth on that scsynth and stops `ola` voices. |
+| `>nrt` | `(channels seconds name -->)` | Writes `name.osc`, an NRT score of channels and their `ola` voices. |
+| `sf>` | `(filename --> channels)` | A sound file's channels, once. |
+| `playbuf` | `(filename rate loop --> channels)` | A sound file's channels at `rate`, looped when `loop` is not 0. |
 | `kr` | `(in --> out)` | Control-rate version of `in`. `soundin` and `ugen` keep their rate; `kr` reads them through `A2K`. |
 | `ctl` | `(default name --> sig)` | A control-rate synth parameter. Names must be unique in a def. |
 | `ugen` | `(inputs name rate numOutputs --> out)` | Any SC UGen. `rate` is `'ar`, `'kr` or `'ir`. |
@@ -66,15 +102,19 @@ make test                        # ctest, then pytest (needs uv)
 make reference SAPF_ORIG=...     # regenerates tests/fixtures/ref with original sapf
 ```
 
-pytest runs six suites:
+pytest runs eight suites:
 
 - `test_scgf_parity.py`: sapf's SCgf bytes equal [nanosynth](../nanosynth)'s for the same graph.
 
-- `test_conformance.py`: scsynth renders each def in NRT mode (non-real-time, via nanosynth). The output is compared with original sapf's render of the same expression, stored in `tests/fixtures/ref`.
+- `test_conformance.py`: scsynth renders each def, or each `>nrt` score for `ola`, in NRT mode (non-real-time, via nanosynth). The output is compared with original sapf's render of the same expression, stored in `tests/fixtures/ref`.
 
 - `test_errors.py`: operations a SynthDef cannot express fail and write no file.
 
 - `test_rates.py`: the rates compilation assigns under `kr`.
+
+- `test_wavetables.py`: `osc` against wave tables computed in numpy.
+
+- `test_samples.py`: `sf>` and `playbuf` against the sound file, and the sidecar `>sd` writes.
 
 - `test_play.py`: `play` and `stop` against `scripts/server.py`, with silent synths. Skipped without an audio device.
 
@@ -82,9 +122,9 @@ pytest runs six suites:
 
 ## Prelude
 
-`sapf-prelude.txt` is sapf's prelude without the 26 definitions that use DSP words sapf-sc does not map, such as `lines`, `curves`, `hilbert` and `fft`, or that build on them, such as `adsrenv` and the `*-syn` instruments. Load it with `-p sapf-prelude.txt` or `$SAPF_PRELUDE`.
+`sapf-prelude.txt` is sapf's prelude without the 5 of its 285 definitions that use words sapf-sc does not map: `hilbert`, `fft` and `kaiser`, or definitions built on them. Load it with `-p sapf-prelude.txt` or `$SAPF_PRELUDE`.
 
-`sapf-examples.txt` keeps the 68 of sapf's 312 examples that run, 15 of them sounds. The rest use words with no SC mapping, most often `lfnoise3`, `klank`, `wavefill`/`osc`, `seq`/`iseq`, `steps`, `saw`, the mouse controls and `ola`, or sapf's live-patching `zplug`.
+`sapf-examples.txt` keeps the 210 of sapf's 312 examples that run; 154 of them play. The rest use words with no SC mapping, most often `lpcombc`, the mouse controls, `violet`, `klang` and `pdiv`, or sapf's live-patching `zplug` and `set`.
 
 ## License
 

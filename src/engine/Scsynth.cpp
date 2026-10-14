@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "Scsynth.hpp"
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -64,12 +65,43 @@ std::string oscMessage(const std::string& address, const std::vector<OscArg>& ar
 			case OscArg::Int : tags += 'i'; putInt(data, a.i); break;
 			case OscArg::String : tags += 's'; putString(data, a.s); break;
 			case OscArg::Blob : tags += 'b'; putInt(data, (int32_t)a.s.size()); data += a.s; pad(data); break;
+			case OscArg::Float : {
+				tags += 'f';
+				int32_t bits;
+				memcpy(&bits, &a.f, 4);
+				putInt(data, bits);
+				break;
+			}
 		}
 	}
 	std::string out;
 	putString(out, address);
 	putString(out, tags);
 	return out + data;
+}
+
+std::string oscBundle(double seconds, const std::vector<std::string>& messages, bool realtime)
+{
+	const double kNTPEpochOffset = 2208988800.; // 1900 to 1970
+	double t = realtime ? seconds + kNTPEpochOffset : seconds;
+	// 32.32 fixed point. NTP seconds times 2^32 overflow int64, so the parts are separate. The
+	// fraction rounds: truncating can put a block-aligned time in the block before.
+	double whole = std::floor(t);
+	uint64_t seconds32 = (uint64_t)whole;
+	uint64_t frac = (uint64_t)std::llround((t - whole) * 4294967296.);
+	if (frac >> 32) {
+		++seconds32;
+		frac = 0;
+	}
+	std::string out;
+	putString(out, "#bundle");
+	putInt(out, (int32_t)(uint32_t)seconds32);
+	putInt(out, (int32_t)(uint32_t)frac);
+	for (const std::string& m : messages) {
+		putInt(out, (int32_t)m.size());
+		out += m;
+	}
+	return out;
 }
 
 std::string scsynthAddress()

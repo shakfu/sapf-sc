@@ -21,3 +21,13 @@ Found while generating `tests/fixtures/ref` from `../sapf` (macOS arm64, Acceler
 `[97 98 99] unspell` aborts with SIGTRAP (macOS arm64).
 
 `vlistToString` and `zlistToString` (`src/engine/StreamOps.cpp`) construct the `String` before filling its buffer. That constructor takes the buffer and hashes it at once, so it hashes uninitialized memory with no terminator. sapf-sc fills the buffer first.
+
+## Classic wavetables do not hold their waveforms
+
+`100 0 saw` has a spike at each cycle start and an RMS of .12; a sawtooth has a linear ramp. `square`, `tri` and `pulse` are also wrong; all use the tables from `makeClassicWavetables` (`src/engine/OscilUGens.cpp`). The sine series the code describes differs from the output by about 100% RMS.
+
+Probable cause, not verified: `fillWaveTable` interleaves magnitudes and angles, then calls `vDSP_rectD` with stride 1. Pairs need stride 2, so each angle is read as the next magnitude.
+
+## `lpf` scales its coefficients more than once at a constant freq
+
+`LPF::pull` (`src/engine/FilterUGens.cpp`) has two branches. With a constant freq it divides `b1` by `a0`, then computes `b0` from the scaled `b1` and divides again, and `b2` from the scaled `b0` and divides a third time. The branch for a varying freq divides once. `SAW 1000 lpf` therefore differs from `SAW 0 0 sinosc 1000 + lpf` by 6.6% RMS; the second matches SC's `LPF` exactly.

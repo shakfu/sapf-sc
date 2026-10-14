@@ -17,6 +17,9 @@ extern void AddStreamOps();
 extern void AddSetOps();
 extern void AddRandomOps();
 extern void AddSCUGenOps();
+extern void AddTextureOps();
+extern void AddWavetableOps();
+extern void AddSampleOps();
 
 namespace {
 
@@ -68,6 +71,9 @@ void SapfEngine::registerBuiltins()
 	AddStreamOps();
 	AddRandomOps();
 	AddSCUGenOps();
+	AddTextureOps();
+	AddWavetableOps();
+	AddSampleOps();
 	AddSetOps();
 }
 

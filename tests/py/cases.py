@@ -23,6 +23,7 @@ class Case:
     seconds: float = 0.1
     ref_expr: str | None = None
     delay: int = 0  # frames the render lags the reference
+    nrt: bool = False  # render the >nrt score, with ola voices, in place of the >sd def
 
 
 A = "100 0 sinosc .9 * .0123 +"  # zero crossings fall between samples
@@ -43,13 +44,30 @@ CASES = [
     Case("lfsaw_phase", "100 .3 lfsaw", max_bad=1),
     Case("lftri", "100 0 lftri"),
     Case("lftri_phase", "100 .3 lftri"),
+    # LFTri starting in its last quarter cycle wraps one frame late: frame 0 is -1.2.
+    Case("lftri_phase2", "100 .6 lftri", max_bad=1),
     Case("lfpulse", "100 0 .3 lfpulse"),
     Case("lfpulse_phase", "100 .5 .3 lfpulse"),
     Case("lfpulseb", "100 0 .3 lfpulseb"),
     Case("lfsquare", "100 0 lfsquare"),
+    # Original sapf's saw, tri, square and pulse tables are broken; the references are the
+    # waveforms the tables describe, built from sapf's non band limited oscillators.
+    Case("saw", "100 0 saw", ref_expr="100 0 lfsaw"),
+    Case("saw_phase", "100 .3 saw", ref_expr="100 .3 lfsaw", max_bad=1),
+    Case("tri", "100 0 tri", ref_expr="100 0 lftri"),
+    # tri(t + .3) = -tri(t + .8); sapf's lftri phase .6 starts at .8 of a cycle.
+    Case("tri_phase", "100 .3 tri", ref_expr="100 .6 lftri neg"),
+    Case("square", "100 0 square", ref_expr="100 0 lfsquare"),
+    Case("square_phase", "100 .5 square", ref_expr="100 .5 lfsquare"),
+    Case("pulse", "100 0 .3 pulse", ref_expr="100 0 lfsaw .4 >= .3 -"),
+    Case("pulse_phase", "100 .2 .3 pulse", ref_expr="100 .2 lfsaw .4 >= .3 -"),
+    Case("pulse_mod", f"100 0 3 0 sinosc .2 * .5 + pulse",
+         ref_expr="3 0 sinosc .2 * .5 + = d 100 0 lfsaw 1 d 2 * - >= d neg +"),
     Case("impulse", IMP),
     Case("impulse_phase", "100 .5 impulse"),
-    Case("lpf", f"{SAW} 1000 lpf", .1, "rms"),
+    # Original sapf's lpf scales its coefficients wrongly at a constant freq; a zero signal added
+    # to freq selects its correct branch.
+    Case("lpf", f"{SAW} 1000 lpf", ref_expr=f"{SAW} 0 0 sinosc 1000 + lpf"),
     Case("hpf", f"{SAW} 1000 hpf"),
     Case("rlpf", f"{SAW} 1000 .3 rlpf", .005, "rms"),
     Case("rhpf", f"{SAW} 1000 .3 rhpf", .005, "rms"),
@@ -90,6 +108,10 @@ CASES = [
     # Control rate computes once per 64-frame block. K2A interpolates from the previous block,
     # so the output lags one block.
     Case("kr", "30 0 sinosc kr", .01, "rms", ref_expr="30 0 sinosc", delay=64),
+    # sapf starts each segment a frame late, past the end of the one before; EnvGen does not.
+    Case("adsr", "[.01 .02 .5 .03] .8 .05 1 adsr", .005, "rms"),
+    Case("adsr_early", "[.03 .02 .5 .02] .8 .02 1 adsr", 1e-3),
+    Case("adsr_tempo", "[.01 .02 .5 .03] .8 .1 2 adsr", .005, "rms"),
     Case("line", ".05 -.5 .8 line"),
     Case("line_mod", ".05 200 800 line 0 sinosc", 1e-3),
     Case("xline", ".05 .01 .8 xline"),
@@ -98,6 +120,52 @@ CASES = [
     Case("N", "100 0 sinosc 2000 N"),
     Case("T", "100 0 sinosc .03 T"),
     Case("NZ", "100 0 sinosc 1000 NZ"),
+    # Ringz differs from sapf by 3.2% RMS at 300 Hz, 1% at 1 kHz.
+    Case("lpf1", f"{SAW} 1000 lpf1", 1e-3),
+    Case("hpf1", f"{SAW} 1000 hpf1", 1e-3),
+    Case("lpf2", f"{SAW} 1000 lpf2", 1e-3),
+    # SOS is direct form II, sapf's biquads direct form I; they differ when coefficients move.
+    Case("lpf2_mod", f"{SAW} 3 0 sinosc 500 * 1000 + lpf2", .005, "rms"),
+    Case("hpf2", f"{SAW} 1000 hpf2", 1e-3),
+    Case("rlpf2", f"{SAW} 1000 .3 rlpf2", 1e-3),
+    Case("lag2", f"{SAW} .01 lag2", .015, "rms"),
+    Case("sinoscfb", "100 0 .8 sinoscfb", 1e-3),  # above about 1 it is chaotic; float32 and double part
+    Case("sinoscm", "100 .25 2 .5 sinoscm"),
+    Case("flange", f"{SIN} 1m 3m flange", 1e-3, "rms"),
+    Case("flange_mod", f"{SIN} 3 0 sinosc 2m * 3m flange", 1e-3, "rms"),
+    Case("flangep", f"{SIN} -1m 3m flangep", 1e-3, "rms"),
+    Case("klank", f"{IMP2} [300 500 700] [1 .5 .25] [.05 .03 .02] klank", .04, "rms"),
+    Case("klank_one", f"{IMP2} 300 1 .05 klank", .04, "rms"),
+    Case("itd", f"{SIN} .3 1m itd", 1e-3, "rms", channels=2),
+    Case("itd_mod", f"{SIN} 3 0 sinosc 1m itd", 1e-3, "rms", channels=2),
+    Case("lines", "#[0 1 -.5 .2] #[.02 .03 .01] 1 lines"),
+    Case("lines_cyc", "#[0 1 -.5] cyc #[.02 .03 .01] cyc 1 lines"),
+    Case("lines_rate", "#[0 1 -.5 .2] .02 2 lines", max_bad=1),  # sapf's phase drift, as steps
+    # sapf jumps at a zero duration; DemandEnvGen takes one frame, then its ramp catches up.
+    Case("lines_jump", "#[0 1 .5 .2] #[.02 0 .01] 1 lines", 1e-3, max_bad=1),
+    Case("xlines", "#[.1 1 .3 .5] #[.02 .03 .01] 1 xlines"),
+    Case("curves", "#[0 1 -.5 .2] #[3 -2 1] #[.02 .03 .01] 1 curves"),
+    # ola voices start on the block holding their time; these hops are whole blocks at 48 kHz.
+    # sapf's beat drift moves some voice edges by a frame.
+    Case("ola", "\\i[ 0 0 sinosc i 1 + + .02 T ] 1/75 1 1 ola 0 at", max_bad=12, nrt=True),
+    # A voice the drift moves by a frame differs throughout; the cases above pin the timing.
+    Case("ola_sine", "\\i[ i 100 * 200 + 0 sinosc .3 * .02 T ] 1/75 1 1 ola 0 at", .08, "rms", nrt=True),
+    Case("ola_list", "[0 0 sinosc 1 + .03 T  0 0 sinosc 2 + .01 T] 1/75 1 1 ola 0 at", max_bad=4, nrt=True),
+    Case("ola_stereo", "\\i[ [0 0 sinosc i 1 + + .02 T  0 0 sinosc i neg + .02 T] ] 1/75 1 2 ola",
+         max_bad=24, channels=2, nrt=True),
+    Case("seq", "#[1 2 3 4 5 6] cyc 40 0 impulse seq"),
+    Case("seq_finite", "#[1 2 3] 40 0 impulse seq"),
+    Case("seq_mod", "#[200 300 400] cyc 40 0 impulse seq 0 sinosc", 1e-3),
+    Case("iseq", "#[1 2 3] cyc 40 0 impulse iseq"),
+    Case("iseq_finite", "#[1 2] 40 0 impulse iseq"),
+    # sapf sums rate/SR per frame in double, so some steps start one frame late: 481 for .01 s.
+    # SC counts frames. max_bad is one frame per late step, two for imps.
+    Case("steps", "#[1 2 3] cyc #[.01 .02 .015] cyc 1 steps", max_bad=4),
+    Case("steps_finite", "#[1 2 3] #[.01 .02 .015] 1 steps", max_bad=2),
+    Case("steps_rate", "#[1 2 3] cyc .01 2.5 steps"),
+    Case("steps_zero", "#[1 2 3 4] cyc #[.01 0 .02] cyc 1 steps", max_bad=1),
+    Case("imps", "#[1 2 3] cyc #[.01 .02 .015] cyc 1 imps", max_bad=8),
+    Case("imps_finite", "#[1 2 3] .01 1 imps", max_bad=4),
 ]
 
 UNARY = [

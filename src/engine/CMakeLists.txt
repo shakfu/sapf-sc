@@ -19,6 +19,9 @@ set(ENGINE_SOURCES
 	Graph.cpp
 	SCUGens.cpp
 	Scsynth.cpp
+	Texture.cpp
+	Wavetables.cpp
+	Samples.cpp
 	VM.cpp
 )
 

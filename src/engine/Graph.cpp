@@ -27,6 +27,7 @@ static const char* rateName(int rate)
 	switch (rate) {
 		case rateIR : return "ir";
 		case rateKR : return "kr";
+		case rateDR : return "dr";
 		default : return "ar";
 	}
 }
@@ -376,6 +377,10 @@ struct WorkGraph {
 		c->paramDefault = u->paramDefault;
 		c->fixedRate = u->fixedRate;
 		c->endGate = u->endGate;
+		c->texture = u->texture;
+		c->wavetable = u->wavetable;
+		c->tableBuf = u->tableBuf;
+		c->sample = u->sample;
 		memo[u] = c;
 		for (Arg in : u->inputs) c->inputs.push_back(remap(in));
 		return c();
@@ -449,7 +454,38 @@ void inferRates(const std::vector<V>& chans)
 
 } // namespace
 
-std::string compileSynthDef(Thread& th, Arg channels, const std::string& name)
+std::vector<P<Object>> texturesOf(Thread& th, Arg channels)
+{
+	std::vector<V> chans;
+	flattenChannels(th, channels, chans);
+	std::vector<UGenNode*> nodes;
+	std::map<UGenNode*, bool> seen;
+	for (Arg c : chans)
+		if (isSig(c)) collect(((Sig*)c.o())->node(), nodes, seen);
+	std::vector<P<Object>> out;
+	for (UGenNode* u : nodes)
+		if (u->texture()) out.push_back(u->texture);
+	return out;
+}
+
+static std::vector<UGenNode*> nodesOf(Thread& th, Arg channels, P<Object> UGenNode::*field)
+{
+	std::vector<V> chans;
+	flattenChannels(th, channels, chans);
+	std::vector<UGenNode*> nodes;
+	std::map<UGenNode*, bool> seen;
+	for (Arg c : chans)
+		if (isSig(c)) collect(((Sig*)c.o())->node(), nodes, seen);
+	std::vector<UGenNode*> out;
+	for (UGenNode* u : nodes)
+		if ((u->*field)()) out.push_back(u);
+	return out;
+}
+
+std::vector<UGenNode*> wavetableNodesOf(Thread& th, Arg channels) { return nodesOf(th, channels, &UGenNode::wavetable); }
+std::vector<UGenNode*> sampleNodesOf(Thread& th, Arg channels) { return nodesOf(th, channels, &UGenNode::sample); }
+
+std::string compileSynthDef(Thread& th, Arg channels, const std::string& name, int outBus)
 {
 	std::vector<V> original;
 	flattenChannels(th, channels, original);
@@ -464,7 +500,7 @@ std::string compileSynthDef(Thread& th, Arg channels, const std::string& name)
 	inferRates(chans);
 
 	// Out.ar takes audio-rate inputs only.
-	std::vector<V> outInputs = {0.};
+	std::vector<V> outInputs = {(double)outBus};
 	for (Arg c : chans) {
 		if (c.isReal())
 			outInputs.push_back(makeUGen("DC", rateAR, {c}));

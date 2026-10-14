@@ -15,4 +15,8 @@
   - Open: slot order. `>sd` sorts parameters by name; slots may need creation order.
   - Note: a label that names no control fails the load in `scsy`, and `freq`, `velocity` and `gate` are reserved for MIDI.
 
+- [ ] `lpcombc`: its low pass sits inside the feedback loop, which needs single-sample feedback. Options: an approximation, or a plugin UGen.
+
 ## Low
+
+- [ ] `ola` voices start on the 64-frame block holding their time. `OffsetOut` would place them on the frame but crashed nanosynth's NRT renderer (`world_nrt_render`); find out why.

@@ -22,6 +22,14 @@ SIG = "100 0 sinosc"
         (f"1 'f ctl 2 'f ctl +", "parameter 'f' is defined more than once"),
         (f"[{SIG}] 'Foo 'zr 1 ugen", "expected 'ar, 'kr or 'ir"),
         ("[1 2 3] ever", "indefinite"),
+        (f"#[1 2] .1 {SIG} steps", "expected Float. got Sig"),
+        ("#[1 2] .1 0 imps", "rate must be positive"),
+        ("#[] 1 0 impulse seq", "no values"),
+        (f"\\i[{SIG} .1 T] .1 1 1 ola", "cannot start ola voices"),
+        ("100 0 sawTbl osc", "osc reads scsynth buffers"),
+        ("100 0 #[1 2 3] osc", "wave table"),
+        ("1 1025 to 1 0 impulse seq", "more than 1024 values"),
+        (f"{SIG} 1 0 impulse seq", "got Sig"),
     ],
 )
 def test_error(code, message, sapf_bin, tmp_path):

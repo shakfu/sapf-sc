@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-enum { rateIR = 0, rateKR = 1, rateAR = 2 };
+enum { rateIR = 0, rateKR = 1, rateAR = 2, rateDR = 3 };
 
 // SC operator special indices (BinaryOpUGens.cpp, UnaryOpUGens.cpp).
 enum {
@@ -54,6 +54,10 @@ public:
 	bool fixedRate = false;
 	P<UGenNode> krOf;        // set on the node kr returns: the audio-rate node it copies
 	bool endGate = false;    // an EnvGen from endAfter: 1, then 0 when a finite signal ends
+	P<Object> texture;       // set on the In node ola returns: the voices that write its bus
+	P<Object> wavetable;     // set on osc's VOsc: the tables it reads, from buffer tableBuf
+	int tableBuf = -1;
+	P<Object> sample;        // set on sf>'s and playbuf's PlayBuf: the sound file it reads into tableBuf
 
 	UGenNode(const char* inName, int inRate, std::vector<V> inInputs, int inNumOutputs, int inSpecial, bool inPure);
 
@@ -104,7 +108,17 @@ V secondsToFrames(Thread& th, double seconds);
 // Synth parameter named `name` with default `value`.
 V makeParam(const char* name, double value);
 
-// Compiles channels (a Sig, a real, or a finite list of them) to an SCgf file holding one def.
-std::string compileSynthDef(Thread& th, Arg channels, const std::string& name);
+// Compiles channels (a Sig, a real, or a finite list of them) to an SCgf file holding one def that
+// writes them from bus `outBus`.
+std::string compileSynthDef(Thread& th, Arg channels, const std::string& name, int outBus = 0);
+
+// The textures (ola voices) the channels read.
+std::vector<P<Object>> texturesOf(Thread& th, Arg channels);
+
+// The VOsc nodes of osc that the channels read.
+std::vector<UGenNode*> wavetableNodesOf(Thread& th, Arg channels);
+
+// The PlayBuf nodes of sf> and playbuf that the channels read.
+std::vector<UGenNode*> sampleNodesOf(Thread& th, Arg channels);
 
 #endif

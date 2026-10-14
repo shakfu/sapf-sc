@@ -6,15 +6,18 @@ import numpy as np
 import pytest
 
 from cases import CASES
-from conftest import read_wav_float, render
+from conftest import read_wav_float, render, render_nrt
 
 REF = Path(__file__).resolve().parents[1] / "fixtures" / "ref"
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: f"{c.name}: {c.expr}")
-def test_matches_sapf(case, compile_sapf, tmp_path):
+def test_matches_sapf(case, compile_sapf, score_sapf, tmp_path):
     ref = read_wav_float(REF / f"{case.name}.wav")
-    got = render(compile_sapf(case.expr, case.name), case.name, case.seconds, tmp_path, case.channels)
+    if case.nrt:
+        got = render_nrt(score_sapf(case.expr, case.seconds, case.name), case.seconds, tmp_path, case.channels)
+    else:
+        got = render(compile_sapf(case.expr, case.name), case.name, case.seconds, tmp_path, case.channels)
     assert got.shape[1] == ref.shape[1]
     # A finite sapf signal ends; its synth frees itself by the end of that block.
     tail = got[len(ref) :]

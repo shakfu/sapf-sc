@@ -42,6 +42,37 @@ def compile_sapf(sapf_bin, tmp_path):
     return compile_
 
 
+@pytest.fixture
+def score_sapf(sapf_bin, tmp_path):
+    def score(expr: str, seconds: float, name: str = "t") -> Path:
+        out = run_sapf(f'{expr} {seconds} "{name}" >nrt', tmp_path)
+        path = tmp_path / f"{name}.osc"
+        assert path.exists(), out
+        return path
+
+    return score
+
+
+def render_nrt(score: Path, seconds: float, workdir: Path, channels: int = 1) -> np.ndarray:
+    """Renders an NRT command file written by >nrt with nanosynth's scsynth."""
+    from nanosynth import _scsynth
+    from nanosynth.scsynth import Options, find_ugen_plugins_path
+
+    o = Options()
+    out = workdir / "nrt.wav"
+    _scsynth.world_nrt_render(
+        cmd_filename=str(score), output_filename=str(out), sample_rate=SR, input_filename=None,
+        header_format="WAV", sample_format="float", num_output_bus_channels=channels, num_input_bus_channels=0,
+        block_size=o.block_size, num_buffers=o.buffer_count, max_nodes=o.maximum_node_count,
+        max_graph_defs=o.maximum_synthdef_count, realtime_memory_size=o.memory_size, verbosity=o.verbosity,
+        ugen_plugins_path=str(find_ugen_plugins_path()), num_audio_bus_channels=o.audio_bus_channel_count,
+        num_control_bus_channels=o.control_bus_channel_count, max_wire_bufs=o.wire_buffer_count,
+        num_rgens=o.random_number_generator_count,
+    )
+    _libc.fflush(None)
+    return read_wav_float(out)[: int(seconds * SR)]
+
+
 def read_wav_float(path: Path) -> np.ndarray:
     """Reads a 32-bit float WAV into an array of shape (frames, channels)."""
     data = path.read_bytes()

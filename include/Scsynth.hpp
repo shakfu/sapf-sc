@@ -14,12 +14,17 @@
 #include <vector>
 
 struct OscArg {
-	enum Type { Int, String, Blob } type;
+	enum Type { Int, String, Blob, Float } type;
 	int i;
 	std::string s;   // String or Blob bytes
+	float f = 0.f;
 };
 
 std::string oscMessage(const std::string& address, const std::vector<OscArg>& args);
+
+// A bundle of messages at `seconds`: NTP time for a realtime server, time from the score's start
+// for NRT.
+std::string oscBundle(double seconds, const std::vector<std::string>& messages, bool realtime);
 
 // Sends `packets`, then /sync, and waits up to `timeoutMs` for /synced. Returns "" on
 // success, else what went wrong: no reply, or the text of a /fail reply.
