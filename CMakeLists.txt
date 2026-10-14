@@ -51,6 +51,13 @@ set(REPLXX_BUILD_EXAMPLES OFF CACHE BOOL "Disable replxx examples" FORCE)
 add_subdirectory(thirdparty/replxx)
 
 add_subdirectory(src/engine)
+
+# scsynth in the executable, so play needs no server; off for builds that only write defs
+option(SAPF_EMBED_SCSYNTH "Embed scsynth in the sapf executable" ON)
+if(SAPF_EMBED_SCSYNTH)
+	include(cmake/EmbeddedScsynth.cmake)
+endif()
+
 add_subdirectory(src/cli)
 
 # Testing

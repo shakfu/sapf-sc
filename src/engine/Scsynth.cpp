@@ -104,8 +104,22 @@ std::string oscBundle(double seconds, const std::vector<std::string>& messages, 
 	return out;
 }
 
+namespace {
+ScsynthServer* gEmbedded = nullptr;
+
+// The embedded server, unless $SAPF_SCSYNTH names one to reach over UDP.
+ScsynthServer* embedded()
+{
+	const char* env = getenv("SAPF_SCSYNTH");
+	return env && *env ? nullptr : gEmbedded;
+}
+} // namespace
+
+void setEmbeddedScsynth(ScsynthServer* server) { gEmbedded = server; }
+
 std::string scsynthAddress()
 {
+	if (ScsynthServer* s = embedded()) return s->address();
 	std::string host, port;
 	splitAddress(host, port);
 	return host + ":" + port;
@@ -113,8 +127,15 @@ std::string scsynthAddress()
 
 #ifdef _WIN32
 
-std::string scsynthSendSync(const std::vector<std::string>&, int) { return "not supported on Windows"; }
-void scsynthSend(const std::string&) {}
+std::string scsynthSendSync(const std::vector<std::string>& packets, int timeoutMs)
+{
+	if (ScsynthServer* s = embedded()) return s->sendSync(packets, timeoutMs);
+	return "UDP is not supported on Windows";
+}
+void scsynthSend(const std::string& packet)
+{
+	if (ScsynthServer* s = embedded()) s->send(packet);
+}
 
 #else
 
@@ -150,6 +171,7 @@ struct Socket {
 
 std::string scsynthSendSync(const std::vector<std::string>& packets, int timeoutMs)
 {
+	if (ScsynthServer* s = embedded()) return s->sendSync(packets, timeoutMs);
 	Socket sock;
 	if (!sock.error.empty()) return sock.error;
 	const int syncID = 7301;
@@ -177,6 +199,10 @@ std::string scsynthSendSync(const std::vector<std::string>& packets, int timeout
 
 void scsynthSend(const std::string& packet)
 {
+	if (ScsynthServer* s = embedded()) {
+		s->send(packet);
+		return;
+	}
 	Socket sock;
 	if (sock.error.empty()) sock.send(packet);
 }

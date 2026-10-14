@@ -112,7 +112,7 @@ std::string defFree(const std::string& name) { return oscMessage("/d_free", {{Os
 const double kLookahead = .2;
 
 void schedule(std::shared_ptr<Thread> th, P<Texture> tx, double startTime, int generation,
-	std::shared_ptr<LoadedTables> loaded)
+	std::shared_ptr<LoadedTables> loaded, int mainNode)
 {
 	Voices voices(tx);
 	try {
@@ -125,6 +125,8 @@ void schedule(std::shared_ptr<Thread> th, P<Texture> tx, double startTime, int g
 					std::chrono::duration<double>(startTime + seconds - kLookahead)));
 			std::this_thread::sleep_until(wake);
 			if (generation != gGeneration) break;
+			// /n_query fails once the main synth has ended, finite or freed
+			if (!scsynthSendSync({oscMessage("/n_query", {{OscArg::Int, mainNode, ""}})}, 1000).empty()) break;
 			for (std::string const& m : loadWavetables(*th, out, *loaded)) scsynthSend(m);
 			for (std::string const& m : loadSamples(*th, out, *loaded, true)) scsynthSend(m);
 			scsynthSend(defRecv(def));
@@ -137,12 +139,12 @@ void schedule(std::shared_ptr<Thread> th, P<Texture> tx, double startTime, int g
 
 } // namespace
 
-void playTextures(Thread& th, Arg channels, double startTime, std::shared_ptr<LoadedTables> loaded)
+void playTextures(Thread& th, Arg channels, double startTime, std::shared_ptr<LoadedTables> loaded, int mainNode)
 {
 	int generation = gGeneration;
 	for (P<Object> const& t : texturesOf(th, channels)) {
 		auto copy = std::make_shared<Thread>(th);
-		std::thread(schedule, copy, P<Texture>((Texture*)t()), startTime, generation, loaded).detach();
+		std::thread(schedule, copy, P<Texture>((Texture*)t()), startTime, generation, loaded, mainNode).detach();
 	}
 }
 

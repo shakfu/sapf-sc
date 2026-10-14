@@ -12,18 +12,26 @@ This writes `bubbles.scsyndef` to `$SAPF_SYNTHDEFS`, or to the current directory
 
 ## Listening
 
-`play` sends the def to a running scsynth and starts a synth; `stop` frees all synths.
+`build/sapf` runs scsynth in its own process. The first `play` starts it on the system's audio device; `stop` frees every synth and ends the scheduling of `ola` voices.
 
 ```
-make server                            # nanosynth's scsynth on 127.0.0.1:57110; Ctrl-C quits
 build/sapf
 440 0 sinosc .1 * play
 stop
 ```
 
-`stop` also ends the scheduling of `ola` voices.
+Run with a file, `sapf` plays what the file plays and exits when it ends; Ctrl-C ends an endless one. A synth ends when its signal ends, as in sapf, and the `ola` voices a synth reads stop with it.
 
-Any scsynth works, e.g. SuperCollider's own: `scsynth -u 57110`. `$SAPF_SCSYNTH` sets another `host:port`. `play` waits up to 1 s for scsynth to confirm the def and reports an error otherwise. A def over about 64 KB does not fit in one UDP packet; write it with `>sd` and load it instead.
+The embedded server reads these when it starts:
+
+| Variable | Meaning | Default |
+|-|-|-|
+| `SAPF_DEVICE` | audio device, by name | the system's |
+| `SAPF_OUTPUTS`, `SAPF_INPUTS` | channels | 2, 2 |
+| `SAPF_SR` | sample rate | the device's |
+| `SAPF_PLUGINS` | UGen plugin folder | `plugins/` beside the executable |
+
+To use a server of your own, set `SAPF_SCSYNTH` to its `host:port`; `play` and `stop` then talk to it over UDP. Any scsynth works, e.g. SuperCollider's own (`scsynth -u 57110`) or nanosynth's (`make server`). Over UDP, `play` waits up to 1 s for scsynth to confirm the def and reports an error otherwise, and a def over about 64 KB does not fit in one packet; write it with `>sd` and load it instead.
 
 ## Model
 
@@ -97,10 +105,12 @@ scsynth starts a synth at the start of the 64-frame block that holds its time, s
 ## Build and test
 
 ```
-make build                       # build/sapf
+make build                       # build/sapf and build/plugins
 make test                        # ctest, then pytest (needs uv)
 make reference SAPF_ORIG=...     # regenerates tests/fixtures/ref with original sapf
 ```
+
+The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; see `cmake/EmbeddedScsynth.cmake`, which also says how to build offline. Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for writing defs or a server over UDP only.
 
 pytest runs eight suites:
 
@@ -116,7 +126,7 @@ pytest runs eight suites:
 
 - `test_samples.py`: `sf>` and `playbuf` against the sound file, and the sidecar `>sd` writes.
 
-- `test_play.py`: `play` and `stop` against `scripts/server.py`, with silent synths. Skipped without an audio device.
+- `test_play.py`: `play` and `stop` against `scripts/server.py` over UDP, and the embedded server, with silent synths. Skipped without an audio device.
 
 - `test_kr_smoke.py`: every mapped word under `kr` runs in scsynth without errors and gives finite, non-silent output. It does not compare with sapf.
 

@@ -990,9 +990,10 @@ static void play_(Thread& th, Prim* prim)
 	V channels = th.pop();
 	std::string name = "sapf-play-" + std::to_string(++gPlayCount);
 	std::string def = compileSynthDef(th, channels, name);
-	// /s_new with node ID -1 (let the server choose), at the tail of the root group, after any
-	// ola voices it reads.
-	std::string snew = oscMessage("/s_new", {{OscArg::String, 0, name}, {OscArg::Int, -1, ""},
+	// at the tail of the root group, after any ola voices it reads; its ola voices stop when it
+	// ends, so it has a node ID of its own, above the 1000.. sclang uses
+	const int node = 2000000 + gPlayCount;
+	std::string snew = oscMessage("/s_new", {{OscArg::String, 0, name}, {OscArg::Int, node, ""},
 		{OscArg::Int, 1, ""}, {OscArg::Int, 0, ""}});
 	auto loaded = std::make_shared<LoadedTables>();
 	std::vector<std::string> packets = loadWavetables(th, channels, *loaded);
@@ -1005,7 +1006,7 @@ static void play_(Thread& th, Prim* prim)
 		throw errFailed;
 	}
 	double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
-	playTextures(th, channels, now + .2, loaded);
+	playTextures(th, channels, now + .2, loaded, node);
 }
 
 static void stop_(Thread& th, Prim* prim)

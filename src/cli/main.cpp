@@ -3,6 +3,9 @@
 #include "VM.hpp"
 #include "CLI11.hpp"
 #include <cstdio>
+#ifdef SAPF_EMBED_SCSYNTH
+#include "EmbeddedServer.hpp"
+#endif
 
 int main(int argc, const char * argv[])
 {
@@ -21,6 +24,10 @@ int main(int argc, const char * argv[])
 	app.add_option("file", inputFile, "Input file to load and execute");
 
 	CLI11_PARSE(app, argc, argv);
+
+#ifdef SAPF_EMBED_SCSYNTH
+	registerEmbeddedScsynth();
+#endif
 
 	if (!preludeFile.empty()) {
 		config.preludeFile = preludeFile.c_str();
@@ -44,6 +51,9 @@ int main(int argc, const char * argv[])
 		loadFile(th, inputFile.c_str());
 
 		if (!interactive) {
+#ifdef SAPF_EMBED_SCSYNTH
+			waitForEmbeddedScsynth();  // what the file plays, until it ends
+#endif
 			return 0;
 		}
 	}

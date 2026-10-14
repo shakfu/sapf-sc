@@ -18,8 +18,9 @@
 #include <vector>
 
 // Starts a scheduler thread for each texture the channels read; voice times count from
-// `startTime`, a Unix time. Voices load wave tables that `loaded` lacks.
-void playTextures(Thread& th, Arg channels, double startTime, std::shared_ptr<LoadedTables> loaded);
+// `startTime`, a Unix time. Voices load buffers that `loaded` lacks. A scheduler stops when synth
+// `mainNode`, which reads its voices, has ended.
+void playTextures(Thread& th, Arg channels, double startTime, std::shared_ptr<LoadedTables> loaded, int mainNode);
 
 // Ends the scheduler threads.
 void stopTextures();

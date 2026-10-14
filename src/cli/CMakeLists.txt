@@ -14,6 +14,7 @@ target_link_libraries(
 	sapf
 	PRIVATE
 	sapf_engine
+	$<$<TARGET_EXISTS:sapf_server>:sapf_server>
 )
 
 set_target_properties(

@@ -3,7 +3,7 @@
 all: build
 
 build:
-	@cmake -S . -B build -DCMAKE_BUILD_TYPE=Release > /dev/null
+	@cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -Wno-dev > /dev/null
 	@cmake --build build
 
 # Language and unit tests (ctest), then SCgf parity and scsynth conformance (pytest, needs uv)
