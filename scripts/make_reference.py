@@ -22,6 +22,7 @@ from cases import CASES  # noqa: E402
 from conftest import SR, read_wav_float  # noqa: E402
 
 OUT = ROOT / "tests" / "fixtures" / "ref"
+TIMEOUT = 60  # seconds per sapf run
 
 
 def write_wav_float(path: Path, frames: np.ndarray) -> None:
@@ -34,27 +35,61 @@ def write_wav_float(path: Path, frames: np.ndarray) -> None:
     )
 
 
+def source(c) -> str:
+    """The sapf program that renders case `c`, one file c<i>.wav per channel."""
+    frames = int(c.seconds * SR)
+    lines = [f'{c.ref_expr or c.expr} = sig'] + [
+        f'sig {f"{i} at " if c.channels > 1 else ""}{frames} N "c{i}" >sf' for i in range(c.channels)
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def run_sapf(sapf: str, src: Path, tmp: str) -> subprocess.CompletedProcess:
+    """Runs sapf on `src`, writing into `tmp`. stdin is closed so a REPL after the file cannot wait on the terminal."""
+    env = dict(os.environ, SAPF_RECORDINGS=tmp, SAPF_PRELUDE="/dev/null", SAPF_LOG=f"{tmp}/log")
+    return subprocess.run([sapf, "-q", "-r", str(SR), str(src)], capture_output=True, text=True, env=env,
+                          stdin=subprocess.DEVNULL, timeout=TIMEOUT)
+
+
+def fail(name: str, why: str, out: subprocess.CompletedProcess | None = None) -> None:
+    msg = f"{name}: {why}"
+    if out is not None:
+        msg += f"\n  exit {out.returncode}\n  stdout: {out.stdout.strip()}\n  stderr: {out.stderr.strip()}"
+    sys.exit(msg)
+
+
 def main() -> None:
     sapf = os.environ["SAPF_ORIG"]
+    names = set(sys.argv[1:])
+    unknown = names - {c.name for c in CASES}
+    if unknown:
+        sys.exit(f"no such cases: {' '.join(sorted(unknown))}")
     OUT.mkdir(parents=True, exist_ok=True)
+    written = 0
     with tempfile.TemporaryDirectory() as tmp:
-        env = dict(os.environ, SAPF_RECORDINGS=tmp, SAPF_PRELUDE="/dev/null", SAPF_LOG=f"{tmp}/log")
-        names = set(sys.argv[1:])
         for c in CASES:
             if names and c.name not in names:
                 continue
-            expr = c.ref_expr or c.expr
-            frames = int(c.seconds * SR)
-            lines = [f'{expr} = sig'] + [
-                f'sig {f"{i} at " if c.channels > 1 else ""}{frames} N "c{i}" >sf' for i in range(c.channels)
-            ]
+            print(f"{c.name}: {c.ref_expr or c.expr}", flush=True)
             src = Path(tmp) / "ref.sapf"
-            src.write_text("\n".join(lines) + "\n")
-            out = subprocess.run([sapf, "-q", "-r", str(SR), str(src)], capture_output=True, text=True, env=env)
-            if "error" in out.stdout:
-                sys.exit(f"{c.name}: {out.stdout}")
+            src.write_text(source(c))
+            for i in range(c.channels):
+                (Path(tmp) / f"c{i}.wav").unlink(missing_ok=True)
+            try:
+                out = run_sapf(sapf, src, tmp)
+            except subprocess.TimeoutExpired:
+                fail(c.name, f"sapf did not exit within {TIMEOUT} s")
+            if out.returncode != 0 or "error" in out.stdout:
+                fail(c.name, "sapf failed", out)
+            missing = [f"c{i}.wav" for i in range(c.channels) if not (Path(tmp) / f"c{i}.wav").exists()]
+            if missing:
+                fail(c.name, f"sapf wrote no {' '.join(missing)}", out)
             chans = [read_wav_float(Path(tmp) / f"c{i}.wav")[:, 0] for i in range(c.channels)]
-            write_wav_float(OUT / f"{c.name}.wav", np.stack(chans, axis=1))
+            path = OUT / f"{c.name}.wav"
+            write_wav_float(path, np.stack(chans, axis=1))
+            print(f"  wrote {path}", flush=True)
+            written += 1
+    print(f"{written} references written")
 
 
 if __name__ == "__main__":
