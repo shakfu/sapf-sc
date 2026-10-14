@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from make_reference import CASES, OUT, ROOT, TIMEOUT, read_wav_float, run_sapf, source  # noqa: E402
+from make_reference import CASES, OUT, ROOT, TIMEOUT, read_wav_float, run_sapf, source, text  # noqa: E402
 
 DEFAULT = ["op1_log", "op1_log2", "op1_log10"]
 
@@ -71,8 +71,10 @@ def main() -> None:
             t = time.monotonic()
             try:
                 out = run_sapf(sapf, src, tmp)
-            except subprocess.TimeoutExpired:
+            except subprocess.TimeoutExpired as e:
                 print(f"TIMEOUT after {TIMEOUT} s")
+                print(f"stdout so far: {text(e.stdout) or '(empty)'}")
+                print(f"stderr so far: {text(e.stderr) or '(empty)'}")
                 continue
             print(f"exit {out.returncode} after {time.monotonic() - t:.1f} s")
             print(f"stdout: {out.stdout.strip() or '(empty)'}")

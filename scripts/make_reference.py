@@ -2,7 +2,8 @@
 
     SAPF_ORIG=/path/to/original/sapf uv run python scripts/make_reference.py [case names]
 
-With case names, renders only those cases.
+With case names, renders only those cases. Release builds (v0.1.22) run no file argument and have
+no -q, so each case runs as the prelude (-p) and `quit` on stdin ends the REPL.
 
 Original sapf's multichannel >sf drops frames, so each channel is rendered alone and interleaved here.
 """
@@ -45,17 +46,20 @@ def source(c) -> str:
 
 
 def run_sapf(sapf: str, src: Path, tmp: str) -> subprocess.CompletedProcess:
-    """Runs sapf on `src`, writing into `tmp`. stdin is closed so a REPL after the file cannot wait on the terminal."""
-    env = dict(os.environ, SAPF_RECORDINGS=tmp, SAPF_PRELUDE="/dev/null", SAPF_LOG=f"{tmp}/log")
-    return subprocess.run([sapf, "-q", "-r", str(SR), str(src)], capture_output=True, text=True, env=env,
-                          stdin=subprocess.DEVNULL, timeout=TIMEOUT)
+    """Runs `src` as sapf's prelude, writing into `tmp`, then quits its REPL through stdin."""
+    env = dict(os.environ, SAPF_RECORDINGS=tmp, SAPF_LOG=f"{tmp}/log")
+    return subprocess.run([sapf, "-r", str(SR), "-p", str(src)], input="quit\n", capture_output=True, text=True,
+                          env=env, timeout=TIMEOUT)
 
 
-def fail(name: str, why: str, out: subprocess.CompletedProcess | None = None) -> None:
-    msg = f"{name}: {why}"
-    if out is not None:
-        msg += f"\n  exit {out.returncode}\n  stdout: {out.stdout.strip()}\n  stderr: {out.stderr.strip()}"
-    sys.exit(msg)
+def text(b: str | bytes | None) -> str:
+    """Output as text; TimeoutExpired holds bytes even under text=True."""
+    return (b.decode(errors="replace") if isinstance(b, bytes) else b or "").strip()
+
+
+def fail(name: str, why: str, out: subprocess.CompletedProcess | subprocess.TimeoutExpired) -> None:
+    code = f"\n  exit {out.returncode}" if isinstance(out, subprocess.CompletedProcess) else ""
+    sys.exit(f"{name}: {why}{code}\n  stdout: {text(out.stdout)}\n  stderr: {text(out.stderr)}")
 
 
 def main() -> None:
@@ -77,8 +81,8 @@ def main() -> None:
                 (Path(tmp) / f"c{i}.wav").unlink(missing_ok=True)
             try:
                 out = run_sapf(sapf, src, tmp)
-            except subprocess.TimeoutExpired:
-                fail(c.name, f"sapf did not exit within {TIMEOUT} s")
+            except subprocess.TimeoutExpired as e:
+                fail(c.name, f"sapf did not exit within {TIMEOUT} s", e)
             if out.returncode != 0 or "error" in out.stdout:
                 fail(c.name, "sapf failed", out)
             missing = [f"c{i}.wav" for i in range(c.channels) if not (Path(tmp) / f"c{i}.wav").exists()]
