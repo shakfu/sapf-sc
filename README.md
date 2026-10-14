@@ -2,7 +2,7 @@
 
 sapf interpreter for supercollider
 
-sapf-sc is the [sapf](../sapf) interpreter with its audio engine removed. UGen words build a SuperCollider UGen graph, and `>sd` writes it as a `.scsyndef` file for scsynth.
+sapf-sc is the [sapf](https://github.com/lfnoise/sapf) interpreter with its macOS-only audio engine replaced by SuperCollider's scsynth, embedded as a library. UGen words build a SuperCollider UGen graph, and `>sd` writes it as a `.scsyndef` file for scsynth.
 
 ```
 .4 0 lfsaw 2 * [8 7.23] 0 lfsaw .25 * 5/3 + + ohz 0 sinosc .04 * .2 0 4 combn "bubbles" >sd
@@ -12,7 +12,7 @@ This writes `bubbles.scsyndef` to `$SAPF_SYNTHDEFS`, or to the current directory
 
 ## Listening
 
-`build/sapf` runs scsynth in its own process. The first `play` starts it on the system's audio device; `stop` frees every synth and ends the scheduling of `ola` voices.
+`build/sapf` runs the embedded scsynth inside the sapf process. The first `play` starts it on the system's audio device; `stop` frees every synth and ends the scheduling of `ola` voices.
 
 ```
 build/sapf
@@ -116,7 +116,7 @@ make reference SAPF_ORIG=...     # regenerates tests/fixtures/ref with original 
 
 The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; see `cmake/EmbeddedScsynth.cmake`, which also says how to build offline. Tested on macOS and Linux. Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for writing defs or a server over UDP only.
 
-pytest runs nine suites:
+pytest runs ten suites:
 
 - `test_scgf_parity.py`: sapf's SCgf bytes equal [nanosynth](../nanosynth)'s for the same graph.
 
@@ -132,7 +132,9 @@ pytest runs nine suites:
 
 - `test_samples.py`: `sf>` and `playbuf` against the sound file, and the sidecar `>sd` writes.
 
-- `test_play.py`: `play` and `stop` against `scripts/server.py` over UDP, and the embedded server, with silent synths. Skipped without an audio device.
+- `test_play.py`: `play` and `stop` against `scripts/server.py` over UDP, with silent synths. Skipped without an audio device.
+
+- `test_play_embedded.py`: `play` with the embedded server. A separate module, because `scripts/server.py` holds the raw ALSA devices while it runs.
 
 - `test_kr_smoke.py`: every mapped word under `kr` runs in scsynth without errors and gives finite, non-silent output. It does not compare with sapf.
 

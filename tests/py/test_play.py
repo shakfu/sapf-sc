@@ -98,21 +98,6 @@ def test_ola_voices_start_and_stop(server, sapf, tmp_path):
     assert "error" not in out, out
 
 
-def test_embedded_server_plays_a_file_to_its_end(tmp_path):
-    # Without SAPF_SCSYNTH, play starts scsynth in the sapf process, and a file waits for its sound.
-    src = tmp_path / "e.sapf"
-    src.write_text("440 0 sinosc 0 * .5 T play\n")
-    env = {k: v for k, v in os.environ.items() if k != "SAPF_SCSYNTH"}
-    env["SAPF_PRELUDE"] = "/dev/null"
-    t0 = time.monotonic()
-    r = subprocess.run([str(SAPF), "-q", str(src)], capture_output=True, text=True, env=env, timeout=30)
-    elapsed = time.monotonic() - t0
-    if "scsynth did not start" in r.stdout:
-        pytest.skip("no audio device")
-    assert r.returncode == 0 and "error" not in r.stdout, r.stdout
-    assert 0.45 < elapsed < 10, elapsed
-
-
 def test_ola_stops_with_its_main_synth(server, sapf, tmp_path):
     # The main synth ends after .5 s; its scheduler then starts no more voices.
     src = tmp_path / "f.sapf"
