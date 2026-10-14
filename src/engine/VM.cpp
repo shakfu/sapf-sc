@@ -29,6 +29,7 @@
 VM vm;
 
 std::mutex gHelpMutex;
+std::atomic<bool> gInterrupt{false};
 
 std::atomic<int32_t> randSeedCounter = 77777;
 

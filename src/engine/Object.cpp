@@ -1078,6 +1078,7 @@ void List::link(Thread& th, List* inList)
 
 void List::force(Thread& th)
 {	
+	checkInterrupt();  // before the lock: a long list forces segment by segment
 	SpinLocker lock(mSpinLock);
 	if (mGen) {
 		P<Gen> gen = mGen; // keep the gen from being destroyed out from under pull().

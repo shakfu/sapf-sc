@@ -26,6 +26,7 @@ const int kFirstBus = 512, kLastBus = 960;
 int gNextBus = kFirstBus;
 std::atomic<int64_t> gVoiceCount{0};
 std::atomic<int> gGeneration{0};
+std::atomic<int> gRunning{0};
 
 // The voice stream of one ola. Copies share the sounds and hops, each with its own position.
 class Texture : public Object
@@ -115,6 +116,9 @@ const double kLookahead = .2;
 void schedule(std::shared_ptr<Thread> th, P<Texture> tx, double startTime, int generation,
 	std::shared_ptr<LoadedTables> loaded, int mainNode)
 {
+	struct Running {  // playTextures counted this thread before starting it
+		~Running() { --gRunning; }
+	} running;
 	Voices voices(tx);
 	try {
 		double seconds;
@@ -145,11 +149,14 @@ void playTextures(Thread& th, Arg channels, double startTime, std::shared_ptr<Lo
 	int generation = gGeneration;
 	for (P<Object> const& t : texturesOf(th, channels)) {
 		auto copy = std::make_shared<Thread>(th);
+		++gRunning;
 		std::thread(schedule, copy, P<Texture>((Texture*)t()), startTime, generation, loaded, mainNode).detach();
 	}
 }
 
 void stopTextures() { ++gGeneration; }
+
+int runningTextures() { return gRunning; }
 
 std::string nrtScore(Thread& th, Arg channels, const std::string& name, double seconds)
 {

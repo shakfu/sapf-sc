@@ -48,6 +48,14 @@ extern "C" {
 
 extern std::mutex gHelpMutex;
 
+// Set by a host to stop a running evaluation: the interpreter throws errInterrupted at its next opcode
+// or list step, on every thread, ola's included. The host clears it before the next evaluation.
+extern std::atomic<bool> gInterrupt;
+inline void checkInterrupt()
+{
+	if (gInterrupt.load(std::memory_order_relaxed)) throw errInterrupted;
+}
+
 class Unlocker
 {
 	std::mutex* mLock;

@@ -25,6 +25,11 @@ void playTextures(Thread& th, Arg channels, double startTime, std::shared_ptr<Lo
 // Ends the scheduler threads.
 void stopTextures();
 
+// The scheduler threads still running. They are detached; a host that unloads the interpreter's code
+// waits for none to run after stopTextures, and a moment more: a thread's arguments are destroyed
+// after it counts itself out.
+int runningTextures();
+
 // The NRT command file for channels with their voices up to `seconds`, the main def named `name`.
 std::string nrtScore(Thread& th, Arg channels, const std::string& name, double seconds);
 
