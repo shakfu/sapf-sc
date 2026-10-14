@@ -1026,8 +1026,7 @@ static void play_(Thread& th, Prim* prim)
 			scsynthAddress().c_str(), err.c_str());
 		throw errFailed;
 	}
-	double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
-	playTextures(th, channels, now + .2, loaded, node);
+	playTextures(th, channels, scsynthNow() + .2, loaded, node);
 }
 
 static void stop_(Thread& th, Prim* prim)

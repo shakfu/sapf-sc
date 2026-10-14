@@ -40,6 +40,9 @@ struct ScsynthServer {
 	// `sr`, in a non-realtime World of its own. "" or what went wrong.
 	virtual std::string render(const std::string& score, const std::string& path, int channels, int64_t frames,
 		double sr) = 0;
+	// The server's time in seconds since 1970, which bundle times and the ola scheduler follow. The
+	// wall clock by default; a server run by a host's audio callback counts its samples instead.
+	virtual double now();
 };
 void setEmbeddedScsynth(ScsynthServer* server);
 
@@ -55,5 +58,8 @@ void scsynthSend(const std::string& packet);
 
 // The server address, for messages.
 std::string scsynthAddress();
+
+// The server's time: ScsynthServer::now, or the wall clock for a server over UDP.
+double scsynthNow();
 
 #endif

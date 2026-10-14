@@ -21,12 +21,29 @@
 #include "Opcode.hpp"
 #include <algorithm>
 #include <cstdarg>
+#include <functional>
+#include <string>
+
+static std::function<void(const char*)> gPostHandler;
+
+void setPostHandler(std::function<void(const char*)> handler) { gPostHandler = std::move(handler); }
 
 void post(const char* fmt, ...)
 {
     va_list vargs;
     va_start(vargs, fmt);
-    vprintf(fmt, vargs);
+    if (gPostHandler) {
+        va_list copy;
+        va_copy(copy, vargs);
+        int n = vsnprintf(nullptr, 0, fmt, copy);
+        va_end(copy);
+        std::string s(n > 0 ? size_t(n) : 0, '\0');
+        if (n > 0) vsnprintf(&s[0], s.size() + 1, fmt, vargs);
+        gPostHandler(s.c_str());
+    } else {
+        vprintf(fmt, vargs);
+    }
+    va_end(vargs);
 }
 
 void zprintf(std::string& out, const char* fmt, ...)

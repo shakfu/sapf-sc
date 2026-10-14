@@ -2,6 +2,12 @@
 
 #include "VM.hpp"
 
+#include <functional>
+
+// Sends post's output, such as errors and printed values, to `handler` in place of stdout; an empty
+// handler restores stdout. Set it before the interpreter runs: ola's threads also post.
+void setPostHandler(std::function<void(const char*)> handler);
+
 struct SapfEngineConfig {
 	double sampleRate = kDefaultSampleRate;
 	const char* preludeFile = nullptr;

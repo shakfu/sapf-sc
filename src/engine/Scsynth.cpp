@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "Scsynth.hpp"
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -116,6 +117,17 @@ ScsynthServer* embedded()
 } // namespace
 
 void setEmbeddedScsynth(ScsynthServer* server) { gEmbedded = server; }
+
+double ScsynthServer::now()
+{
+	return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+double scsynthNow()
+{
+	if (ScsynthServer* s = embedded()) return s->now();
+	return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
 
 std::string scsynthRender(const std::string& score, const std::string& path, int channels, int64_t frames, double sr)
 {

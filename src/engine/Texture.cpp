@@ -8,6 +8,7 @@
 #include "Texture.hpp"
 #include "Scsynth.hpp"
 #include "Samples.hpp"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -120,10 +121,10 @@ void schedule(std::shared_ptr<Thread> th, P<Texture> tx, double startTime, int g
 		V out;
 		while (generation == gGeneration && voices.next(*th, seconds, out)) {
 			std::string name = voiceName(), def = voices.compile(*th, out, name);
-			auto wake = std::chrono::system_clock::time_point(
-				std::chrono::duration_cast<std::chrono::system_clock::duration>(
-					std::chrono::duration<double>(startTime + seconds - kLookahead)));
-			std::this_thread::sleep_until(wake);
+			// on the server's clock, which may not keep the wall clock's pace; stop ends the wait
+			const double wake = startTime + seconds - kLookahead;
+			for (double left; (left = wake - scsynthNow()) > 0 && generation == gGeneration;)
+				std::this_thread::sleep_for(std::chrono::duration<double>(std::min(left, .05)));
 			if (generation != gGeneration) break;
 			// /n_query fails once the main synth has ended, finite or freed
 			if (!scsynthSendSync({oscMessage("/n_query", {{OscArg::Int, mainNode, ""}})}, 1000).empty()) break;
