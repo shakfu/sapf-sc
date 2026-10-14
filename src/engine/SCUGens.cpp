@@ -17,6 +17,7 @@
 #include "MathFuns.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iterator>
 
@@ -1060,6 +1061,42 @@ static void writesd_(Thread& th, Prim* prim)
 	if (named && sidecar != old) writeFile(">sd", name + ".txt", sidecar);
 }
 
+// sapf's >sf: name.wav in $SAPF_RECORDINGS, else the temp folder, at the interpreter's rate, as
+// long as the first channel to end. Rendered by the embedded scsynth in NRT mode.
+static std::string renderFile(Thread& th, const char* word)
+{
+	std::string name = popName(th, (std::string(word) + " : filename").c_str());
+	V channels = th.pop();
+	double sr = th.rate.sampleRate;
+	double seconds = renderSeconds(th, channels, sr);
+	int64_t frames = (int64_t)std::llround(seconds * sr);
+	const char* dir = getenv("SAPF_RECORDINGS");
+	std::error_code ec;
+	std::string path = ((dir && *dir) ? std::string(dir) : std::filesystem::temp_directory_path(ec).string()) +
+		"/" + name + ".wav";
+	int n = channelCount(th, channels);
+	std::string error = scsynthRender(nrtScore(th, channels, "sapf-render", seconds), path, n, frames, sr);
+	if (!error.empty()) {
+		post("%s : %s\n", word, error.c_str());
+		throw errFailed;
+	}
+	post("wrote file '%s'  %d channels  %g secs\n", path.c_str(), n, seconds);
+	return path;
+}
+
+static void sfwrite_(Thread& th, Prim* prim) { renderFile(th, ">sf"); }
+
+static void sfwriteopen_(Thread& th, Prim* prim)
+{
+	std::string path = renderFile(th, ">sfo");
+#if defined(__APPLE__)
+	std::string cmd = "open \"" + path + "\"";
+#else
+	std::string cmd = "xdg-open \"" + path + "\" &";
+#endif
+	if (system(cmd.c_str()) != 0) post(">sfo : could not open '%s'\n", path.c_str());
+}
+
 static void writenrt_(Thread& th, Prim* prim)
 {
 	std::string name = popName(th, ">nrt : name");
@@ -1171,6 +1208,8 @@ void AddSCUGenOps()
 	DEF(ugen, 4, 1, "(inputs name rate numOutputs --> out) any SuperCollider UGen. inputs is a list, name a string, rate 'ar 'kr or 'ir.")
 	DEF(play, 1, 0, "(channels -->) sends channels as a SynthDef to scsynth at $SAPF_SCSYNTH (default 127.0.0.1:57110) and starts a synth, and any ola voices it reads.")
 	vm.def("stop", 0, 0, stop_, "(-->) frees every synth on the scsynth that play uses.");
+	vm.def(">sf", 2, 0, sfwrite_, "(channels filename -->) renders the channels to filename.wav in $SAPF_RECORDINGS or the temp folder, until the first channel ends. scsynth NRT.");
+	vm.def(">sfo", 2, 0, sfwriteopen_, "(channels filename -->) as >sf, then opens the file in the default application.");
 	vm.def(">nrt", 3, 0, writenrt_, "(channels seconds name -->) writes an scsynth NRT score of channels and their ola voices to name.osc in $SAPF_SYNTHDEFS or the current directory.");
 	vm.def(">sd", 2, 0, writesd_, "(channels name -->) writes channels as SynthDef name to name.scsyndef in $SAPF_SYNTHDEFS or the current directory.");
 }

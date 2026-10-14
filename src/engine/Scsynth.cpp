@@ -117,6 +117,12 @@ ScsynthServer* embedded()
 
 void setEmbeddedScsynth(ScsynthServer* server) { gEmbedded = server; }
 
+std::string scsynthRender(const std::string& score, const std::string& path, int channels, int64_t frames, double sr)
+{
+	if (!gEmbedded) return "this sapf has no embedded scsynth to render with";
+	return gEmbedded->render(score, path, channels, frames, sr);
+}
+
 std::string scsynthAddress()
 {
 	if (ScsynthServer* s = embedded()) return s->address();

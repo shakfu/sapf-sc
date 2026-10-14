@@ -454,6 +454,87 @@ void inferRates(const std::vector<V>& chans)
 
 } // namespace
 
+// `v` as a number at sample rate `sr`, when it is a constant expression of SampleRate and SampleDur.
+static bool evalConstant(Arg v, double sr, double& out)
+{
+	if (v.isReal()) {
+		out = v.f;
+		return true;
+	}
+	if (!isSig(v)) return false;
+	UGenNode* u = ((Sig*)v.o())->node();
+	if (u->name == "SampleRate") return out = sr, true;
+	if (u->name == "SampleDur") return out = 1. / sr, true;
+	double a, b;
+	if (u->name == "UnaryOpUGen" && evalConstant(u->inputs[0], sr, a)) {
+		switch (u->special) {
+			case opNeg : return out = -a, true;
+			case opFloor : return out = floor(a), true;
+			case opCeil : return out = ceil(a), true;
+			default : return false;
+		}
+	}
+	if (u->name == "BinaryOpUGen" && evalConstant(u->inputs[0], sr, a) && evalConstant(u->inputs[1], sr, b)) {
+		switch (u->special) {
+			case opMin : return out = std::min(a, b), true;
+			case opMax : return out = std::max(a, b), true;
+			default : return foldBinary(u->special, a, b, out);
+		}
+	}
+	return false;
+}
+
+// When an EnvGen frees the synth or ends a signal, in frames: its segment times, summed and
+// scaled, rounded up as EnvGen rounds them. INFINITY when it never does; NAN when the time
+// depends on a signal or a gate.
+static double envEndFrames(UGenNode* u, double sr)
+{
+	const auto& in = u->inputs;
+	double doneAction, releaseNode, timeScale, gate;
+	if (!evalConstant(in[4], sr, doneAction) || (doneAction != 2. && !u->endGate)) return INFINITY;
+	if (!evalConstant(in[0], sr, gate) || !evalConstant(in[3], sr, timeScale) ||
+		!evalConstant(in[7], sr, releaseNode) || releaseNode != -99.)
+		return NAN;
+	double seconds = 0.;
+	for (size_t i = 10; i < in.size(); i += 4) {
+		double t;
+		if (!evalConstant(in[i], sr, t)) return NAN;
+		seconds += t;
+	}
+	return ceil(seconds * timeScale * sr - 1e-6);
+}
+
+int channelCount(Thread& th, Arg channels)
+{
+	std::vector<V> chans;
+	flattenChannels(th, channels, chans);
+	return (int)chans.size();
+}
+
+double renderSeconds(Thread& th, Arg channels, double sr)
+{
+	std::vector<V> chans;
+	flattenChannels(th, channels, chans);
+	double frames = INFINITY;
+	for (Arg c : chans) {
+		if (!isSig(c)) continue;
+		std::vector<UGenNode*> nodes;
+		std::map<UGenNode*, bool> seen;
+		collect(((Sig*)c.o())->node(), nodes, seen);
+		for (UGenNode* u : nodes) {
+			if (u->name != "EnvGen") continue;
+			double end = envEndFrames(u, sr);
+			if (std::isnan(end)) {
+				post(">sf : a channel ends when a signal decides, so its length is unknown; take a part of it with N or T\n");
+				throw errFailed;
+			}
+			frames = std::min(frames, end);
+		}
+	}
+	if (std::isinf(frames)) indefiniteOp(">sf : channels - all have an indefinite number of frames; take a part with N or T", "");
+	return frames / sr;
+}
+
 std::vector<P<Object>> texturesOf(Thread& th, Arg channels)
 {
 	std::vector<V> chans;

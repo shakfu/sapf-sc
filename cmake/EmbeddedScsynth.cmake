@@ -11,6 +11,10 @@
 
 include(FetchContent)
 
+# Static libsndfile goes into DiskIO_UGens, a shared module, so everything here is built as
+# position-independent code; Linux refuses to link it otherwise (macOS builds PIC anyway).
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 FetchContent_Declare(sndfile
 	URL https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz
 	URL_HASH SHA256=3799ca9924d3125038880367bf1468e53a1b7e3686a934f098b7e1d286cdb80e
@@ -66,6 +70,8 @@ set(SAPF_SC_PLUGINS
 
 add_library(sapf_server STATIC ${SAPF_ROOT}/src/server/EmbeddedServer.cpp)
 target_include_directories(sapf_server PRIVATE
+	${sndfile_SOURCE_DIR}/include
+	${sndfile_BINARY_DIR}/include
 	${supercollider_SOURCE_DIR}/include/server
 	${supercollider_SOURCE_DIR}/include/common
 	${supercollider_SOURCE_DIR}/include/plugin_interface

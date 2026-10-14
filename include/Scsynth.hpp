@@ -11,6 +11,7 @@
 #ifndef SAPF_SCSYNTH_HPP
 #define SAPF_SCSYNTH_HPP
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -35,8 +36,15 @@ struct ScsynthServer {
 	virtual std::string sendSync(const std::vector<std::string>& packets, int timeoutMs) = 0;
 	virtual void send(const std::string& packet) = 0;
 	virtual std::string address() = 0;
+	// Renders an NRT score to `path`, a 32-bit float WAV of `channels` and exactly `frames` at
+	// `sr`, in a non-realtime World of its own. "" or what went wrong.
+	virtual std::string render(const std::string& score, const std::string& path, int channels, int64_t frames,
+		double sr) = 0;
 };
 void setEmbeddedScsynth(ScsynthServer* server);
+
+// As ScsynthServer::render, with the embedded server whether or not $SAPF_SCSYNTH is set.
+std::string scsynthRender(const std::string& score, const std::string& path, int channels, int64_t frames, double sr);
 
 // Sends `packets`, then /sync, and waits up to `timeoutMs` for /synced. Returns "" on
 // success, else what went wrong: no reply, or the text of a /fail reply.

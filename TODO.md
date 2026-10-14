@@ -17,7 +17,6 @@
 
 - [ ] `lpcombc`: its low pass sits inside the feedback loop, which needs single-sample feedback. Options: an approximation, or a plugin UGen.
 
-- [ ] `>sf`: render channels to a sound file in this process, with the embedded server in NRT mode. sapf's `>sf` takes no length, so it must come from the channels' end gates (`endAfter`), evaluated at the render's rate.
 
 ## Low
 

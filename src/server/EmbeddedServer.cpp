@@ -15,6 +15,7 @@
 #include <cstring>
 #include <deque>
 #include <filesystem>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -22,10 +23,11 @@
 
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
-#include <unistd.h>
 #endif
+#include <unistd.h>
 
 #include "SC_WorldOptions.h"
+#include <sndfile.h>
 #include "SC_ReplyImpl.hpp"
 
 namespace {
@@ -59,6 +61,35 @@ std::string oscString(const std::string& in, size_t& pos)
 	std::string s = in.substr(pos, end - pos);
 	pos = (end + 4) & ~(size_t)3;
 	return s;
+}
+
+// The first `frames` of `from` into `to`, padded with silence: scsynth renders whole blocks, and
+// the score's last voices may end early.
+std::string copyFrames(const std::string& from, const std::string& to, int channels, int64_t frames, double sr)
+{
+	SF_INFO in = {};
+	SNDFILE* src = sf_open(from.c_str(), SFM_READ, &in);
+	if (!src) return "scsynth wrote no file";
+	SF_INFO out = {};
+	out.samplerate = (int)std::lround(sr);
+	out.channels = channels;
+	out.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
+	SNDFILE* dst = sf_open(to.c_str(), SFM_WRITE, &out);
+	if (!dst) {
+		sf_close(src);
+		return "cannot write " + to;
+	}
+	std::vector<float> buf(4096 * (size_t)channels);
+	for (int64_t done = 0; done < frames;) {
+		sf_count_t n = (sf_count_t)std::min<int64_t>(4096, frames - done);
+		sf_count_t got = sf_readf_float(src, buf.data(), n);
+		std::fill(buf.begin() + got * channels, buf.begin() + n * channels, 0.f);
+		sf_writef_float(dst, buf.data(), n);
+		done += n;
+	}
+	sf_close(src);
+	sf_close(dst);
+	return "";
 }
 
 class EmbeddedServer : public ScsynthServer
@@ -100,6 +131,43 @@ public:
 	}
 
 	std::string address() override { return "this process"; }
+
+	std::string render(const std::string& score, const std::string& path, int channels, int64_t frames,
+		double sr) override
+	{
+		namespace fs = std::filesystem;
+		static int count = 0;
+		std::error_code ec;
+		fs::path tmp = fs::temp_directory_path(ec) / ("sapf-render-" + std::to_string(getpid()) + "-" +
+			std::to_string(++count));
+		std::string cmd = tmp.string() + ".osc", raw = tmp.string() + ".wav";
+		{
+			std::ofstream f(cmd, std::ios::binary);
+			if (!f.write(score.data(), (std::streamsize)score.size())) return "cannot write " + cmd;
+		}
+		std::string plugins = pluginDir();
+		WorldOptions o;
+		o.mRealTime = false;
+		o.mPreferredSampleRate = (uint32_t)std::lround(sr);
+		o.mNumOutputBusChannels = (uint32_t)channels;
+		o.mNumInputBusChannels = 0;
+		o.mUGensPluginPath = plugins.c_str();
+		o.mLoadGraphDefs = 0;
+		o.mRendezvous = false;
+		o.mVerbosity = -1;
+		o.mNonRealTimeCmdFilename = cmd.c_str();
+		o.mNonRealTimeOutputFilename = raw.c_str();
+		o.mNonRealTimeOutputHeaderFormat = "WAV";
+		o.mNonRealTimeOutputSampleFormat = "float";
+		World* world = World_New(&o);
+		std::string error;
+		if (!world) error = "scsynth did not start for rendering";
+		else World_NonRealTimeSynthesis(world, &o);  // cleans up the World
+		fs::remove(cmd, ec);
+		if (error.empty()) error = copyFrames(raw, path, channels, frames, sr);
+		fs::remove(raw, ec);
+		return error;
+	}
 
 	// The synths running, from /status.reply's third argument; -1 if the server is not running.
 	int synths()

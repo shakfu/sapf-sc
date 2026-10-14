@@ -112,6 +112,14 @@ V makeParam(const char* name, double value);
 // writes them from bus `outBus`.
 std::string compileSynthDef(Thread& th, Arg channels, const std::string& name, int outBus = 0);
 
+// Seconds until the channels end at sample rate `sr`, as sapf's >sf ends a file: when its first
+// finite channel ends. A channel ends at its first end (endAfter, or an EnvGen that frees the synth).
+// Throws, with a message, when no channel ends or an end depends on a signal.
+double renderSeconds(Thread& th, Arg channels, double sr);
+
+// How many channels compileSynthDef writes for `channels`.
+int channelCount(Thread& th, Arg channels);
+
 // The textures (ola voices) the channels read.
 std::vector<P<Object>> texturesOf(Thread& th, Arg channels);
 

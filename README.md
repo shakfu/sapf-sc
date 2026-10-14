@@ -31,6 +31,8 @@ The embedded server reads these when it starts:
 | `SAPF_SR` | sample rate | the device's |
 | `SAPF_PLUGINS` | UGen plugin folder | `plugins/` beside the executable |
 
+`>sf` renders to a file instead, as sapf's does: `channels "name" >sf` writes `name.wav` to `$SAPF_RECORDINGS`, or the temp folder, at the interpreter's rate (`-r`), until the first channel ends. A channel ends where `N`, `T`, `line` and the other finite words end it; `>sf` refuses channels that never end, or end when a signal decides, as a finite `seq` does. The embedded scsynth renders the `>nrt` score in NRT mode, so `ola` voices, wave tables and samples come out as `play` would play them. `>sfo` then opens the file.
+
 To use a server of your own, set `SAPF_SCSYNTH` to its `host:port`; `play` and `stop` then talk to it over UDP. Any scsynth works, e.g. SuperCollider's own (`scsynth -u 57110`) or nanosynth's (`make server`). Over UDP, `play` waits up to 1 s for scsynth to confirm the def and reports an error otherwise, and a def over about 64 KB does not fit in one packet; write it with `>sd` and load it instead.
 
 ## Model
@@ -87,6 +89,8 @@ scsynth starts a synth at the start of the 64-frame block that holds its time, s
 | `>sd` | `(channels name -->)` | Writes `name.scsyndef`. |
 | `play` | `(channels -->)` | Sends the def to scsynth and starts a synth. |
 | `stop` | `(-->)` | Frees every synth on that scsynth and stops `ola` voices. |
+| `>sf` | `(channels name -->)` | Renders `name.wav` until the first channel ends. |
+| `>sfo` | `(channels name -->)` | As `>sf`, then opens the file. |
 | `>nrt` | `(channels seconds name -->)` | Writes `name.osc`, an NRT score of channels and their `ola` voices. |
 | `sf>` | `(filename --> channels)` | A sound file's channels, once. |
 | `playbuf` | `(filename rate loop --> channels)` | A sound file's channels at `rate`, looped when `loop` is not 0. |
@@ -112,7 +116,7 @@ make reference SAPF_ORIG=...     # regenerates tests/fixtures/ref with original 
 
 The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; see `cmake/EmbeddedScsynth.cmake`, which also says how to build offline. Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for writing defs or a server over UDP only.
 
-pytest runs eight suites:
+pytest runs nine suites:
 
 - `test_scgf_parity.py`: sapf's SCgf bytes equal [nanosynth](../nanosynth)'s for the same graph.
 
@@ -124,6 +128,8 @@ pytest runs eight suites:
 
 - `test_wavetables.py`: `osc` against wave tables computed in numpy.
 
+- `test_sf.py`: `>sf` renders against original sapf's, and its length rule.
+
 - `test_samples.py`: `sf>` and `playbuf` against the sound file, and the sidecar `>sd` writes.
 
 - `test_play.py`: `play` and `stop` against `scripts/server.py` over UDP, and the embedded server, with silent synths. Skipped without an audio device.
@@ -134,7 +140,7 @@ pytest runs eight suites:
 
 `sapf-prelude.txt` is sapf's prelude without the 5 of its 285 definitions that use words sapf-sc does not map: `hilbert`, `fft` and `kaiser`, or definitions built on them. Load it with `-p sapf-prelude.txt` or `$SAPF_PRELUDE`.
 
-`sapf-examples.txt` keeps the 210 of sapf's 312 examples that run; 154 of them play. The rest use words with no SC mapping, most often `lpcombc`, the mouse controls, `violet`, `klang` and `pdiv`, or sapf's live-patching `zplug` and `set`.
+`sapf-examples.txt` keeps the 216 of sapf's 312 examples that run; 160 of them play or render. The rest use words with no SC mapping, most often `lpcombc`, the mouse controls, `violet`, `klang` and `pdiv`, or sapf's live-patching `zplug` and `set`.
 
 ## License
 
