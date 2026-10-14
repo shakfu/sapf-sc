@@ -114,7 +114,7 @@ make test                        # ctest, then pytest (needs uv)
 make reference SAPF_ORIG=...     # regenerates tests/fixtures/ref with original sapf
 ```
 
-The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; see `cmake/EmbeddedScsynth.cmake`, which also says how to build offline. Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for writing defs or a server over UDP only.
+The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; see `cmake/EmbeddedScsynth.cmake`, which also says how to build offline. Tested on macOS and Linux. Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for writing defs or a server over UDP only.
 
 pytest runs nine suites:
 

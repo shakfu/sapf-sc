@@ -20,6 +20,13 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <thread>
+#ifndef _WIN32
+#include <cstring>
+#include <spawn.h>
+#include <sys/wait.h>
+extern char** environ;
+#endif
 
 static V mul(Thread& th, Arg a, Arg b) { return graphBinary(th, opMul, a, b); }
 static V add(Thread& th, Arg a, Arg b) { return graphBinary(th, opAdd, a, b); }
@@ -1086,16 +1093,34 @@ static std::string renderFile(Thread& th, const char* word)
 
 static void sfwrite_(Thread& th, Prim* prim) { renderFile(th, ">sf"); }
 
-static void sfwriteopen_(Thread& th, Prim* prim)
+// Opens path in the default application without waiting for it. The opener gets the path as an
+// argument, not through a shell; a thread reaps it and reports a failed open.
+static void openFile(const std::string& path)
 {
-	std::string path = renderFile(th, ">sfo");
-#if defined(__APPLE__)
-	std::string cmd = "open \"" + path + "\"";
-#else
-	std::string cmd = "xdg-open \"" + path + "\" &";
-#endif
+#if defined(_WIN32)
+	std::string cmd = "start \"\" \"" + path + "\"";
 	if (system(cmd.c_str()) != 0) post(">sfo : could not open '%s'\n", path.c_str());
+#else
+#if defined(__APPLE__)
+	const char* opener = "open";
+#else
+	const char* opener = "xdg-open";
+#endif
+	char* argv[] = {(char*)opener, (char*)path.c_str(), nullptr};
+	pid_t pid;
+	if (int err = posix_spawnp(&pid, opener, nullptr, nullptr, argv, environ)) {
+		post(">sfo : could not run %s: %s\n", opener, strerror(err));
+		return;
+	}
+	std::thread([pid, path, opener] {
+		int status;
+		if (waitpid(pid, &status, 0) == pid && !(WIFEXITED(status) && WEXITSTATUS(status) == 0))
+			post(">sfo : %s could not open '%s'\n", opener, path.c_str());
+	}).detach();
+#endif
 }
+
+static void sfwriteopen_(Thread& th, Prim* prim) { openFile(renderFile(th, ">sfo")); }
 
 static void writenrt_(Thread& th, Prim* prim)
 {

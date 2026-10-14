@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import time
 from pathlib import Path
 
 import numpy as np
@@ -65,3 +66,42 @@ def test_render_while_playing(sapf_bin, tmp_path):
         pytest.skip("no audio device")
     assert "error" not in out, out
     assert read_wav_float(tmp_path / "b.wav").shape == (480, 1)
+
+
+def sfo(name, opener, tmp_path):
+    """Runs `>sfo` in the REPL with `opener` (a shell script body, or None for no opener) as
+    xdg-open and open, and quits after the opener has been reaped. Returns sapf's output."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    if opener is not None:
+        for cmd in ("xdg-open", "open"):
+            (bin_dir / cmd).write_text(f"#!/bin/sh\n{opener}\n")
+            (bin_dir / cmd).chmod(0o755)
+    env = dict(os.environ, SAPF_RECORDINGS=str(tmp_path), SAPF_PRELUDE="/dev/null", SAPF_LOG=str(tmp_path / "log"),
+               PATH=f"{bin_dir}:/usr/bin:/bin" if opener is not None else str(bin_dir))
+    env.pop("SAPF_SCSYNTH", None)
+    p = subprocess.Popen([str(SAPF)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         text=True, env=env)
+    p.stdin.write(f'100 0 sinosc 480 N "{name}" >sfo\n')
+    p.stdin.flush()
+    time.sleep(1)
+    return p.communicate("quit\n", timeout=30)[0]
+
+
+def test_sfo_opens_the_path_unquoted(sapf_bin, tmp_path):
+    # The path reaches the opener as one argument; no shell expands it.
+    out = sfo("a$(touch pwned)", f'echo "$1" > {tmp_path}/opened', tmp_path)
+    assert "error" not in out and ">sfo :" not in out, out
+    assert (tmp_path / "opened").read_text().strip() == str(tmp_path / "a$(touch pwned).wav")
+    assert not (tmp_path / "pwned").exists() and not Path("pwned").exists()
+
+
+def test_sfo_reports_a_failed_open(sapf_bin, tmp_path):
+    out = sfo("b", "exit 4", tmp_path)
+    assert ">sfo :" in out and "could not open" in out and "b.wav" in out, out
+
+
+def test_sfo_reports_a_missing_opener(sapf_bin, tmp_path):
+    out = sfo("c", None, tmp_path)
+    assert ">sfo : could not run" in out, out
+    assert (tmp_path / "c.wav").exists()
