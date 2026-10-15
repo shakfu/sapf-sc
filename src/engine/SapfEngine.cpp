@@ -1,4 +1,5 @@
 #include "sapf/Engine.hpp"
+#include "Environment.hpp"
 #include "sapf/platform/Platform.hpp"
 
 #include <limits.h>
@@ -45,8 +46,8 @@ void SapfEngine::configure(const SapfEngineConfig& config)
 	if (config.sampleRate > 0.) {
 		vm.setSampleRate(config.sampleRate);
 	}
-	if (config.preludeFile) {
-		vm.prelude_file = config.preludeFile;
+	if (!config_.preludeFiles.empty()) {
+		vm.prelude_file = config_.preludeFiles[0].c_str();
 	}
 	if (config.logFile) {
 		vm.log_file = config.logFile;
@@ -92,7 +93,7 @@ void SapfEngine::configureLogFile()
 	if (vm.log_file) {
 		return;
 	}
-	vm.log_file = getenv("SAPF_LOG");
+	vm.log_file = stacEnv("LOG");
 	if (!vm.log_file) {
 		const char* home_dir = getenv("HOME");
 		static char logfilename[PATH_MAX];
@@ -104,8 +105,12 @@ void SapfEngine::configureLogFile()
 
 void SapfEngine::loadPrelude(Thread& th) const
 {
+	if (!config_.preludeFiles.empty()) {
+		for (auto& file : config_.preludeFiles) loadFile(th, file.c_str());
+		return;
+	}
 	if (!vm.prelude_file) {
-		vm.prelude_file = getenv("SAPF_PRELUDE");
+		vm.prelude_file = stacEnv("PRELUDE");
 	}
 	if (vm.prelude_file) {
 		loadFile(th, vm.prelude_file);

@@ -69,5 +69,6 @@ TEST_F(CompletionTest, StackEffect) {
 TEST_F(CompletionTest, NamespacedWords) {
     EXPECT_EQ(namespacedWords(th, "dseq"), (Strings{"demand.dseq"}));
     EXPECT_EQ(namespacedWords(th, "sinosc"), (Strings{"ug.sinosc"}));
+    EXPECT_EQ(namespacedWords(th, "white"), (Strings{"sapf.white"}));
     EXPECT_EQ(namespacedWords(th, "nosuchword"), Strings{});
 }

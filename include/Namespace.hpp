@@ -50,7 +50,7 @@ public:
 			return true;
 		}
 		value.apply(th);
-		ioValue = th.pop();
+		ioValue = noValue(); // the call's results, none or several, stay on the stack
 		return true;
 	}
 
@@ -66,6 +66,16 @@ public:
 		mWords[word] = V(new Prim(fun, 0., takes, 1, word, help));
 		vm.addBifHelp((mName + "." + word).c_str(), nullptr, help);
 	}
+};
+
+// sapf's DSP words (docs/dev/stac.md, Phases 5), bound globally as `sapf`. sapf.stac binds them unqualified.
+Namespace* sapfNamespace();
+
+// While alive, vm.def puts words in sapfNamespace() in place of builtins.
+struct SapfWords
+{
+	SapfWords() { vm.defNamespace = sapfNamespace(); }
+	~SapfWords() { vm.defNamespace = nullptr; }
 };
 
 // A namespace of generated UGen words, by name, so interpreter words can join it (SpecUGens.cpp).

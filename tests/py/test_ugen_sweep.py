@@ -60,5 +60,5 @@ def test_parity(compile_sapf, group, u):
     kwargs = {p: values[arg] for p, (_, arg, _) in zip(params, u["wire"])}
     with SynthDefBuilder() as b:
         sig = getattr(getattr(ns_ugens, u["cls"]), method)(**kwargs)
-        Out.ar(bus=0, source=sig if method == "ar" else K2A.ar(source=sig))
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=sig if method == "ar" else K2A.ar(source=sig))
     assert sapf == b.build(name="t").compile()

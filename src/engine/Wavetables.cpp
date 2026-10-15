@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "Wavetables.hpp"
+#include "Namespace.hpp"
 #include "Scsynth.hpp"
 #include "MathFuns.hpp"
 #include <algorithm>
@@ -196,6 +197,7 @@ static void sawTbl_(Thread& th, Prim* prim) { th.push(classic(3)); }
 void AddWavetableOps()
 {
 	vm.addBifHelp("\n*** wave tables ***");
+	SapfWords sapf;
 	vm.defautomap("wavefill", "aak", wavefill_, "(amps phases smooth --> wavetable) generates a set of 1/3 octave wavetables for table lookup oscillators. sin(i*theta + 2pi*phases[i])*amps[i]*pow(cos(pi/2*i/n), smooth). smoothing reduces Gibb's phenomenon. zero is no smoothing");
 	vm.defmcx("osc", 3, osc_, "(freq phase wavetable --> out) band limited wave table oscillator. wavetable is a table created with wavefill. VOsc over scsynth buffers that play and >nrt load.");
 	vm.def("parTbl", 0, 1, parTbl_, "(--> wavetable) parabolic wave table.");

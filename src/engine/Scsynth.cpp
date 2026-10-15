@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "Scsynth.hpp"
+#include "Environment.hpp"
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -48,7 +49,7 @@ std::string getString(const std::string& in, size_t& pos)
 
 void splitAddress(std::string& host, std::string& port)
 {
-	const char* env = getenv("SAPF_SCSYNTH");
+	const char* env = stacEnv("SCSYNTH");
 	std::string addr = (env && *env) ? env : "127.0.0.1:57110";
 	size_t colon = addr.rfind(':');
 	host = colon == std::string::npos ? addr : addr.substr(0, colon);
@@ -108,10 +109,10 @@ std::string oscBundle(double seconds, const std::vector<std::string>& messages, 
 namespace {
 ScsynthServer* gEmbedded = nullptr;
 
-// The embedded server, unless $SAPF_SCSYNTH names one to reach over UDP.
+// The embedded server, unless $STAC_SCSYNTH names one to reach over UDP.
 ScsynthServer* embedded()
 {
-	const char* env = getenv("SAPF_SCSYNTH");
+	const char* env = stacEnv("SCSYNTH");
 	return env && *env ? nullptr : gEmbedded;
 }
 } // namespace

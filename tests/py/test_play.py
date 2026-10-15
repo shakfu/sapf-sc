@@ -11,7 +11,7 @@ import time
 import pytest
 from nanosynth.osc import OscMessage
 
-from conftest import ROOT, SAPF, run_sapf
+from conftest import ROOT, SAPF, SAPF_LIB, run_sapf
 
 PORT = 57193
 
@@ -44,7 +44,7 @@ def server():
 
 @pytest.fixture
 def sapf(server, tmp_path, monkeypatch):
-    monkeypatch.setenv("SAPF_SCSYNTH", f"127.0.0.1:{PORT}")
+    monkeypatch.setenv("STAC_SCSYNTH", f"127.0.0.1:{PORT}")
     run_sapf("stop", tmp_path)
     return lambda code: run_sapf(code, tmp_path)
 
@@ -70,7 +70,7 @@ def test_finite_signal_frees_itself(server, sapf):
 
 
 def test_play_reports_a_missing_server(tmp_path, monkeypatch):
-    monkeypatch.setenv("SAPF_SCSYNTH", "127.0.0.1:57199")
+    monkeypatch.setenv("STAC_SCSYNTH", "127.0.0.1:57199")
     out = run_sapf("440 0 sinosc play", tmp_path)
     assert "no reply" in out and "error" in out, out
 
@@ -79,8 +79,8 @@ def test_ola_voices_start_and_stop(server, sapf, tmp_path):
     # -i keeps sapf running after the file, so its scheduler keeps starting voices.
     src = tmp_path / "ola.sapf"
     src.write_text("\\i[ 0 0 sinosc .3 T ] .1 1 1 ola 0 at play\n")
-    env = dict(os.environ, SAPF_SCSYNTH=f"127.0.0.1:{PORT}", SAPF_PRELUDE="/dev/null")
-    proc = subprocess.Popen([str(SAPF), "-q", "-i", str(src)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    env = dict(os.environ, STAC_SCSYNTH=f"127.0.0.1:{PORT}")
+    proc = subprocess.Popen([str(SAPF), "-q", *SAPF_LIB, "-i", str(src)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, env=env)
     try:
         time.sleep(1)
@@ -102,8 +102,8 @@ def test_ola_stops_with_its_main_synth(server, sapf, tmp_path):
     # The main synth ends after .5 s; its scheduler then starts no more voices.
     src = tmp_path / "f.sapf"
     src.write_text("\\i[ 0 0 sinosc .2 T ] .1 1 1 ola 0 at .5 T play\n")
-    env = dict(os.environ, SAPF_SCSYNTH=f"127.0.0.1:{PORT}", SAPF_PRELUDE="/dev/null")
-    proc = subprocess.Popen([str(SAPF), "-q", "-i", str(src)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    env = dict(os.environ, STAC_SCSYNTH=f"127.0.0.1:{PORT}")
+    proc = subprocess.Popen([str(SAPF), "-q", *SAPF_LIB, "-i", str(src)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, env=env)
     try:
         time.sleep(1.5)
@@ -196,7 +196,7 @@ def test_add_action_and_target(server, sapf):
 
 
 def test_synth_reports_a_missing_server(tmp_path, monkeypatch):
-    monkeypatch.setenv("SAPF_SCSYNTH", "127.0.0.1:57199")
+    monkeypatch.setenv("STAC_SCSYNTH", "127.0.0.1:57199")
     out = run_sapf(TONE + "{} tone", tmp_path)
     assert "no reply" in out and "error" in out, out
 
@@ -282,8 +282,8 @@ def interactive(code, tmp_path):
     """sapf -i on a file, which keeps it running after the file so its players keep scheduling."""
     src = tmp_path / "events.sapf"
     src.write_text(code)
-    env = dict(os.environ, SAPF_SCSYNTH=f"127.0.0.1:{PORT}", SAPF_PRELUDE="/dev/null")
-    return subprocess.Popen([str(SAPF), "-q", "-i", str(src)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    env = dict(os.environ, STAC_SCSYNTH=f"127.0.0.1:{PORT}")
+    return subprocess.Popen([str(SAPF), "-q", *SAPF_LIB, "-i", str(src)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, env=env)
 
 

@@ -15,9 +15,11 @@
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "VM.hpp"
+#include "Environment.hpp"
 #include "Opcode.hpp"
 #include "Parser.hpp"
 #include "Completion.hpp"
+#include "Namespace.hpp"
 #include "MultichannelExpansion.hpp"
 #include "elapsedTime.hpp"
 #include <stdexcept>
@@ -232,12 +234,12 @@ static const char* getPrompt(int parsingWhat)
 {
 	switch (parsingWhat) {
 		default:
-		case parsingWords:  return "sapf> ";
-		case parsingString: return "\"sapf> ";
-		case parsingParens: return "(sapf> ";
-		case parsingLambda: return "\\sapf> ";
-		case parsingArray:  return "[sapf> ";
-		case parsingEnvir:  return "{sapf> ";
+		case parsingWords:  return "stac> ";
+		case parsingString: return "\"stac> ";
+		case parsingParens: return "(stac> ";
+		case parsingLambda: return "\\stac> ";
+		case parsingArray:  return "[stac> ";
+		case parsingEnvir:  return "{stac> ";
 	}
 }
 #endif
@@ -316,7 +318,7 @@ void Thread::getLine()
 #else
 	// Fallback for platforms without replxx
 	static char inputBuffer[4096];
-	printf("%s", parsingWhat == parsingWords ? "sapf> " : "...> ");
+	printf("%s", parsingWhat == parsingWords ? "stac> " : "...> ");
 	fflush(stdout);
 	if (!fgets(inputBuffer, sizeof(inputBuffer), stdin)) {
 		line = NULL;
@@ -387,7 +389,7 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 	replxx = replxx_init();
 
 	// Set up history file path
-	const char* envHistoryFileName = getenv("SAPF_HISTORY");
+	const char* envHistoryFileName = stacEnv("HISTORY");
 	if (envHistoryFileName) {
 		snprintf(historyfilename, PATH_MAX, "%s", envHistoryFileName);
 	} else {
@@ -570,10 +572,19 @@ void VM::setSampleRate(double inSampleRate)
 
 V VM::def(Arg key, Arg value)
 {
+	if (defNamespace) {
+		defNamespace->mWords[((String*)key.o())->s] = value;
+		return value;
+	}
 	builtins->putImpure(key, value); 
     V dummy;
     assert(builtins->getInner(key, dummy));
 	return value;
+}
+
+std::string VM::helpName(const char* name) const
+{
+	return defNamespace ? defNamespace->mName + "." + name : std::string(name);
 }
 
 V VM::def(const char* name, Arg value)
@@ -590,7 +601,7 @@ V VM::def(const char* name, int takes, int leaves, PrimFun pf, const char* help,
 	if (setNoEach) aPrim.SetNoEachOps();
 	
 	if (help)
-		addBifHelp(name, aPrim.GetAutoMapMask(), help);
+		addBifHelp(helpName(name).c_str(), aPrim.GetAutoMapMask(), help);
 		
 	return aPrim;
 }
@@ -601,7 +612,7 @@ V VM::defmcx(const char* name, int numArgs, PrimFun pf, const char* help, Arg va
 	aPrim = mcx(numArgs, aPrim, name, help);
 	def(name, aPrim);
 		
-	addBifHelp(name, aPrim.GetAutoMapMask(), help);
+	addBifHelp(helpName(name).c_str(), aPrim.GetAutoMapMask(), help);
 	return aPrim;
 }
 
@@ -612,7 +623,7 @@ V VM::defautomap(const char* name, const char* mask, PrimFun pf, const char* hel
 	aPrim = automap(mask, numArgs, aPrim, name, help);
 	def(name, aPrim);
 		
-	addBifHelp(name, aPrim.GetAutoMapMask(), help);
+	addBifHelp(helpName(name).c_str(), aPrim.GetAutoMapMask(), help);
 	return aPrim;
 }
 

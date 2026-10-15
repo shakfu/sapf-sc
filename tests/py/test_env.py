@@ -11,7 +11,7 @@ from nanosynth.ugens import K2A, Out, SinOsc
 
 def build(fn):
     with SynthDefBuilder() as b:
-        Out.ar(bus=0, source=fn())
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=fn())
     return b.build(name="t").compile()
 
 
@@ -67,7 +67,7 @@ def test_multichannel_levels(compile_sapf):
 
 @pytest.mark.parametrize("expr,message", [
     ("[0 1] 1 'foo env.new", "env.new : curves : no envelope shape named 'foo"),
-    (".01 1 env.perc ug.sinosc", "ug.sinosc : freq"),
+    (".01 1 env.perc ug.sinosc", "sinosc : freq"),
     ("[0] 1 'lin env.new", "env.new : needs 2 or more levels"),
 ])
 def test_errors(sapf_bin, tmp_path, expr, message):

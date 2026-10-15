@@ -15,6 +15,7 @@
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "VM.hpp"
+#include "Namespace.hpp"
 #include "clz.hpp"
 #include "elapsedTime.hpp"
 #include <cmath>
@@ -2479,6 +2480,8 @@ void AddRandomOps()
 	DEF(wpicks, 2, 1, "(a w --> r) return a stream of randomly chosen elements from the finite list a using probability weights from w. w must be the same length as a and should sum to one.") 
 	
 	vm.addBifHelp("\n*** random signals ***");
+	{
+	SapfWords sapf;
 	DEFMCX(randz, 2, "(a b --> r) return a signal of uniformly distributed random real values from a to b.")
 	DEFMCX(coinz, 1, "(p --> r) return a signal of 1 with probability p, or 0 with probability (1-p).")
 	DEFMCX(eprandz, 2, "(a b --> r) return a signal of uniformly distributed random integer values from a to b, excluding the previously returned value")
@@ -2492,6 +2495,8 @@ void AddRandomOps()
 	DEFMCX(pickz, 1, "(a --> r) return a signal of randomly chosen elements from the finite list a.") 
 	DEFMCX(wpickz, 2, "(a w --> r) return a signal of randomly chosen elements from the finite list a using probability weights from w. w must be the same length as a and should sum to one.") 
     
+	}
+
 	vm.addBifHelp("\n*** finite random streams ***");
 	DEFAM(nrands, kkk, "(n a b --> r) return a stream of n uniformly distributed random real values from a to b.")
 	DEFAM(ncoins, kk, "(n p --> r) return a stream of n 1 with probability p, or 0 with probability (1-p).")
@@ -2507,6 +2512,7 @@ void AddRandomOps()
 	DEFAM(nwpicks, kaa, "(n a w --> r) return a stream of n randomly chosen elements from the finite list a using probability weights from w. w must be the same length as a and should sum to one.") 
 	
 	vm.addBifHelp("\n*** finite random signals ***");
+	SapfWords sapf;
 	DEFMCX(nrandz, 3, "(n a b --> r) return a signal of n uniformly distributed random real values from a to b.")
 	DEFMCX(ncoinz, 2, "(n p --> r) return a signal of n 1 with probability p, or 0 with probability (1-p).")
 	DEFMCX(neprandz, 3, "(n a b --> r) return a signal of n uniformly distributed random integer values from a to b, excluding the previously returned value")

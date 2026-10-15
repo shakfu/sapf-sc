@@ -5,8 +5,8 @@
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 
-// OSC to scsynth: one this process runs, when the executable embeds it and $SAPF_SCSYNTH is unset,
-// or else one over UDP at $SAPF_SCSYNTH (host:port), default 127.0.0.1:57110.
+// OSC to scsynth: one this process runs, when the executable embeds it and $STAC_SCSYNTH is unset,
+// or else one over UDP at $STAC_SCSYNTH (host:port), default 127.0.0.1:57110.
 
 #ifndef SAPF_SCSYNTH_HPP
 #define SAPF_SCSYNTH_HPP
@@ -46,7 +46,7 @@ struct ScsynthServer {
 };
 void setEmbeddedScsynth(ScsynthServer* server);
 
-// As ScsynthServer::render, with the embedded server whether or not $SAPF_SCSYNTH is set.
+// As ScsynthServer::render, with the embedded server whether or not $STAC_SCSYNTH is set.
 std::string scsynthRender(const std::string& score, const std::string& path, int channels, int64_t frames, double sr);
 
 // Sends `packets`, then /sync, and waits up to `timeoutMs` for /synced. Returns "" on

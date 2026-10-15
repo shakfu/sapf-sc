@@ -388,8 +388,6 @@ nyq .9 * = nyq90   ;; 90 percent of nyquist
 	"(a --> bool) test whether numbers in list are coprime."
 	[a gcd/ 1 ==] = coprimes
 
-"\\n*** common random number generators ***" helpLine
-
 "\\n*** unipolar random number generators ***" helpLine
 \
 	"(--> r) return a random number from 0 to 1."
@@ -399,17 +397,9 @@ nyq .9 * = nyq90   ;; 90 percent of nyquist
 	"(--> r) return a stream of random numbers from 0 to 1."
 	[0 1 rands] = urands
 	
-\
-	"(--> r) return a signal of random numbers from 0 to 1."
-	[0 1 randz] = urandz
-	
 \n
 	"(n --> r) return a stream of n random numbers from 0 to 1."
 	[n 0 1 nrands] = nurands
-	
-\n 
-	"(n --> r) return a signal of n random numbers from 0 to 1."
-	[n 0 1 nrandz] = nurandz
 
 "\\n*** bipolar random number generators ***" helpLine
 \
@@ -420,17 +410,9 @@ nyq .9 * = nyq90   ;; 90 percent of nyquist
 	"(--> r) return a stream of random numbers from -1 to 1."
 	[1 rand2s] = brands
 	
-\
-	"(--> r) return a signal of random numbers from -1 to 1."
-	[1 rand2z] = brandz
-	
 \n 
 	"(n --> r) return a stream of n random numbers from -1 to 1."
 	[n 1 nrand2s] = nbrands
-	
-\n 
-	"(n --> r) return a signal of n random numbers from -1 to 1."
-	[n 1 nrand2z] = nbrandz
 	
 "\\n*** random walks ***" helpLine
 
@@ -450,45 +432,7 @@ nyq .9 * = nyq90   ;; 90 percent of nyquist
 	"(step bounds --> stream) random walk. bipolar bounds."
 	[step rand2s +\ limit rand2 + limit fold2  ] = walk2
 
-\step lo hi
-	"(step lo hi --> signal) integer random walk."
-	[step irand2z +\ lo hi irand + lo hi ifold  ] = iwalkz
-
-\step limit
-	"(step bounds --> signal) integer random walk. bipolar bounds."
-	[step irand2z +\ limit irand2 + limit ifold2  ] = iwalk2z
-
-\step lo hi
-	"(step lo hi --> signal) random walk."
-	[step rand2z +\ lo hi rand + lo hi fold  ] = walkz
-
-\step limit
-	"(step bounds --> signal) random walk. bipolar bounds."
-	[step rand2z +\ limit rand2 + limit fold2  ] = walk2z
-
 "\\n*** composite ugens ***" helpLine
-
-\sounds susTime xfadeTime density numChannels
-	"(sounds susTime xfadeTime density numChannels --> out) texture of overlapping sounds. OverlapTexture, adapted from SC2"
-	[
-		xfadeTime 2 * susTime + density / = period 
-		#[0 1 1 0] = levels
-		#[xfadeTime susTime xfadeTime] = times
-		`sounds type 'Fun equals 
-		\[ \i[ i sounds levels times 1 lines * ] period 1 numChannels ola ]
-		\[ sounds @ \sound[ sound levels times 1 lines *] ! period 1 numChannels ola ] if
-	] = oltx
-
-\sounds susTime xfadeTime numChannels
-	"(sounds susTime xfadeTime numChannels --> out) texture of crossfaded sounds. XFadeTexture, adapted from SC2"
-	[
-		xfadeTime susTime + = period 
-		#[0 1 1 0] = levels
-		#[xfadeTime susTime xfadeTime] = times
-		`sounds type 'Fun equals 
-		\[ \i[ i sounds levels times 1 lines * ] period 1 numChannels ola ]
-		\[ sounds @ \sound[ sound levels times 1 lines *] ! period 1 numChannels ola ] if
-	] = xftx
 
 \in
 	"(in --> out) 50% chance of flipping the sign"
@@ -497,26 +441,6 @@ nyq .9 * = nyq90   ;; 90 percent of nyquist
 \freq root expon 
 	"(freq root exponent --> out) frequency dependent amplitude compensation factor."
 	[ root freq / expon ^] = famp
-
-\freq phase lo hi 
-	"(freq phase lo hi --> out) sine wave lfo with linear range."
-	[freq phase sinosc lo hi bilin] = lfo
-
-\freq phase lo hi 
-	"(freq phase lo hi --> out) sine wave lfo with exponential range."
-	[freq phase sinosc lo hi biexp] = xlfo
-
-\x 
-	"(x --> out) evenly spread an array of mono sources across a stereo field."
-	[x L1 aa size -1 1 lindiv pan2 +/] = splay
-
-\x 
-	"(x --> out) evenly spread an array of mono sources across a stereo field."
-	[x L1 = list x 0 list size -1 1 lindiv brand + rot2 +/] = rsplay
-
-\x maxdelay 
-	"(x maxdelay --> out) evenly spread an array of mono sources across a stereo field using interaural time delay."
-	[x L1 aa size -1 1 lindiv maxdelay itd +/] = splayd
 
 "\\n*** amplitude ***" helpLine
 
@@ -527,119 +451,6 @@ nyq .9 * = nyq90   ;; 90 percent of nyquist
 \in
 	"(in --> out) calculate the rms amplitude in decibels. input must be finite."
 	[in rms ampdb] = rmsdb
-
-;;\in
-;;	"(in --> amp) amplitude follower." NOW BUILT-IN
-;;	[in hilbert hypot 1m 1c lagud2] = ampf
-	
-;;\in db slopeBelow slopeAbove
-;;	"(in db slopeBelow slopeAbove --> out) dynamic range compressor."
-;;	[in hilbert hypot 1m 1c lagud2] = drc
-
-"\\n*** uses of hilbert processor ***" helpLine
-
-;;.4 white .1 100 xmousex phaser play
-
-"\\n*** simple allpass reverbs ***" helpLine
-
-\in dly dcy 
-	"(in delayTime decayTime --> out) four stage stereo allpass with random delay times"
-	[	
-		in size 2 | = n
-		\z[ z \[.1m dly rand] n X aa dcy alpasn] = r
-		in r r r r
-	] = apverb4
-
-\in dly dcy 
-	"(in delayTime decayTime --> out) six stage stereo allpass with random delay times"
-	[	\z[ z \[.1m dly rand] 2X aa dcy alpasn] = r
-		in r r r r r r
-	] = apverb6
-
-"\\n*** random sweeps and pans ***" helpLine
-
-\d a b
-	"(dur lo hi --> out) random line. both ends are uniformly random between lo and hi."
-	[d a b rand a b rand line] = rline
-
-\d a b
-	"(dur lo hi --> out) exponentially random line. both ends are exponentially random between lo and hi."
-	[d a b xrand a b xrand line] = xrline
-
-\d a b
-	"(dur lo hi --> out) random exponential line. both ends are uniformly random between lo and hi."
-	[d a b rand a b rand xline] = rxline
-
-\d a b
-	"(dur lo hi --> out) exponentially random exponential line. both ends are exponentially random between lo and hi."
-	[d a b xrand a b xrand xline] = xrxline
-
-\in 
-	"(in --> out) stereo pan at a fixed random position."
-	[in 1 rand2 pan2] = rpanl2
-
-\in 
-	"(in --> out) stereo pan at a fixed random position."
-	[in 1 rand2 1m itd] = rpan2
-
-\a b 
-	"(a b --> out) stereo balance at a fixed random position."
-	[a b 1 rand2 bal2] = rbal2
-
-\in 
-	"(in --> out) stereo rotation at a fixed random position."
-	[in 0 1 rand2 rot2] = rrot2
-
-\in dur
-	"(in dur --> out) stereo pan with a random sweep."
-	[in dur 1 rand2 1 rand2 line pan2] = rsweeppan2
-
-
-"\\n*** crossover filters ***" helpLine
-
-\in freq
-	"(in freq --> high_band low_band) Linkwitz-Riley crossover filters. low_band + high_band yields a flat frequency response."
-	[in freq hpf2  in freq lpf2] = crossover
-
-\in freq
-	"(in freq --> high_band low_band) first order crossover filters. low_band + high_band yields a flat frequency response."
-	[in freq hpf1  in freq lpf1] = crossover1
-
-\in freq bw
-	"(in freq bw --> outer_band inner_band) middle crossover. outer_band + inner_band yields a flat frequency response."
-	[in freq bw bsf  in freq bw bpf] = midcrossover
-
-\a b freq
-	"(a b freq --> out) Linkwitz-Riley crossover mixer."
-	[a freq hpf2  b freq lpf2 +] = crossovermix
-
-\a b freq
-	"(a b freq --> out) Linkwitz-Riley crossover mixer."
-	[a freq hpf1  b freq lpf1 +] = crossover1mix
-
-\a b freq bw
-	"(a b freq bw --> out) Linkwitz-Riley crossover mixer."
-	[a freq bw bsf  b freq bw bpf +] = midcrossovermix
-
-
-;; crossover tests:
-;; \[20 20 20k xline 0 sinosc .5 * = x x 632 crossover = lo = hi  [x lo hi + lo hi]] ! "crossover-test" >sf
-;; \[20 20 20k xline 0 sinosc .5 * = x x 632 crossover1 = lo = hi  [x lo hi + lo hi]] ! "crossover1-test" >sf
-;; \[20 20 20k xline 0 sinosc .5 * = x x 632 .5 midcrossover = mid = outer  [x mid outer + mid outer]] ! "midcrossover-test" >sf
-
-"\\n*** delays with wet/dry mix ***" helpLine
-
-\in delay maxdelay decay wet
-	"(in delay maxdelay decay wet --> out) combn delay with wet/dry mix control."
-	[in  in delay maxdelay decay combn wet fade2] = combnw 
-	
-\in delay maxdelay decay wet
-	"(in delay maxdelay decay wet --> out) combl delay with wet/dry mix control."
-	[in  in delay maxdelay decay combl wet fade2] = comblw 
-	
-\in delay maxdelay decay wet
-	"(in delay maxdelay decay wet --> out) combc delay with wet/dry mix control."
-	[in  in delay maxdelay decay combc wet fade2] = combcw
 	
 
 "\\n*** complex <-> polar ***" helpLine
@@ -912,174 +723,8 @@ nyq .9 * = nyq90   ;; 90 percent of nyquist
 [1/1 9/8 5/4 45/32 3/2 5/3 15/8] = lydian
 [1/1 9/8 5/4 45/32 3/2 27/16 15/8] = lydian27
 
-
-"\\n*** synths ***" helpLine
-
-\pch dyn dur pan 
-	"(pch dyn dur pan -> outs) saw->filter->amp synth voice"
-[
-	#[0 1 .3 0] -3 #[3m .1 dur .103 - .1 |] 1 curves = env
-	dyn 0 1h 6h 12k linlinc env * = fc
-	dyn 0 1h -20 -10 linlinc dbamp = amp
-	pch 1/12 * ohz [.1 -.1] + 0 [1 1] rand saw fc lpf2 env amp * * 
-] = blah
-
-\pch dyn dur pan 
-	"(pch dyn dur pan -> outs) lfsaw->filter->amp synth voice"
-[
-	#[0 1 .3 0] -3 #[3m .1 dur .103 - .1 |] 1 curves = env
-	
-	dyn 0 1h 6h 12k linlinc env * = fc
-	dyn 0 1h -20 -10 linlinc dbamp = amp
-	pch 1/12 * ohz [.1 -.1] + 0 [1 1] rand lfsaw fc lpf2 env amp * * 
-] = lfblah
-
-;; [-12 0 4 6 10 14 20] 2 - @ 70 12 0 blah 0 .3 by dly +/ play
-
-;; meanings of arguments:
-;; freq - frequency in hertz
-;; duty - duty cycle for variable width pulse or saw
-;; db - peak amplitude in decibels
-;; dur - duration in seconds
-;; pan - pan position (-1 to +1)
-;; harms - number of harmonics. determines the filter cutoff frequency
-;; rq - the filter resonance, expressed as 1/Q.
-;; adsr - an array containing [attack-time decay-time sustain-level release-time
-;; c - carrier frequency multiplier
-;; m - modulator frequency multiplier
-;; mx - index of frequency modulation in cycles
-;; fb - amount of phase modulation self feedback for the modulator
-;; wt - wavetable
-
-
-\adsr dur
-[
-	adsr un4 = r = s = d = a
-	#[0 1 s s 0] -3 #[a d dur a - d - 0 | r] 1 curves	
-] = adsrenv
-
-\freq db dur pan harms adsr
-	"(freq db dur pan harms adsr --> out) sawtooth wave synth"
-[
-	adsr dur adsrenv = env
-	freq harms * freqLimit & env * = fc
-	db dbamp env * = amp
-	freq 0 saw fc lpf2 amp * pan pan2
-] = saw-syn
-
-\freq db dur pan harms adsr
-	"(freq db dur pan harms adsr --> out) square wave synth"
-[
-	adsr dur adsrenv = env
-	freq harms * freqLimit & env * = fc
-	db dbamp env * = amp
-	freq 0 .5 pulse fc lpf2 amp * pan pan2
-] = square-syn
-
-\freq duty db dur pan harms adsr
-	"(freq duty db dur pan harms adsr --> out) variable width pulse wave synth"
-[
-	adsr dur adsrenv = env
-	freq harms * freqLimit & env * = fc
-	db dbamp env * = amp
-	freq 0 duty pulse fc lpf2 amp * pan pan2
-] = pulse-syn
-
-\freq db dur pan harms adsr wt
-	"(freq db dur pan harms adsr wt --> out) wavetable oscillator synth"
-[
-	adsr dur adsrenv = env
-	freq harms * freqLimit & env * = fc
-	db dbamp env * = amp
-	freq 0 wt osc fc lpf2 amp * pan pan2
-] = osc-syn
-
-
-\freq db dur pan harms rq adsr
-	"(freq db dur pan harms rq adsr --> out) sawtooth wave synth with resonant lpf"
-[
-	adsr dur adsrenv = env
-	freq harms * freqLimit & env * = fc
-	db dbamp env * = amp
-	freq 0 saw fc rq rlpf2 amp * pan pan2
-] = saw-rsyn
-
-\freq db dur pan harms rq adsr
-	"(freq db dur pan harms rq adsr --> out) square wave synth with resonant lpf"
-[
-	adsr dur adsrenv = env
-	freq harms * freqLimit & env * = fc
-	db dbamp env * = amp
-	freq 0 .5 pulse fc rq rlpf2 amp * pan pan2
-] = square-rsyn
-
-\freq c m mx fb db dur pan adsr
-	"(freq c m mx fb db dur pan adsr --> out) fm synth"
-[
-	adsr dur adsrenv = env
-	db dbamp env * = amp
-	freq c * = cf
-	freq m * = mf
-	cf (mf 0 fb sinoscfb env mx * *) sinosc amp * pan pan2
-] = fm-syn
-
-\freq c m mx fb db dur pan adsr
-	"(freq c m mx fb db dur pan adsr --> out) 3 detuned carrier, 1 modulator fm"
-[
-	adsr dur adsrenv = env
-	db dbamp env * = amp
-	freq c * = cf
-	freq m * = mf
-	mf 0 fb sinoscfb env mx * * = mod
-	cf mod sinosc cf .2 + mod sinosc cf .2 - mod sinosc + + amp * pan pan2
-] = fm-syn3
-
 ;;;;;;;
 "\\n*** events ***" helpLine
-	
-{
-	;; base event. contains common default arguments for instruments. 
-	;; a particular instrument will use only some of the arguments.
-	
-	:freq 	0 ohz 	; frequency in Hertz
-	:duty	.5		; duty cycle. 0 to 1 cycles
-	:phase	0		; phase. 0 to 1 cycles
-	
-	;; timing
-	:dur	1		; beats
-	:dt		\o[ o.dur ]		; delta time to next event in beats. default is to return the duration
-	:sus	\o[ o.dur o.legato * o.susmin | ]	; the time to sustain a note, in beats.
-	:legato	1		; proportion of the note duration to sustain a note.
-	:susmin	0		; minimum time to sustain a note, in beats.
-	
-	:pan	0		; -1 to 1
-	:harms	8		; number of harmonics. determines the filter cutoff frequency
-	:rq		.25		; 1/Q
-	:c		1		; carrier frequency multiplier.
-	:m		1		; modulator frequency multiplier.
-	:mx		1		; modulation index in radians.
-	:fb		0		; amplitude of feedback modulation.
-	:wt		sawTbl	; wave table.
-	
-	;; amplitude envelope
-	:db		-20		; decibels
-	:amp	\o[ o.db dbamp ]	; amplitude
-	:adsr	[2m 2 0 .1]	; an array containing [attack-time decay-time sustain-level release-time]
-	:env	\o[ o.adsr o.amp o.sus 1 adsr ]	; creates an adsr envelope
-	
-	:out	\o[ o `osc-syn !e ]	; extracts the event fields and passes them to osc-syn
-} = ev-base
-
-"ev-base - a form containing the basic low level information for a music event." helpLine
-
-; a simple sound for testing
-{
-        :freq   1k      ; hz
-        :db     -12     ; dB
-        :dur    1       ; beats
-        :hop    \o[o.dur]
-        :out    \o[ (o.freq 0 sinosc) (#[0 1 0] o.db dbamp * -4 #[1m .4] 1 curves) * ]
-} = tink
 
 ; { tink :freq 2h 1k xrands @ :dt [.1 .2] picks @ } 1 1 1 ola play
 

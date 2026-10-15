@@ -4,6 +4,8 @@ in the order sapf forces them."""
 
 import math
 
+from pytest import approx
+
 from conftest import decode_scgf
 from nanosynth import SynthDefBuilder
 from nanosynth.ugens import DC, K2A, CombN, LFSaw, Out, Pan2, SinOsc
@@ -17,14 +19,14 @@ def build(name, fn, **params):
 
 def test_sine(compile_sapf):
     def fn(b):
-        Out.ar(bus=0, source=SinOsc.ar(frequency=800, phase=0) * 0.3)
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=SinOsc.ar(frequency=800, phase=0) * 0.3)
 
     assert compile_sapf("800 0 sinosc .3 *") == build("t", fn)
 
 
 def test_phase_in_cycles(compile_sapf):
     def fn(b):
-        Out.ar(bus=0, source=SinOsc.ar(frequency=800, phase=0.25 * 2 * math.pi))
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=SinOsc.ar(frequency=800, phase=0.25 * 2 * math.pi))
 
     assert compile_sapf("800 .25 sinosc") == build("t", fn)
 
@@ -33,29 +35,34 @@ def test_stereo_forced_in_channel_order(compile_sapf):
     def fn(b):
         left = SinOsc.ar(frequency=300) * 0.1
         right = SinOsc.ar(frequency=301) * 0.1
-        Out.ar(bus=0, source=[left, right])
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=[left, right])
 
     assert compile_sapf("[300 301] 0 sinosc .1 *") == build("t", fn)
 
 
 def test_parameter(compile_sapf):
-    def fn(b):
-        Out.ar(bus=0, source=SinOsc.ar(frequency=b["freq"]) * b["amp"])
-
-    sapf = compile_sapf("440 'freq ctl 0 sinosc .1 'amp ctl *")
-    assert sapf == build("t", fn, freq=440.0, amp=0.1)
+    # synthdef's out comes before ctl's controls; nanosynth sorts controls by name, so compare decoded.
+    d = decode_scgf(compile_sapf("440 'freq ctl 0 sinosc .1 'amp ctl *"))
+    assert d["params"] == {"out": 0, "amp": 1, "freq": 2}
+    assert d["defaults"] == [0, approx(0.1), 440]
+    assert [u[:4] for u in d["ugens"]] == [
+        ("Control", 1, 0, []),
+        ("SinOsc", 2, 0, [(0, 2), ("c", 0.0)]),
+        ("BinaryOpUGen", 2, 2, [(1, 0), (0, 1)]),
+        ("Out", 2, 0, [(0, 0), (2, 0)]),
+    ]
 
 
 def test_multi_output(compile_sapf):
     def fn(b):
-        Out.ar(bus=0, source=Pan2.ar(source=SinOsc.ar(frequency=440), position=-0.5))
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=Pan2.ar(source=SinOsc.ar(frequency=440), position=-0.5))
 
     assert compile_sapf("440 0 sinosc -.5 pan2") == build("t", fn)
 
 
 def test_constant_channel(compile_sapf):
     def fn(b):
-        Out.ar(bus=0, source=[SinOsc.ar(frequency=440), DC.ar(source=0.5)])
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=[SinOsc.ar(frequency=440), DC.ar(source=0.5)])
 
     assert compile_sapf("[440 0 sinosc .5]") == build("t", fn)
 
@@ -71,7 +78,7 @@ def test_analog_bubbles(compile_sapf):
             sig = SinOsc.ar(frequency=(pitch + 4).octcps()) * 0.04
             comb = CombN.ar(source=sig, maximum_delay_time=0.2, delay_time=0.2, decay_time=4)
             chans.append(comb * 0.001 ** (0.2 / 4))  # sapf's comb output includes the feedback gain
-        Out.ar(bus=0, source=chans)
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=chans)
 
     assert sapf == build("t", fn)
 
@@ -86,7 +93,7 @@ def test_nan_constants_share_an_index(compile_sapf):
 def test_kr_lowers_its_inputs(compile_sapf):
     def fn(b):
         mod = SinOsc.kr(frequency=3) * 100 + 300
-        Out.ar(bus=0, source=SinOsc.ar(frequency=mod))
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=SinOsc.ar(frequency=mod))
 
     assert compile_sapf("3 0 sinosc 100 * kr 300 + 0 sinosc") == build("t", fn)
 
@@ -94,7 +101,7 @@ def test_kr_lowers_its_inputs(compile_sapf):
 def test_kr_multi_output_stays_one_ugen(compile_sapf):
     def fn(b):
         pan = Pan2.kr(source=SinOsc.kr(frequency=440), position=0.3)
-        Out.ar(bus=0, source=[K2A.ar(source=pan[0]), K2A.ar(source=pan[1])])
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=[K2A.ar(source=pan[0]), K2A.ar(source=pan[1])])
 
     assert compile_sapf("440 0 sinosc .3 pan2 kr") == build("t", fn)
 
@@ -102,4 +109,4 @@ def test_kr_multi_output_stays_one_ugen(compile_sapf):
 def test_list_times_zero_is_silence(compile_sapf):
     # sapf's mul maps an internal ToZero op over a list multiplied by 0.
     graph = decode_scgf(compile_sapf("[300 301] 0 sinosc 0 *"))
-    assert [u[0] for u in graph["ugens"]] == ["DC", "DC", "Out"]
+    assert [u[0] for u in graph["ugens"]] == ["Control", "DC", "DC", "Out"]

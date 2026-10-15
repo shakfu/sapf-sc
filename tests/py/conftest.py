@@ -10,7 +10,9 @@ import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SAPF = Path(os.environ.get("SAPF_BIN", ROOT / "build" / "sapf"))
+SAPF = Path(os.environ.get("STAC_BIN", ROOT / "build" / "stac"))
+# sapf's DSP words are in the namespace sapf; sapf.stac binds them unqualified and needs the prelude.
+SAPF_LIB = ["-p", str(ROOT / "prelude.stac"), "-p", str(ROOT / "sapf.stac")]
 SR = 48000
 _libc = ctypes.CDLL(None)
 
@@ -22,19 +24,20 @@ def sapf_bin() -> Path:
     return SAPF
 
 
-def run_sapf(code: str, workdir: Path) -> str:
-    """Runs sapf `code` from a file with SAPF_SYNTHDEFS=workdir. Returns its output."""
+def run_sapf(code: str, workdir: Path, lib: list[str] = SAPF_LIB) -> str:
+    """Runs `code` from a file after the preludes `lib` names, with STAC_SYNTHDEFS=workdir. Returns its output."""
     src = workdir / "input.sapf"
     src.write_text(code + "\n")
-    env = dict(os.environ, SAPF_SYNTHDEFS=str(workdir), SAPF_PRELUDE="/dev/null", SAPF_LOG=str(workdir / "log"))
-    out = subprocess.run([str(SAPF), "-q", str(src)], capture_output=True, text=True, env=env, timeout=30, check=True)
+    env = dict(os.environ, STAC_SYNTHDEFS=str(workdir), STAC_PRELUDE="/dev/null", STAC_LOG=str(workdir / "log"))
+    out = subprocess.run([str(SAPF), "-q", *lib, str(src)], capture_output=True, text=True, env=env, timeout=30,
+                         check=True)
     return out.stdout + out.stderr
 
 
 @pytest.fixture
 def compile_sapf(sapf_bin, tmp_path):
     def compile_(expr: str, name: str = "t") -> bytes:
-        out = run_sapf(f'{expr} "{name}" >sd', tmp_path)
+        out = run_sapf(f'\\ [{expr}] {{}} "{name}" synthdef .write', tmp_path)
         path = tmp_path / f"{name}.scsyndef"
         assert path.exists(), out
         return path.read_bytes()

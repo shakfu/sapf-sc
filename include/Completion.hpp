@@ -27,7 +27,8 @@ std::vector<std::string> completions(Thread& th, const std::string& context);
 // The stack effect in a word's help, "(a b --> c)", or "" when the word is unknown or has none.
 std::string stackEffect(Thread& th, const std::string& word);
 
-// NAMESPACE.word for each namespace holding word; ug.word only when no other namespace does.
+// NAMESPACE.word for each namespace holding word; ug.word only when no other namespace does, and
+// sapf.word only when neither does.
 std::vector<std::string> namespacedWords(Thread& th, const std::string& word);
 
 #endif

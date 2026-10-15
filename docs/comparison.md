@@ -8,7 +8,7 @@
 
 - **sapf-sc**: this repository, at `9297625`.
 
-Word counts come from a static scan of `DEF*` macros and `vm.def*` calls in `src/`. Runtime checks used `build/sapf`.
+Word counts come from a static scan of `DEF*` macros and `vm.def*` calls in `src/`. Runtime checks used `build/stac`.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ Word counts come from a static scan of `DEF*` macros and `vm.def*` calls in `src
 |-|-|-|
 | Signal | lazy stream of doubles (`ZList`), computed by the interpreter | `Sig`: one output of a UGen graph node |
 | DSP | sapf's own UGens, in C++ | scsynth's core UGens (SuperCollider 3.14.1), float32 |
-| Audio output | CoreAudio, ALSA, RtAudio or Max | scsynth, embedded or over UDP (`SAPF_SCSYNTH`) |
+| Audio output | CoreAudio, ALSA, RtAudio or Max | scsynth, embedded or over UDP (`STAC_SCSYNTH`) |
 | `play` | pulls samples to the device | compiles a SynthDef, sends it, starts a synth |
 | File render (`>sf`) | pulls samples to a file | scsynth NRT render |
 | Polyphony (`ola`) | mixes streams in the interpreter | one synth per voice on a private bus, scheduled by a thread or written into an NRT score |
@@ -132,9 +132,9 @@ sapf-sc computes what sapf's code and docs describe. Details in [dev/upstream-sa
 | Real-time playback | yes | yes, via scsynth |
 | Export to SuperCollider | no | `.scsyndef`, NRT score |
 | Named synth parameters | no | `ctl` |
-| Arbitrary UGens | no | `ugen`, plus any plugin in `SAPF_PLUGINS` |
-| Audio input | no | `soundin` (`SAPF_INPUTS`) |
-| Remote server | no | `SAPF_SCSYNTH=host:port` |
+| Arbitrary UGens | no | `ugen`, plus any plugin in `STAC_PLUGINS` |
+| Audio input | no | `soundin` (`STAC_INPUTS`) |
+| Remote server | no | `STAC_SCSYNTH=host:port` |
 | Sample playback | `sf>` into memory | `sf>`, `playbuf` (looping, rate) from scsynth buffers |
 | MIDI input | CoreMIDI, RtMidi | removed |
 | Mouse input | macOS | removed |
@@ -150,8 +150,8 @@ sapf-sc computes what sapf's code and docs describe. Details in [dev/upstream-sa
 
 ## Compatibility
 
-- `sapf-prelude.txt`: 280 of 285 definitions load. The 5 dropped use `hilbert`, `fft` or `kaiser`.
+- `prelude.stac`: 280 of 285 definitions load. The 5 dropped use `hilbert`, `fft` or `kaiser`.
 
-- `sapf-examples.txt`: 216 of 312 examples run; 160 play or render. Most failures use `lpcombc`, mouse words, `violet`, `klang`, `pdiv`, `zplug` or `set`.
+- `examples/sapf.stac`: 216 of 312 examples run; 160 play or render. Most failures use `lpcombc`, mouse words, `violet`, `klang`, `pdiv`, `zplug` or `set`.
 
 - Identical output for old programs is not a goal. See the policy in [dev/upstream-sapf-bugs.md](dev/upstream-sapf-bugs.md).

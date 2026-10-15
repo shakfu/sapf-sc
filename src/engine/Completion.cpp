@@ -47,14 +47,17 @@ std::vector<std::pair<std::string, Namespace*>> namespaces()
 std::vector<std::string> namespaced(std::vector<std::pair<std::string, Namespace*>> const& all, const std::string& word)
 {
 	std::vector<std::string> out;
-	bool inUg = false;
+	bool inUg = false, inSapf = false;
 	for (auto& [name, ns] : all)
 		if (ns->mWords.count(word)) {
 			if (ns->mName == "ug") inUg = true;
+			else if (ns->mName == "sapf") inSapf = true;
 			else out.push_back(name + "." + word);
 		}
-	// ug indexes every UGen; it names one only when no category namespace holds it
+	// ug indexes every UGen; it names one only when no category namespace holds it.
+	// sapf's words are the compatibility library; they come last.
 	if (out.empty() && inUg) out.push_back("ug." + word);
+	if (out.empty() && inSapf) out.push_back("sapf." + word);
 	return out;
 }
 

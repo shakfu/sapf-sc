@@ -393,7 +393,7 @@ Refactored:
 ] play
 ```
 
-Works today with sapf-sc arities (`2 1 dust`, `800 0 sinosc`), checked with `>sd` in `build/sapf`.
+Works today with sapf-sc arities (`2 1 dust`, `800 0 sinosc`), checked with `>sd` in `build/stac`.
 
 Rules, in order of effect:
 

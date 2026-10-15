@@ -12,6 +12,7 @@
 #define SAPF_DEF_HPP
 
 #include "Resources.hpp"
+#include "Environment.hpp"
 #include "Scsynth.hpp"
 #include <algorithm>
 #include <cstring>
@@ -165,7 +166,7 @@ public:
 			checkServer(scsynthSendSync({recv()}), (mName + ".add").c_str());
 			mSent = true;
 		} else if (!strcmp(name, "write")) {
-			const char* dir = getenv("SAPF_SYNTHDEFS");
+			const char* dir = stacEnv("SYNTHDEFS");
 			std::string path = ((dir && *dir) ? std::string(dir) + "/" : std::string()) + mName + ".scsyndef";
 			std::ofstream f(path, std::ios::binary);
 			if (!f || !f.write(mBytes.data(), (std::streamsize)mBytes.size())) {

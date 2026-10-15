@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "Texture.hpp"
+#include "Namespace.hpp"
 #include "Resources.hpp"
 #include "Scsynth.hpp"
 #include "Samples.hpp"
@@ -230,5 +231,6 @@ static void ola_(Thread& th, Prim* prim)
 
 void AddTextureOps()
 {
+	SapfWords sapf;
 	vm.def("ola", 4, 1, ola_, "(sounds hops rate numChannels --> out) overlap add. This is the basic operator for polyphony. Each sound is a synth on a private bus; play starts them.");
 }

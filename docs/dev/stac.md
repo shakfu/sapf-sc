@@ -136,7 +136,7 @@ Each SC help file names its categories, e.g. `categories:: UGens>Filters>Linear`
 
 ### Clashes
 
-Against the 530 core interpreter words, one bare UGen clashes: `ramp`. The core's `ramp` clamps to 0..1; SC's `Ramp` is a linear lag. The core's `ramp` appears in neither `sapf-prelude.txt` nor `sapf-examples.txt`, so it moves to `sapf.ramp`.
+Against the 530 core interpreter words, one bare UGen clashes: `ramp`. The core's `ramp` clamps to 0..1; SC's `Ramp` is a linear lag. The core's `ramp` appears in neither `prelude.stac` nor `examples/sapf.stac`, so it moves to `sapf.ramp`.
 
 `rand`, `irand` and `linrand` do not clash: their UGens live in `random`. `1 5 rand` draws a real when the def is built. `1 5 random.rand` draws a new value per synth. The pair marks the tier, as `rrand` and `Rand` do in sclang.
 
@@ -533,7 +533,7 @@ sclang's pattern classes map to existing sapf stream words:
 | `Pn(x, n)` | `x n X` |
 | `Pbind(...)` | `{...} pbind` |
 
-`ola` becomes prelude code over `pbind` and leaves the core.
+`ola` stays in `sapf`, in C++. The core sends a pattern to an effect with `:out` and `bus.audio`, as SC's `Pbind(\out, bus)` does. Reasons: `stac-phase5.md`.
 
 ### Clocks
 
@@ -549,7 +549,7 @@ Built as described. Event times and releases are in beats, converted to server t
 
 - Both take an explicit duration. sapf-sc's `>sf` infers it from where channels end, and refuses many graphs. SC's `Score.render` takes a duration.
 
-Built: both. `render` writes to `$SAPF_RECORDINGS`, as `>sf` does. Events render to 2 channels, SC's default `numOutputBusChannels`; a mono def leaves the second silent.
+Built: both. `render` writes to `$STAC_RECORDINGS`, as `>sf` does. Events render to 2 channels, SC's default `numOutputBusChannels`; a mono def leaves the second silent.
 
 ## Demand rate
 
@@ -626,18 +626,19 @@ Live coding usually sends text from an editor, which gets no REPL completion. `s
 
 ## sapf.stac
 
-`sapf.stac` defines sapf's UGen words with sapf's argument order and units, in the namespace `sapf`:
+sapf's 122 DSP words keep their C++ and live in the namespace `sapf`, with sapf's argument order and units. `sapf.stac` binds them unqualified and holds the prelude definitions built on them:
 
 ```
-\freq phase [{:freq freq :phase phase 2pi *} sinosc] = sinosc
-\in freq [in freq lpf] = lpf
+sapf,sinosc = sinosc  sapf,lpf = lpf
 ```
+
+Rewriting them in stac over the bare UGens (`\freq phase [{:freq freq :phase phase 2pi *} ug.sinosc] = sinosc`) was the other reading; `stac-phase5.md` gives the reasons for keeping the C++.
 
 - [../ugens.md](../ugens.md) moves with it; its fidelity figures describe this library.
 
 - The conformance tests against sapf renders test this library, not the core.
 
-- `sapf-examples.txt` runs with `-p sapf.stac`, which binds the `sapf` words globally.
+- `examples/sapf.stac` runs with `-p prelude.stac -p sapf.stac`. `sapf.stac` uses the prelude's words, so it loads second.
 
 - The policy in [upstream-sapf-bugs.md](upstream-sapf-bugs.md) applies to this library only. The core follows SC.
 
@@ -659,6 +660,7 @@ The licence stays GPL-3.0, with sapf's copyright notices and a statement of deri
 Each phase leaves `make test` passing. Until phase 5, new UGen words appear only in namespaces and `ug`, so they cannot collide with sapf-sc's words of the same name and different units, such as `sinosc`'s phase.
 
 1. **Rename.** Binary, environment variables, files, docs. No change in behaviour.
+   Done: the binary `stac`, its prompt `stac>`, the `STAC_*` variables (also `STAC_LOG`, `STAC_HISTORY`, `STAC_EXAMPLES`, `STAC_README`, `STAC_BIN`), `prelude.stac`, `examples/sapf.stac`. Phase 5 stopped reading the `SAPF_` names. Not renamed: the repository, the C++ identifiers and CMake options (`SapfEngine`, `SAPF_EMBED_SCSYNTH`), and the default `~/sapf-log.txt` and `~/sapf-history.txt`, which would lose a user's history. `SAPF_ORIG` names original sapf and stays.
 
 2. **Spec UGens.** Generate a primitive per class into its namespace and `ug`. Tail parameters, keyword Forms, `Sig` methods, `Namespace`. Test SCgf parity with nanosynth for every class.
    Done: 374 words, every namespace in the grouping above, and 155 of the 165 bare UGens, which live in `ug` only until phase 5. `.kr`, `.ir`, `.done`, `.poll`. Of the 393 public classes, 19 are not generated.
@@ -677,12 +679,19 @@ Each phase leaves `make test` passing. Until phase 5, new UGen words appear only
 3. **Defs and nodes.** The `def` statement, callable `Def`, `synthdef`, `set`, `release`, `releaseIn`, `free`. The `env`, `bus`, `buffer`, `node` namespaces and the `Env` type.
    Done so far: the `Env` type and the `env` namespace, which unblock `envgen` and `ienvgen`; the `def` statement, `synthdef`, `Def` and `Node` with `set`, `release`, `releaseIn` and `free`. `bus.audio`, `bus.control`, `buffer.read`, `buffer.load`, `buffer.alloc`, `node.group`, `send`. Not yet: `play` pushing a `Node`, moved to phase 5 because it changes what `play` leaves. The `scsy` sidecar from `.write` waits for a source of ranges: `scsy` needs a sidecar only for ranges, units, curves, CV or a slot order other than the def's (`TODO.md`), and `def` declares none of them.
 
-4. **Patterns.** `pbind`, chords, pitch keys, `clock`, `pdef`, `ndef`, `render`, `score`. Rewrite `ola` on them, deferred to phase 5: `ola`'s voice function takes an index, not event fields, and its conformance test allows only 12 differing frames. Completion and hints.
+4. **Patterns.** `pbind`, chords, pitch keys, `clock`, `pdef`, `ndef`, `render`, `score`. Rewrite `ola` on them, deferred to phase 5 and then dropped (`stac-phase5.md`). Completion and hints.
    Done: `pbind`, chords, pitch keys, a function as `:instrument`, `play` and `.stop`, `score`, `render`, `clock.new`, `clk.play`, `clk.set`, `pdef`, `ndef`, completion and hints. Not built: `stac --words` for editors.
 
 5. **Split.** Move sapf's words to `sapf`. Bind the 165 bare UGens. Move the core's `ramp` to `sapf.ramp`. Remove the `ZList` signal path, `kr`, `ctl`, `>sd`, `>sf`, `>nrt`, and `N`/`T` on `Sig`.
+   Done. Details and counts: `stac-phase5.md`.
+   - `sapf` holds 123 words: sapf's DSP words, among them `kr`, `ctl`, `>sd`, `>sf`, `>sfo` and `>nrt`; `ola`; `ramp`; and versions of `N`, `keep`, `NZ`, `T` and `play` that keep sapf's behaviour. `sapf.stac` binds them and holds the prelude's 48 definitions that use them. `-p` repeats.
+   - 153 of the 156 bare UGens are global words. `clip`, `wrap` and `fold` stay the core's: they compute on reals and build `Clip`, `Wrap` and `Fold` on a `Sig`, as sclang's methods do. `iwrap`, `ifold` and `*+` stay too.
+   - The core's `N`, `keep`, `NZ` and `T` reject a `Sig`. `play` pushes the synth's `Node`.
+   - The `SAPF_` names are not read.
+   - The tests load `prelude.stac` and `sapf.stac` unless they test the core. `compile_sapf` writes defs with `synthdef` and `.write`, so they have an `out` control.
+   - `ola` moved to `sapf` unchanged; it is not rewritten on `pbind`.
 
-Phases 1-4 break no program. Phase 5 breaks every program that does not load `sapf.stac`.
+Phases 1-4 break no program. Phase 5 breaks every program that does not load `sapf.stac`. What it breaks, counted: `stac-phase5.md`.
 
 ## Open questions
 

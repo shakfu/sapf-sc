@@ -11,14 +11,15 @@ int main(int argc, const char * argv[])
 {
 	SapfEngineConfig config;
 	std::string inputFile;
-	std::string preludeFile;
 	bool interactive = false;
 	bool quiet = false;
 
-	CLI::App app{"sapf - A tool for the expression of sound as pure form"};
+	CLI::App app{"stac - a concatenative language for live coding SuperCollider"};
 	app.add_option("-r,--rate", config.sampleRate, "Sample rate for list timing ops such as T (1000-768000)")
 		->check(CLI::Range(1000.0, 768000.0));
-	app.add_option("-p,--prelude", preludeFile, "Prelude file to load");
+	app.add_option("-p,--prelude", config.preludeFiles,
+		"Prelude file to load, in place of $STAC_PRELUDE; repeat to load several in order")
+		->allow_extra_args(false);
 	app.add_flag("-i,--interactive", interactive, "Interactive mode (enter REPL after running file)");
 	app.add_flag("-q,--quiet", quiet, "Quiet mode (suppress banner)");
 	app.add_option("file", inputFile, "Input file to load and execute");
@@ -28,10 +29,6 @@ int main(int argc, const char * argv[])
 #ifdef SAPF_EMBED_SCSYNTH
 	registerEmbeddedScsynth();
 #endif
-
-	if (!preludeFile.empty()) {
-		config.preludeFile = preludeFile.c_str();
-	}
 
 	if (!quiet) {
 		post("------------------------------------------------\n");

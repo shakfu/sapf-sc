@@ -1,9 +1,12 @@
 """The def statement and synthdef: SCgf parity with nanosynth, control kinds and order, and errors.
 Synths and nodes need a server; they are tested in test_play.py."""
 
+import os
+import subprocess
+
 import pytest
 
-from conftest import decode_scgf, run_sapf
+from conftest import SAPF, decode_scgf, run_sapf
 from nanosynth import SynthDefBuilder
 from nanosynth.enums import ParameterRate
 from nanosynth.envelopes import EnvGen, Envelope
@@ -134,3 +137,18 @@ def test_bus_control_counts_down(sapf_bin, tmp_path):
 def test_resource_errors(sapf_bin, tmp_path, code, message):
     out = run_sapf(code, tmp_path)
     assert message in out and "error" in out
+
+
+@pytest.mark.parametrize("names,where", [
+    ({"SAPF_SYNTHDEFS": "old"}, "."),                       # the old name is not read; the current directory
+    ({"SAPF_SYNTHDEFS": "old", "STAC_SYNTHDEFS": "new"}, "new"),
+])
+def test_environment_names(sapf_bin, tmp_path, names, where):
+    for d in ("old", "new"):
+        (tmp_path / d).mkdir()
+    src = tmp_path / "in.stac"
+    src.write_text("def beep = [440 ug.sinosc]\n`beep.write\n")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("STAC_")}
+    env.update({k: str(tmp_path / v) for k, v in names.items()}, STAC_PRELUDE="/dev/null")
+    subprocess.run([str(SAPF), "-q", str(src)], env=env, cwd=tmp_path, capture_output=True, timeout=30, check=True)
+    assert (tmp_path / where / "beep.scsyndef").exists()

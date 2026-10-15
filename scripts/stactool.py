@@ -1,7 +1,7 @@
 """Formatter and linter for sapf-sc source, the syntax stac keeps.
 
     stactool.py fmt [--check] [--indent N|tab] FILE...
-    stactool.py lint [--sapf PATH] [--prelude PATH] FILE...
+    stactool.py lint [--stac PATH] [--prelude PATH]... FILE...
 
 The lexer ports the token rules of src/engine/Parser.cpp and keeps whitespace
 and comments, so source -> tokens -> source is exact, and reads stac's
@@ -501,9 +501,11 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
 
 
 def namespaced(word: str, builtins: set[str]) -> list[str]:
-    """NS.word for each namespace holding word; ug, the index of every UGen, only when no other does."""
+    """NS.word for each namespace holding word; ug, the index of every UGen, only when no other does,
+    and sapf, the compatibility library, only when neither does."""
     found = sorted(b for b in builtins if b.endswith('.' + word))
-    return [b for b in found if not b.startswith('ug.')] or found
+    return ([b for b in found if not b.startswith(('ug.', 'sapf.'))] or [b for b in found if b.startswith('ug.')]
+            or found)
 
 
 def builtin_words(sapf: Path) -> set[str]:
@@ -511,7 +513,7 @@ def builtin_words(sapf: Path) -> set[str]:
     with tempfile.TemporaryDirectory() as tmp:
         src = Path(tmp) / 'helpall.txt'
         src.write_text('helpall\n')
-        env = dict(os.environ, SAPF_PRELUDE='/dev/null', SAPF_LOG=str(Path(tmp) / 'log'))
+        env = dict(os.environ, STAC_PRELUDE='/dev/null', STAC_LOG=str(Path(tmp) / 'log'))
         out = subprocess.run([str(sapf), '-q', str(src)], capture_output=True, text=True, env=env, timeout=30).stdout
     words, binary = set(), False
     for line in out.splitlines():
@@ -551,13 +553,14 @@ def _cmd_fmt(args) -> int:
 
 
 def _cmd_lint(args) -> int:
-    if not args.sapf.exists():
-        print(f'{args.sapf} not found; run make build or pass --sapf', file=sys.stderr)
+    if not args.stac.exists():
+        print(f'{args.stac} not found; run make build or pass --stac', file=sys.stderr)
         return 2
-    builtins = builtin_words(args.sapf)
+    builtins = builtin_words(args.stac)
     known: set[str] = set()
-    if args.prelude:
-        _, known = analyze(args.prelude.read_text(), builtins)
+    for prelude in args.prelude or []:
+        _, names = analyze(prelude.read_text(), builtins, known)
+        known |= names
     status = 0
     for path in args.files:
         diags, _ = analyze(path.read_text(), builtins, known)
@@ -577,13 +580,15 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument('files', nargs='+', type=Path)
     f.set_defaults(run=_cmd_fmt)
     lint = sub.add_parser('lint', help='report errors and warnings')
-    lint.add_argument('--sapf', type=Path, default=Path(os.environ.get('SAPF_BIN', ROOT / 'build' / 'sapf')))
-    prelude = os.environ.get('SAPF_PRELUDE')
-    lint.add_argument('--prelude', type=Path, default=Path(prelude) if prelude else None,
-                      help='names it binds count as defined (default $SAPF_PRELUDE)')
+    lint.add_argument('--stac', type=Path, default=Path(os.environ.get('STAC_BIN', ROOT / 'build' / 'stac')))
+    prelude = os.environ.get('STAC_PRELUDE')
+    lint.add_argument('--prelude', type=Path, action='append', default=None,
+                      help='names it binds count as defined; repeat to read several in order (default $STAC_PRELUDE)')
     lint.add_argument('files', nargs='+', type=Path)
     lint.set_defaults(run=_cmd_lint)
     args = p.parse_args(argv)
+    if args.cmd == 'lint' and args.prelude is None and prelude:
+        args.prelude = [Path(prelude)]
     return args.run(args)
 
 

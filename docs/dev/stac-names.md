@@ -2,7 +2,7 @@
 
 Decision record for open questions 5 and 6 in `stac.md`. Decided 2026-10-15: both are done together, as the last stage. Status: options laid out; names not chosen.
 
-Counts below come from `helpall` in `build/sapf` and `spec/sclang-reference.json`. 384 namespaced words exist; 155 are in `ug`.
+Counts below come from `helpall` in `build/stac` and `spec/sclang-reference.json`. 384 namespaced words exist; 155 are in `ug`.
 
 ## Question 5: strip SC prefixes inside a namespace
 
@@ -40,14 +40,14 @@ A namespace name is a global word. A user binding with the same name hides it fo
 | Now | Candidates | Taken or risky |
 |-|-|-|
 | `buffer` | `buf` | `buf` is a common variable name for a buffer |
-| `demand` | `dem` | `d` is bound in `sapf-prelude.txt` |
-| `analysis` | `ana` | `an` is used in `sapf-examples.txt` |
+| `demand` | `dem` | `d` is bound in `prelude.stac` |
+| `analysis` | `ana` | `an` is used in `examples/sapf.stac` |
 | `random` | `rnd` | `rand` is a sapf word |
 | `ambisonics` | `amb`, `ambi` | none |
 | `granular` | `gran`, `grain` | none |
 | `beqsuite` | `beq` | none |
 
-Kept as they are: `fft`, `io`, `ui`, `info`, `node`, `chaos`, `bela`, plus the interpreter namespaces `env`, `bus`, `clock`. `env` already has the hiding problem: `sapf-examples.txt` binds `= env` at lines 250, 351 and 358.
+Kept as they are: `fft`, `io`, `ui`, `info`, `node`, `chaos`, `bela`, plus the interpreter namespaces `env`, `bus`, `clock`. `env` already has the hiding problem: `examples/sapf.stac` binds `= env` at lines 250, 351 and 358.
 
 ## Combined
 

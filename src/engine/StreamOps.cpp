@@ -15,6 +15,7 @@
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "VM.hpp"
+#include "Namespace.hpp"
 #include "clz.hpp"
 #include "elapsedTime.hpp"
 #include <cmath>
@@ -3766,13 +3767,23 @@ static void flatten_(Thread& th, Prim* prim)
 	else th.push(a);
 }
 
-static void N_(Thread& th, Prim* prim)
+// The core's N, keep, NZ and T take lists. sapf's also end a Sig, with an EnvGen that frees the synth.
+static void sigEnd(Thread& th, const char* word, bool sapf, V& v, Arg frames)
 {
-	int64_t n = th.popInt("N : n");
+	if (!sapf) {
+		post("%s : a UGen has no length; sapf.%s ends one, or use an envelope with doneAction 2\n", word, word);
+		throw errWrongType;
+	}
+	v = endAfter(th, v, frames);
+}
+
+static void keepN(Thread& th, const char* word, bool sapf)
+{
+	int64_t n = th.popInt((std::string(word) + " : n").c_str());
 	V v = th.pop();
 	
     if (isSig(v)) {
-		v = endAfter(th, v, (double)n);
+		sigEnd(th, word, sapf, v, V((double)n));
     } else if (v.isVList()) {
 		if (n <= 0) v = vm._nilv;
         else v = new List(new Keep(th, n, v));
@@ -3784,13 +3795,18 @@ static void N_(Thread& th, Prim* prim)
     th.push(v);
 }
 
-static void NZ_(Thread& th, Prim* prim)
+static void N_(Thread& th, Prim* prim) { keepN(th, "N", false); }
+static void keep_(Thread& th, Prim* prim) { keepN(th, "keep", false); }
+static void sapfN_(Thread& th, Prim* prim) { keepN(th, "N", true); }
+static void sapfkeep_(Thread& th, Prim* prim) { keepN(th, "keep", true); }
+
+static void keepNZ(Thread& th, bool sapf)
 {
 	int64_t n = th.popInt("NZ : n");
 	V v = th.pop();
 	
     if (isSig(v)) {
-		v = endAfter(th, v, (double)n);
+		sigEnd(th, "NZ", sapf, v, V((double)n));
     } else if (v.isZList()) {
 		if (n <= 0) v = vm._nilz;
         else v = new List(new Keepz(th, n, v));
@@ -3799,7 +3815,10 @@ static void NZ_(Thread& th, Prim* prim)
     th.push(v);
 }
 
-static void T_(Thread& th, Prim* prim)
+static void NZ_(Thread& th, Prim* prim) { keepNZ(th, false); }
+static void sapfNZ_(Thread& th, Prim* prim) { keepNZ(th, true); }
+
+static void keepT(Thread& th, bool sapf)
 {
 	Z t = th.popFloat("T : t");
 	V v = th.pop();
@@ -3807,7 +3826,7 @@ static void T_(Thread& th, Prim* prim)
 	int64_t n = (int64_t)floor(.5 + th.rate.sampleRate * t);
 
     if (isSig(v)) {
-		v = endAfter(th, v, secondsToFrames(th, t));
+		sigEnd(th, "T", sapf, v, secondsToFrames(th, t));
     } else if (v.isVList()) {
 		if (n <= 0) v = vm._nilv;
         else v = new List(new Keep(th, n, v));
@@ -3818,6 +3837,9 @@ static void T_(Thread& th, Prim* prim)
     
     th.push(v);
 }
+
+static void T_(Thread& th, Prim* prim) { keepT(th, false); }
+static void sapfT_(Thread& th, Prim* prim) { keepT(th, true); }
 
 static void take_(Thread& th, Prim* prim)
 {
@@ -7201,7 +7223,7 @@ void AddStreamOps()
 	vm.def("$/", 1, 1, cat_, "(list --> out) returns the concatenation of the sub-lists of the input list.");
 	DEF(flat, 1, 1, "(list --> list) flattens a list.")
 	DEFAM(flatten, ak, "(list n --> list) makes a list n levels flatter.")
-	vm.defautomap("keep", "ak", N_, "(list n --> list) returns a list of the first n items of the input list.");
+	vm.defautomap("keep", "ak", keep_, "(list n --> list) returns a list of the first n items of the input list.");
 	
 	DEFAM(T, zk, "(signal t --> signal) returns a signal of the first t seconds of the input signal.");
 	vm.defautomap("T>", "zk", skipT_, "(signal t --> signal) skips the first t seconds of the input signal.");
@@ -7210,6 +7232,13 @@ void AddStreamOps()
 	vm.defautomap("T>>", "za", hopTs_, "(signal hops --> listOfSignals) returns a list of tails of the input list. equivalent to (signal (hops 0 | L 0 cons +\\) T>).");
 	DEFAM(N, ak, "(list n --> list) returns a list of the first n items of the input list.") 
 	DEFAM(NZ, zk, "(signal n --> signal) returns a signal of the first n items of the input signal. automaps over streams.") 
+	{
+	SapfWords sapf; // as the core's, and they also end a UGen
+	vm.defautomap("N", "ak", sapfN_, "(list n --> list) returns a list of the first n items of the input list. ends a UGen after n frames.");
+	vm.defautomap("keep", "ak", sapfkeep_, "(list n --> list) as N.");
+	vm.defautomap("NZ", "zk", sapfNZ_, "(signal n --> signal) returns a signal of the first n items of the input signal. ends a UGen after n frames.");
+	vm.defautomap("T", "zk", sapfT_, "(signal t --> signal) returns a signal of the first t seconds of the input signal. ends a UGen after t seconds.");
+	}
 	
 	DEFAM(skip, ak, "(list n --> list) skips the first n items of the input list.") 
 
@@ -7321,6 +7350,7 @@ void AddStreamOps()
 	DEFAM(evrest, aak, "(t --> c) returns a rest event for duration 't'.")
 	
 	vm.addBifHelp("\n*** dsp operations ***");
+	SapfWords sapf;
 	
 	DEFMCX(hanning, 1, "(n --> out) returns a signal filled with a Hanning window.")
 	DEFMCX(hamming, 1, "(n --> out) returns a signal filled with a Hamming window.")

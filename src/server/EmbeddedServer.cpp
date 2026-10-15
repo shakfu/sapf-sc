@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "EmbeddedServer.hpp"
+#include "Environment.hpp"
 #include "Scsynth.hpp"
 
 #include <chrono>
@@ -34,7 +35,7 @@ namespace {
 
 std::string pluginDir()
 {
-	const char* env = getenv("SAPF_PLUGINS");
+	const char* env = stacEnv("PLUGINS");
 	if (env && *env) return env;
 	std::error_code ec;
 #if defined(__APPLE__)
@@ -49,7 +50,7 @@ std::string pluginDir()
 
 int envInt(const char* name, int fallback)
 {
-	const char* env = getenv(name);
+	const char* env = stacEnv(name);
 	return env && *env ? atoi(env) : fallback;
 }
 
@@ -201,12 +202,12 @@ private:
 		std::lock_guard<std::mutex> lock(bootMutex_);
 		if (world_) return true;
 		std::string plugins = pluginDir(), device;
-		if (const char* d = getenv("SAPF_DEVICE")) device = d;
+		if (const char* d = stacEnv("DEVICE")) device = d;
 		WorldOptions o;
 		o.mRealTime = true;
-		o.mNumOutputBusChannels = envInt("SAPF_OUTPUTS", 2);
-		o.mNumInputBusChannels = envInt("SAPF_INPUTS", 0);  // an input stream can block boot when another client holds the device
-		o.mPreferredSampleRate = envInt("SAPF_SR", 0);
+		o.mNumOutputBusChannels = envInt("OUTPUTS", 2);
+		o.mNumInputBusChannels = envInt("INPUTS", 0);  // an input stream can block boot when another client holds the device
+		o.mPreferredSampleRate = envInt("SR", 0);
 		o.mUGensPluginPath = plugins.c_str();
 		o.mLoadGraphDefs = 0;  // else it loads every def in SC's default folders
 		o.mRendezvous = false;
@@ -217,7 +218,7 @@ private:
 		}
 		world_ = World_New(&o);
 		if (!world_) {
-			error = "scsynth did not start; check the audio device, or set SAPF_SCSYNTH to use a running server";
+			error = "scsynth did not start; check the audio device, or set STAC_SCSYNTH to use a running server";
 			return false;
 		}
 		gWorld = world_;

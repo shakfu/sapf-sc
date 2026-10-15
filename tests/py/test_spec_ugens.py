@@ -18,7 +18,7 @@ INF = "1 0 /"  # sapf-sc has no inf word without the prelude
 
 def build(fn):
     with SynthDefBuilder() as b:
-        Out.ar(bus=0, source=fn())
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=fn())
     return b.build(name="t").compile()
 
 
@@ -232,7 +232,7 @@ def test_specification_rows(compile_sapf, expr, cls, inputs):
 
 def test_specification_rows_limit(sapf_bin, tmp_path):
     out = run_sapf("[1 2 3 4] 0 ug.klank pr cr", tmp_path)
-    assert "ug.klank : specificationsArrayRef : expected a list of 1 to 3 rows" in out
+    assert "klank : specificationsArrayRef : expected a list of 1 to 3 rows" in out
 
 
 # classes the overlay or the generator's rules handle
@@ -283,7 +283,7 @@ def test_expression_defaults(compile_sapf, expr, cls, slot, value):
 def test_ir(compile_sapf):
     sapf = compile_sapf("3 buffer.bufframes.ir 0 sinosc")
     with SynthDefBuilder() as b:
-        Out.ar(bus=0, source=SinOsc.ar(frequency=BufFrames.ir(buffer_id=3)))
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=SinOsc.ar(frequency=BufFrames.ir(buffer_id=3)))
     assert sapf == b.build(name="t").compile()
 
 
@@ -299,7 +299,7 @@ def test_poll_matches_sclang(compile_sapf):
     with SynthDefBuilder() as b:
         lfo = SinOsc.kr(frequency=2)
         Poll.kr(source=lfo, trigger=10, label="UGen(SinOsc)")
-        Out.ar(bus=0, source=SinOsc.ar(frequency=lfo))
+        Out.ar(bus=b.add_parameter(name="out", value=0), source=SinOsc.ar(frequency=lfo))
     assert sapf == b.build(name="t").compile()
 
 
@@ -317,9 +317,47 @@ def test_poll_in_a_def(sapf_bin, tmp_path):
 
 
 @pytest.mark.parametrize("expr,message", [
-    ("440 ug.sinosc.ir", "ug.sinosc has no ir"),
+    ("440 ug.sinosc.ir", "sinosc has no ir"),
     ("440 0 sinosc.ir", "SinOsc has no ir"),
 ])
 def test_ir_errors(sapf_bin, tmp_path, expr, message):
     out = run_sapf(expr, tmp_path)
     assert message in out and "error" in out, out
+
+
+# bare UGens, without sapf.stac (stac.md, Phases 5)
+
+def core_def(code, tmp_path, name):
+    run_sapf(f'\\ [{code}] {{}} "{name}" synthdef .write', tmp_path, lib=[])
+    return (tmp_path / f"{name}.scsyndef").read_bytes()
+
+
+@pytest.mark.parametrize("bare,ug", [
+    ("440 sinosc", "440 ug.sinosc"),
+    ("440 sinosc .1 2 ramp", "440 ug.sinosc .1 2 ug.ramp"),
+    ("440 sinosc -.5 .5 clip", "440 ug.sinosc -.5 .5 ug.clip"),
+], ids=["sinosc", "ramp-is-sc", "clip-on-sig"])
+def test_bare_word_is_the_ugen(bare, ug, sapf_bin, tmp_path):
+    assert core_def(bare, tmp_path, "t") == core_def(ug, tmp_path, "t")
+
+
+def test_core_keeps_real_valued_words(sapf_bin, tmp_path):
+    out = run_sapf("15 0 10 clip pr cr  12 0 10 wrap pr cr  12 0 10 fold pr cr  .5 sapf.ramp pr cr  2 3 4 *+ pr cr",
+                   tmp_path, lib=[])
+    assert out.split("compiled OK.\n")[-1].split()[:5] == ["10", "2", "8", "0.5", "10"]
+
+
+@pytest.mark.parametrize("code,word", [("440 sinosc 1 T", "T"), ("440 sinosc 9 N", "N"), ("440 sinosc 9 keep", "keep")])
+def test_core_length_words_reject_a_ugen(code, word, sapf_bin, tmp_path):
+    out = run_sapf(code, tmp_path, lib=[])
+    assert f"{word} : a UGen has no length; sapf.{word} ends one" in out and "error" in out
+
+
+def test_core_length_words_take_lists(sapf_bin, tmp_path):
+    out = run_sapf("[1 2 3] 2 N pr cr  [1 2 3] 1 keep pr cr", tmp_path, lib=[])
+    assert out.split("compiled OK.\n")[-1].split("\n")[:2] == ["[1 2]", "[1]"]
+
+
+def test_sapf_t_ends_a_ugen(sapf_bin, tmp_path):
+    ugens = decode_scgf(core_def("440 sinosc 1 sapf.T", tmp_path, "t"))["ugens"]
+    assert "EnvGen" in [u[0] for u in ugens]

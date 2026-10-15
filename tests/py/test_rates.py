@@ -4,7 +4,10 @@ from conftest import decode_scgf
 
 
 def rates(compile_sapf, code):
-    return [(u[0], u[1]) for u in decode_scgf(compile_sapf(code))["ugens"]]
+    """The UGens after the def's out Control."""
+    ugens = decode_scgf(compile_sapf(code))["ugens"]
+    assert ugens[0][0] == "Control"
+    return [(u[0], u[1]) for u in ugens[1:]]
 
 
 def test_shared_source_stays_one_ugen(compile_sapf):

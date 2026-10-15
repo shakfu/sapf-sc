@@ -10,7 +10,7 @@ from conftest import ROOT, run_sapf
 sys.path.insert(0, str(ROOT / 'scripts'))
 import stactool as st  # noqa: E402
 
-SOURCES = sorted([ROOT / 'sapf-prelude.txt', ROOT / 'sapf-examples.txt', ROOT / 'sapf-bif-examples.txt',
+SOURCES = sorted([ROOT / 'prelude.stac', ROOT / 'sapf.stac', ROOT / 'examples' / 'sapf.stac', ROOT / 'sapf-bif-examples.txt',
                   ROOT / 'unit-tests.txt', *ROOT.glob('tests/test_*.txt')])
 
 
@@ -125,17 +125,18 @@ def codes(src, builtins, known=frozenset()):
 
 
 def test_builtin_words(builtins):
-    assert {'sinosc', '+', '+/', '*\\', 'nyq', '>sd'} <= builtins
+    assert {'sinosc', 'sapf.sinosc', '+', '+/', '*\\', 'nyq', 'sapf.>sd', 'ug.clip'} <= builtins
+    assert 'white' not in builtins
     assert len(builtins) > 900
 
 
 @pytest.mark.parametrize('src,expect', [
-    ('440 0 sinosc', []),
+    ('440 0 sapf.sinosc', []),
     ('440 sinoz', ['W1']),
     ('10ms', ['W1']),
     ('foo = foo', ['W1']),
     ('1 = foo  foo `foo', []),
-    ('1 = sinosc', ['W2']),
+    ('1 = play', ['W2']),
     (r'\x [x = y  3 = z  y]', ['W3']),
     (r'\x [x]', []),
     (r'\a [\b [a = a] ]', ['E9']),
@@ -153,17 +154,17 @@ def test_lint(src, expect, builtins):
 
 @pytest.mark.parametrize('src,hint', [
     ('1 pv_magfreeze', "'pv_magfreeze' is undefined; fft.pv_magfreeze?"),
-    ('1 a2k', "'a2k' is undefined; ug.a2k?"),
+    ('1 white', "'white' is undefined; sapf.white?"),
 ])
 def test_lint_names_the_namespace(src, hint, builtins, tmp_path):
     """As sapf's own error does."""
     (d,) = st.analyze(src, builtins)[0]
     assert d.msg == hint
-    assert hint.replace("'", '"', 2).replace(' undefined', ' an undefined word', 1) in run_sapf(src, tmp_path)
+    assert hint.replace("'", '"', 2).replace(' undefined', ' an undefined word', 1) in run_sapf(src, tmp_path, lib=[])
 
 
 def test_lint_prelude_names(builtins):
-    _, prelude = st.analyze((ROOT / 'sapf-prelude.txt').read_text(), builtins)
+    _, prelude = st.analyze((ROOT / 'prelude.stac').read_text(), builtins)
     assert 'prall' in prelude
     assert codes('[1 2] prall', builtins) == ['W1']
     assert codes('[1 2] prall', builtins, prelude) == []
@@ -178,6 +179,7 @@ def test_lint_errors_match_sapf(src, builtins, tmp_path):
 
 @pytest.mark.parametrize('path', SOURCES, ids=lambda p: p.name)
 def test_lint_repo_sources_have_no_errors(path, builtins):
-    _, prelude = st.analyze((ROOT / 'sapf-prelude.txt').read_text(), builtins)
-    diags, _ = st.analyze(path.read_text(), builtins, prelude)
+    _, prelude = st.analyze((ROOT / 'prelude.stac').read_text(), builtins)
+    _, sapf = st.analyze((ROOT / 'sapf.stac').read_text(), builtins, prelude)
+    diags, _ = st.analyze(path.read_text(), builtins, prelude | sapf)
     assert [d for d in diags if d.code.startswith('E')] == []

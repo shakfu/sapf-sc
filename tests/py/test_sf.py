@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from conftest import SAPF, SR, read_wav_float
+from conftest import SAPF, SAPF_LIB, SR, read_wav_float
 
 REF = Path(__file__).resolve().parents[1] / "fixtures" / "ref"
 
@@ -16,9 +16,9 @@ REF = Path(__file__).resolve().parents[1] / "fixtures" / "ref"
 def sf(code, tmp_path, rate=SR):
     src = tmp_path / "in.sapf"
     src.write_text(code + "\n")
-    env = dict(os.environ, SAPF_RECORDINGS=str(tmp_path), SAPF_PRELUDE="/dev/null", SAPF_LOG=str(tmp_path / "log"))
-    env.pop("SAPF_SCSYNTH", None)
-    r = subprocess.run([str(SAPF), "-q", "-r", str(rate), str(src)], capture_output=True, text=True, env=env,
+    env = dict(os.environ, STAC_RECORDINGS=str(tmp_path), STAC_LOG=str(tmp_path / "log"))
+    env.pop("STAC_SCSYNTH", None)
+    r = subprocess.run([str(SAPF), "-q", *SAPF_LIB, "-r", str(rate), str(src)], capture_output=True, text=True, env=env,
                        timeout=60)
     return r.stdout + r.stderr
 
@@ -77,10 +77,10 @@ def sfo(name, opener, tmp_path):
         for cmd in ("xdg-open", "open"):
             (bin_dir / cmd).write_text(f"#!/bin/sh\n{opener}\n")
             (bin_dir / cmd).chmod(0o755)
-    env = dict(os.environ, SAPF_RECORDINGS=str(tmp_path), SAPF_PRELUDE="/dev/null", SAPF_LOG=str(tmp_path / "log"),
+    env = dict(os.environ, STAC_RECORDINGS=str(tmp_path), STAC_LOG=str(tmp_path / "log"),
                PATH=f"{bin_dir}:/usr/bin:/bin" if opener is not None else str(bin_dir))
-    env.pop("SAPF_SCSYNTH", None)
-    p = subprocess.Popen([str(SAPF)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    env.pop("STAC_SCSYNTH", None)
+    p = subprocess.Popen([str(SAPF), *SAPF_LIB], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          text=True, env=env)
     p.stdin.write(f'100 0 sinosc 480 N "{name}" >sfo\n')
     p.stdin.flush()

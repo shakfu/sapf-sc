@@ -16,6 +16,7 @@
 #include "symbol.hpp"
 #include <cmath>
 #include <map>
+#include <set>
 #include <string>
 
 namespace {
@@ -64,8 +65,13 @@ struct SpecUGen {
 const int kNumSpecUGens = (int)(sizeof(kSpecUGens) / sizeof(kSpecUGens[0]));
 
 // The word as typed: ns.word, or ug.word for a bare word, which has no namespace until phase 5.
+// Bare UGens bound as global words (AddSpecUGenOps).
+std::set<std::string> gBoundBare;
+
+// NS.word, or the plain word for a bare UGen bound globally.
 std::string wordName(const SpecUGen& u)
 {
+	if (!*u.ns && gBoundBare.count(u.word)) return u.word;
 	return std::string(*u.ns ? u.ns : "ug") + "." + u.word;
 }
 
@@ -381,6 +387,15 @@ void AddSpecUGenOps()
 			if (!ns) ns = new Namespace(u.ns);
 			ns->mWords[u.word] = prim;
 		}
+	}
+	// A UGen in no category namespace is also a global word. clip, wrap and fold stay the core's:
+	// they compute on reals and build the same UGen on a Sig.
+	for (int row = 0; row < kNumSpecUGens; ++row) {
+		const SpecUGen& u = kSpecUGens[row];
+		V existing;
+		if (*u.ns || vm.builtins->getInner(V(getsym(u.word)), existing)) continue;
+		vm.def(u.word, ug->mWords[u.word]);
+		gBoundBare.insert(u.word);
 	}
 	// Help; the generator emits rows grouped by namespace, bare words under ug.
 	for (int row = 0; row < kNumSpecUGens; ++row) {

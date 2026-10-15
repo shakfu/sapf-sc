@@ -330,10 +330,14 @@ public:
 	void repl(FILE* infile, const char* logfilename);
 };
 
+class Namespace;
+
 class VM
 {
 public:
 	const char* prelude_file;
+	// When set, def puts words in this namespace in place of builtins.
+	Namespace* defNamespace = nullptr;
 	const char* log_file;
 	
 	P<GTable> builtins;
@@ -420,6 +424,8 @@ public:
 	V def(Arg key, Arg value);
 	V def(const char* name, Arg value);
 	V def(const char* name, int takes, int leaves, PrimFun pf, const char* help, Arg value = 0., bool setNoEach = false);
+	// name as help lists it: NAMESPACE.name while defNamespace is set.
+	std::string helpName(const char* name) const;
 	V defmcx(const char* name, int numArgs, PrimFun pf, const char* help, Arg value = 0.); // multi channel expanded
 	V defautomap(const char* name, const char* mask, PrimFun pf, const char* help, Arg value = 0.); // auto mapped
 };

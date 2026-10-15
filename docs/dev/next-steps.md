@@ -6,11 +6,11 @@ State as of 2026-10-14. sapf-sc is committed up to dd66917. ../ssp's state and t
 
 - `make test` passes on Linux: 262 ctest, 340 pytest. macOS passed before the `op1_log*` references and the `>sfo` tests changed, and has not been rerun since.
 
-- `build/sapf` embeds scsynth (`cmake/EmbeddedScsynth.cmake`): `play` starts it on first use; `SAPF_SCSYNTH` selects a UDP server instead. `>sf` and `>sfo` render in-process in NRT mode.
+- `build/stac` embeds scsynth (`cmake/EmbeddedScsynth.cmake`): `play` starts it on first use; `STAC_SCSYNTH` selects a UDP server instead. `>sf` and `>sfo` render in-process in NRT mode.
 
 - SuperCollider 3.14.1 and libsndfile 1.2.2 are fetched as pinned tarballs. `cmake/patch-supercollider.sh` makes SC build as a subdirectory and keeps the UGens loaded after an NRT render.
 
-- `sapf-examples.txt` keeps 216 of sapf's 312 examples; 160 play or render. `sapf-prelude.txt` keeps 280 of 285 definitions.
+- `examples/sapf.stac` keeps 216 of sapf's 312 examples; 160 play or render. `prelude.stac` keeps 280 of 285 definitions.
 
 - Polyphony: `ola` voices are synths on private buses 512..959, scheduled by a thread for `play`, or written into an NRT score by `>nrt`.
 
@@ -36,7 +36,7 @@ State as of 2026-10-14. sapf-sc is committed up to dd66917. ../ssp's state and t
 
 ## Linux check (2026-10-14)
 
-- Sound from the embedded server, heard from the REPL. The tests boot scsynth on its default device, an HDMI output on the test machine; their synths are silent, so the device does not matter. If `play` is silent, set `SAPF_DEVICE`.
+- Sound from the embedded server, heard from the REPL. The tests boot scsynth on its default device, an HDMI output on the test machine; their synths are silent, so the device does not matter. If `play` is silent, set `STAC_DEVICE`.
 
 - `>sfo` opens the file with `xdg-open`. It used `system("xdg-open ... &")`, which always returns 0, so a missing opener or handler failed silently, and a `"` or `$(...)` in the name reached the shell. It now uses `posix_spawnp` (no shell), and a thread reports a non-zero exit, so the REPL never waits for the opener; the Windows branch (`start`) is untested.
 
@@ -44,7 +44,7 @@ State as of 2026-10-14. sapf-sc is committed up to dd66917. ../ssp's state and t
 
 - Bug: the `test_play.py` fixture skipped every test because ALSA warnings came before "scsynth on" in `server.py`'s output. It now reads until that line or EOF.
 
-- Bug: the embedded-server test in `test_play.py` hung until its 30 s timeout. nanosynth's PortAudio does not list the `pipewire` or `default` ALSA PCMs, so `server.py` opens raw `hw:` devices, capture included. PipeWire then cannot start its input node, and the embedded `World_New` waited forever in `snd_pcm_prepare`. Two fixes: `SAPF_INPUTS` now defaults to 0, so `play` opens no input stream; and the test moved to `test_play_embedded.py`, so `server.py` has exited before it runs. An output-device clash would still hang, hence the split as well.
+- Bug: the embedded-server test in `test_play.py` hung until its 30 s timeout. nanosynth's PortAudio does not list the `pipewire` or `default` ALSA PCMs, so `server.py` opens raw `hw:` devices, capture included. PipeWire then cannot start its input node, and the embedded `World_New` waited forever in `snd_pcm_prepare`. Two fixes: `STAC_INPUTS` now defaults to 0, so `play` opens no input stream; and the test moved to `test_play_embedded.py`, so `server.py` has exited before it runs. An output-device clash would still hang, hence the split as well.
 
 - `op1_log`, `op1_log2` and `op1_log10` failed on Linux. For a negative input sapf gives NaN, but nanosynth's scsynth takes the `log_nova` SIMD path (`UnaryOpUGens.cpp:1058`) and returns finite values. The cases now take `POS`, a positive input; their references were re-rendered on macOS with the sapf v0.1.22 release.
 

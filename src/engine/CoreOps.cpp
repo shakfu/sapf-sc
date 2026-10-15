@@ -15,6 +15,7 @@
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "VM.hpp"
+#include "Environment.hpp"
 #include "Parser.hpp"
 #include "clz.hpp"
 #include <string>
@@ -1148,7 +1149,7 @@ static void examples_(Thread& th, Prim* prim)
     static const size_t cmdMaxLen = 2048;
 	char cmd[cmdMaxLen];
 	
-	const char* examples_file = getenv("SAPF_EXAMPLES");
+	const char* examples_file = stacEnv("EXAMPLES");
 	if (examples_file) {
 		snprintf(cmd, cmdMaxLen, "open %s\n", examples_file);
 		system(cmd);
@@ -1162,7 +1163,7 @@ static void readme_(Thread& th, Prim* prim)
     static const size_t cmdMaxLen = 2048;
 	char cmd[cmdMaxLen];
 	
-	const char* readme_file = getenv("SAPF_README");
+	const char* readme_file = stacEnv("README");
 	if (readme_file) {
 		snprintf(cmd, cmdMaxLen, "open %s\n", readme_file);
 		system(cmd);

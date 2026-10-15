@@ -12,6 +12,7 @@
 // a gate released after dur * legato when the def has one; 'rest; a list value plays a chord.
 
 #include "Patterns.hpp"
+#include "Environment.hpp"
 #include "Def.hpp"
 #include "Env.hpp"
 #include "Graph.hpp"
@@ -674,7 +675,7 @@ void score_(Thread& th, Prim* prim)
 {
 	ScoreArgs args(th, "score");
 	std::string score = args.score(th);
-	const char* dir = getenv("SAPF_SYNTHDEFS");
+	const char* dir = stacEnv("SYNTHDEFS");
 	std::string path = ((dir && *dir) ? std::string(dir) + "/" : std::string()) + args.name + ".osc";
 	std::ofstream f(path, std::ios::binary);
 	if (!f || !f.write(score.data(), (std::streamsize)score.size())) {
@@ -722,7 +723,7 @@ void AddPatternOps()
 		"(item seconds name -->) writes name.osc, an NRT command file of item's first seconds. item is an event "
 		"stream, or channels as >nrt takes. Events are timed at 1 beat per second.");
 	vm.def("render", 3, 0, render_,
-		"(item seconds name -->) renders item's first seconds to name.wav in $SAPF_RECORDINGS with the embedded "
+		"(item seconds name -->) renders item's first seconds to name.wav in $STAC_RECORDINGS with the embedded "
 		"scsynth. Channels keep their count; events render to 2 channels at 1 beat per second.");
 	vm.def("pdef", 2, 1, pdef_,
 		"(events name --> player) plays events on the default clock from the next beat. Run again with the same "

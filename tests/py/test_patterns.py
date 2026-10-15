@@ -3,6 +3,7 @@ time, so timing, pitch and releases are checked without a server. Clocks and pde
 against a recorder that answers /sync and keeps each bundle's time tag. play is in test_play.py."""
 
 import os
+import re
 import socket
 import struct
 import subprocess
@@ -14,7 +15,7 @@ from nanosynth.osc import OscMessage
 
 import numpy as np
 
-from conftest import SAPF, decode_scgf, read_wav_float, run_sapf
+from conftest import SAPF, SAPF_LIB, decode_scgf, read_wav_float, run_sapf
 
 SR = 96000  # sapf's default rate; run_sapf passes no -r
 
@@ -188,8 +189,8 @@ def test_score_of_channels_is_nrt(sapf_bin, tmp_path):
 
 @pytest.fixture
 def render(tmp_path, monkeypatch):
-    monkeypatch.setenv("SAPF_RECORDINGS", str(tmp_path))
-    monkeypatch.delenv("SAPF_SCSYNTH", raising=False)
+    monkeypatch.setenv("STAC_RECORDINGS", str(tmp_path))
+    monkeypatch.delenv("STAC_SCSYNTH", raising=False)
 
     def render_(code, seconds):
         out = run_sapf(f'{code} {seconds} "r" render', tmp_path)
@@ -287,8 +288,8 @@ def live(recorder, tmp_path, code, *steps):
     """Runs code in sapf -i against the recorder; steps are seconds to wait or lines to send."""
     src = tmp_path / "live.sapf"
     src.write_text(code)
-    env = dict(os.environ, SAPF_SCSYNTH=f"127.0.0.1:{recorder.port}", SAPF_PRELUDE="/dev/null")
-    proc = subprocess.Popen([str(SAPF), "-q", "-i", str(src)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    env = dict(os.environ, STAC_SCSYNTH=f"127.0.0.1:{recorder.port}")
+    proc = subprocess.Popen([str(SAPF), "-q", *SAPF_LIB, "-i", str(src)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, env=env)
     try:
         for step in steps:
@@ -358,7 +359,7 @@ def test_pdef_player_stops_the_current_stream(sapf_bin, tmp_path, recorder):
 
 def test_ndef_def_is_sc_proxy_fade(sapf_bin, tmp_path, recorder, monkeypatch):
     """SC's ProxySynthDef: channels times EnvGate(i_level: 0, curve: 'sin'), released by gate."""
-    monkeypatch.setenv("SAPF_SCSYNTH", f"127.0.0.1:{recorder.port}")
+    monkeypatch.setenv("STAC_SCSYNTH", f"127.0.0.1:{recorder.port}")
     out = run_sapf("[300 400] 0 sinosc .1 * 'drone ndef pr cr", tmp_path)
     assert "error" not in out and "Ndef drone (node" in out, out
     time.sleep(.1)
@@ -402,3 +403,15 @@ def test_ndef_replaces_with_a_crossfade(sapf_bin, tmp_path, recorder):
 def test_clock_errors(sapf_bin, tmp_path, code, message):
     out = run_sapf(code, tmp_path)
     assert message in out and "error" in out, out
+
+
+def test_play_pushes_a_node(sapf_bin, tmp_path, recorder, monkeypatch):
+    """The core's play leaves the synth's Node; sapf.play leaves nothing."""
+    monkeypatch.setenv("STAC_SCSYNTH", f"127.0.0.1:{recorder.port}")
+    out = run_sapf("440 sinosc .1 * play = n  n pr cr  n.free  440 sinosc .1 * sapf.play  stackDepth pr cr", tmp_path,
+                   lib=[])
+    assert "error" not in out, out
+    node = int(re.search(r"Node (\d+)", out).group(1))
+    assert out.split(f"Node {node}\n")[1].startswith("0\n")
+    time.sleep(.1)
+    assert ("/n_free", [node]) in recorder.plain

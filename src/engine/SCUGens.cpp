@@ -10,6 +10,9 @@
 // docs/ugens.md lists the mappings.
 
 #include "Graph.hpp"
+#include "Namespace.hpp"
+#include "Def.hpp"
+#include "Environment.hpp"
 #include "Scsynth.hpp"
 #include "Texture.hpp"
 #include "Patterns.hpp"
@@ -1027,11 +1030,20 @@ static void play_(Thread& th, Prim* prim)
 	packets.push_back(oscMessage("/d_recv", {{OscArg::Blob, 0, def}, {OscArg::Blob, 0, snew}}));
 	std::string err = scsynthSendSync(packets);
 	if (!err.empty()) {
-		post("play : scsynth at %s: %s. Start one with 'make server' or set SAPF_SCSYNTH.\n",
+		post("play : scsynth at %s: %s. Start one with 'make server' or set STAC_SCSYNTH.\n",
 			scsynthAddress().c_str(), err.c_str());
 		throw errFailed;
 	}
 	playTextures(th, channels, scsynthNow() + .2, loaded, node);
+	th.push(V(new Node(node)));
+}
+
+// sapf's play leaves nothing. sapf has no event streams; their player stays.
+static void sapfplay_(Thread& th, Prim* prim)
+{
+	bool events = th.stackDepth() && isEventStream(th, th.top());
+	play_(th, prim);
+	if (!events) th.pop();
 }
 
 static void stop_(Thread& th, Prim* prim)
@@ -1042,10 +1054,10 @@ static void stop_(Thread& th, Prim* prim)
 	scsynthSend(oscMessage("/g_deepFree", {{OscArg::Int, 0, ""}}));
 }
 
-// Files go to $SAPF_SYNTHDEFS, or the current directory when it is unset.
+// Files go to $STAC_SYNTHDEFS, or the current directory when it is unset.
 static void writeFile(const char* word, const std::string& name, const std::string& bytes)
 {
-	const char* dir = getenv("SAPF_SYNTHDEFS");
+	const char* dir = stacEnv("SYNTHDEFS");
 	std::string path = (dir && *dir) ? std::string(dir) + "/" : std::string();
 	path += name;
 	std::ofstream f(path, std::ios::binary);
@@ -1077,7 +1089,7 @@ static void writesd_(Thread& th, Prim* prim)
 	}
 	writeFile(">sd", name + ".scsyndef", compileSynthDef(th, channels, name));
 	// scsy loads the sound files its sidecar names; other lines of an existing sidecar stay.
-	const char* dir = getenv("SAPF_SYNTHDEFS");
+	const char* dir = stacEnv("SYNTHDEFS");
 	std::string sidecarPath = ((dir && *dir) ? std::string(dir) + "/" : std::string()) + name + ".txt";
 	std::ifstream in(sidecarPath, std::ios::binary);
 	std::string old((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
@@ -1086,7 +1098,7 @@ static void writesd_(Thread& th, Prim* prim)
 	if (named && sidecar != old) writeFile(">sd", name + ".txt", sidecar);
 }
 
-// sapf's >sf: name.wav in $SAPF_RECORDINGS, else the temp folder, at the interpreter's rate, as
+// sapf's >sf: name.wav in $STAC_RECORDINGS, else the temp folder, at the interpreter's rate, as
 // long as the first channel to end. Rendered by the embedded scsynth in NRT mode.
 static std::string renderFile(Thread& th, const char* word)
 {
@@ -1102,7 +1114,7 @@ std::string renderScore(Thread& th, const std::string& score, const std::string&
 	const char* word)
 {
 	double sr = th.rate.sampleRate;
-	const char* dir = getenv("SAPF_RECORDINGS");
+	const char* dir = stacEnv("RECORDINGS");
 	std::error_code ec;
 	std::string path = ((dir && *dir) ? std::string(dir) : std::filesystem::temp_directory_path(ec).string()) +
 		"/" + name + ".wav";
@@ -1160,10 +1172,23 @@ static void writenrt_(Thread& th, Prim* prim)
 #define DEFMCX(NAME, N, HELP) 	vm.defmcx(#NAME, N, NAME##_, HELP);
 #define DEFAM(NAME, MASK, HELP) 	vm.defautomap(#NAME, #MASK, NAME##_, HELP);
 
+Namespace* sapfNamespace()
+{
+	static P<Namespace> ns;
+	if (!ns) {
+		ns = new Namespace("sapf");
+		vm.builtins->putImpure(V(getsym("sapf")), V(ns));
+	}
+	return ns();
+}
+
 void AddSCUGenOps();
 void AddSCUGenOps()
 {
 	vm.addBifHelp("\n*** SuperCollider UGens ***");
+	vm.addBifHelp("sapf", nullptr, "(--> namespace) sapf's DSP words, in sapf's argument order and units. sapf.stac binds them unqualified.");
+	{
+	SapfWords sapf;
 	DEFMCX(sinosc, 2, "(freq phase --> out) sine wave oscillator. SinOsc.")
 	DEFMCX(sinoscfb, 3, "(freq phase feedback --> out) sine wave oscillator with self feedback phase modulation. phase must be 0. SinOscFB.")
 	DEFMCX(sinoscm, 4, "(freq phase mul add --> out) sine wave oscillator with multiply and add. SinOsc.")
@@ -1229,12 +1254,6 @@ void AddSCUGenOps()
 	DEFMCX(fade2, 3, "(left right pos --> out) equal power cross fade. -1 is all left, +1 all right. XFade2.")
 
 	DEFMCX(sah, 2, "(in trigger --> out) sample and hold. Latch.")
-	DEFMCX(clip, 3, "(in lo hi --> out) constrain the input to the bounds by clipping. Clip.")
-	DEFMCX(wrap, 3, "(in lo hi --> out) constrain the input to the bounds by wrapping. Wrap.")
-	vm.defmcx("*+", 3, madd_, "(a b c --> out) multiply add. a b * c +");
-	DEFMCX(iwrap, 3, "(in lo hi --> out) constrain the integer input to the bounds by wrapping. reals only.")
-	DEFMCX(ifold, 3, "(in lo hi --> out) constrain the integer input to the bounds by folding. reals only.")
-	DEFMCX(fold, 3, "(in lo hi --> out) constrain the input to the bounds by folding at the edges. Fold.")
 
 	DEFMCX(line, 3, "(dur start end --> out) linear ramp from start to end in dur seconds, then the synth ends. Line.")
 	DEFMCX(xline, 3, "(dur start end --> out) exponential ramp from start to end in dur seconds, then the synth ends. XLine.")
@@ -1255,10 +1274,24 @@ void AddSCUGenOps()
 	DEFMCX(kr, 1, "(in --> out) control-rate version of in. UGens feeding only control-rate UGens become control rate too.")
 	DEF(ctl, 2, 1, "(default name --> out) control-rate synth parameter. Control.")
 	DEF(ugen, 4, 1, "(inputs name rate numOutputs --> out) any SuperCollider UGen. inputs is a list, name a string, rate 'ar 'kr or 'ir.")
-	DEF(play, 1, 0, "(channels -->) sends channels as a SynthDef to scsynth at $SAPF_SCSYNTH (default 127.0.0.1:57110) and starts a synth, and any ola voices it reads. (events --> player) schedules an event stream from pbind, one synth per event; player.stop ends it.")
-	vm.def("stop", 0, 0, stop_, "(-->) frees every synth on the scsynth that play uses.");
-	vm.def(">sf", 2, 0, sfwrite_, "(channels filename -->) renders the channels to filename.wav in $SAPF_RECORDINGS or the temp folder, until the first channel ends. scsynth NRT.");
+	vm.def(">sf", 2, 0, sfwrite_, "(channels filename -->) renders the channels to filename.wav in $STAC_RECORDINGS or the temp folder, until the first channel ends. scsynth NRT.");
 	vm.def(">sfo", 2, 0, sfwriteopen_, "(channels filename -->) as >sf, then opens the file in the default application.");
-	vm.def(">nrt", 3, 0, writenrt_, "(channels seconds name -->) writes an scsynth NRT score of channels and their ola voices to name.osc in $SAPF_SYNTHDEFS or the current directory.");
-	vm.def(">sd", 2, 0, writesd_, "(channels name -->) writes channels as SynthDef name to name.scsyndef in $SAPF_SYNTHDEFS or the current directory.");
+	vm.def(">nrt", 3, 0, writenrt_, "(channels seconds name -->) writes an scsynth NRT score of channels and their ola voices to name.osc in $STAC_SYNTHDEFS or the current directory.");
+	vm.def(">sd", 2, 0, writesd_, "(channels name -->) writes channels as SynthDef name to name.scsyndef in $STAC_SYNTHDEFS or the current directory.");
+	}
+	// Reals compute; a Sig builds the UGen, as sclang's clip method and Clip.ar do.
+	vm.addBifHelp("\n*** range ops ***");
+	DEFMCX(clip, 3, "(in lo hi --> out) constrain the input to the bounds by clipping. Clip.")
+	DEFMCX(wrap, 3, "(in lo hi --> out) constrain the input to the bounds by wrapping. Wrap.")
+	vm.defmcx("*+", 3, madd_, "(a b c --> out) multiply add. a b * c +");
+	DEFMCX(iwrap, 3, "(in lo hi --> out) constrain the integer input to the bounds by wrapping. reals only.")
+	DEFMCX(ifold, 3, "(in lo hi --> out) constrain the integer input to the bounds by folding. reals only.")
+	DEFMCX(fold, 3, "(in lo hi --> out) constrain the input to the bounds by folding at the edges. Fold.")
+	vm.addBifHelp("\n*** play ***");
+	DEF(play, 1, 1, "(channels --> node) sends channels as a SynthDef to scsynth at $STAC_SCSYNTH (default 127.0.0.1:57110) and starts a synth, and any ola voices it reads. node.free ends it. (events --> player) schedules an event stream from pbind, one synth per event; player.stop ends it.")
+	{
+	SapfWords sapf;
+	vm.def("play", 1, 0, sapfplay_, "(channels -->) as play, leaving nothing. (events --> player) as play.");
+	}
+	vm.def("stop", 0, 0, stop_, "(-->) frees every synth on the scsynth that play uses.");
 }

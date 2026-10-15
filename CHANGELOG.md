@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The binary is `stac`, and its environment variables are `STAC_*`: `STAC_SCSYNTH`, `STAC_SYNTHDEFS`, `STAC_RECORDINGS`, `STAC_PRELUDE` and the rest. `sapf-prelude.txt` is `prelude.stac`; `sapf-examples.txt` is `examples/sapf.stac`. Phase 1 of `docs/dev/stac.md`. The `SAPF_` names are not read; rename them in your shell.
+- sapf's DSP words, `kr`, `ctl`, `>sd`, `>sf`, `>sfo`, `>nrt`, `ola` and `ramp` are in the namespace `sapf`, not the core: `440 0 sapf.sinosc`. The bare UGens are global words in their place, with SC's arguments: `440 sinosc` is `SinOsc.ar(440)`. `sapf.stac` binds the sapf words unqualified and holds the 48 prelude definitions built on them. Run sapf programs with `-p prelude.stac -p sapf.stac`; `-p` now repeats. Phase 5 of `docs/dev/stac.md`. The C++ stays; rewriting the words in stac would change output that 108 conformance cases check (`docs/dev/stac-phase5.md`).
+
+  The core's `N`, `keep`, `NZ` and `T` take lists only; `sapf.stac`'s also end a UGen. `play` pushes the synth's `Node`; `sapf.stac`'s leaves nothing. `clip`, `wrap` and `fold` stay core words: they compute on reals and build SC's `Clip`, `Wrap` and `Fold` on a UGen.
+
 ### Added
 
 - 374 generated UGen words, for 374 of SC's 393 public UGen classes: 14 namespaces (`demand`, `buffer`, `fft`, `chaos`, `info`, `io`, `analysis`, `random`, `beqsuite`, `node`, `bela`, `ambisonics`, `ui`, `granular`), and 155 bare UGens under `ug`, e.g. `440 ug.sinosc`, until phase 5 binds them, with SC's argument names, order and defaults, e.g. `[1 2 3] inf demand.dseq`. A Form in place of the arguments is a keyword call: `{:dur .25 :level seq} demand.duty`. `numChannels` sets the output count: `{:numChannels 2 :bufnum b :loop 1} buffer.playbuf`. `.kr` lowers any UGen's rate; `.done` sets a generated UGen's `doneAction` to 2. The namespaces and the `ug` index are new words, so no existing program changes. 262 classes match nanosynth's SCgf byte for byte. Generated words run at the rate written: sapf-sc's rate inference neither lowers them nor lowers their inputs, so `FFT` reads an audio-rate source. Phase 2 in [docs/dev/stac.md](docs/dev/stac.md).
@@ -52,7 +59,7 @@
 
   ```
   uv run python scripts/stactool.py fmt [--check] [--indent N|tab] FILE...
-  uv run python scripts/stactool.py lint [--prelude sapf-prelude.txt] FILE...
+  uv run python scripts/stactool.py lint [--prelude prelude.stac] FILE...
   ```
 
 ### Fixed

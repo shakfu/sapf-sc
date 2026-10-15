@@ -33,7 +33,7 @@ int newNodeID() { return gNextNode++; }
 void checkServer(const std::string& err, const char* word)
 {
 	if (err.empty()) return;
-	post("%s : scsynth at %s: %s. Start one with 'make server' or set SAPF_SCSYNTH.\n", word,
+	post("%s : scsynth at %s: %s. Start one with 'make server' or set STAC_SCSYNTH.\n", word,
 		scsynthAddress().c_str(), err.c_str());
 	throw errFailed;
 }

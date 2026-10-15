@@ -15,6 +15,7 @@
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "MathOps.hpp"
+#include "Namespace.hpp"
 #include "clz.hpp"
 #ifdef _WIN32
 #include "sapf/platform/WindowsCompat.hpp"
@@ -1367,7 +1368,10 @@ void AddMathOps()
 	DEF(bitriWin, "triangular window for x in the interval [-1,1]")
 	DEF(hanWin, "hanning window for x in the interval [0,1]")
 	DEF(sinWin, "sine window for x in the interval [0,1]")
+	{
+	SapfWords sapf; // the bare ramp is SC's Ramp UGen
 	DEF(ramp, "return 0 when x <= 0, return x when 0 < x < 1, return 1 when x > 1.")
+	}
 	DEF(scurve, "return 0 when x <= 0, return 3*x*x - 2*x*x*x when 0 < x < 1, return 1 when x > 1.")
 
 	DEF(zapgremlins, "")

@@ -19,8 +19,8 @@ pty = pytest.importorskip("pty")
 def repl(sapf_bin, tmp_path):
     # openpty and Popen, not pty.fork: forking a multi-threaded pytest can deadlock the child
     fd, tty = pty.openpty()
-    env = dict(os.environ, SAPF_PRELUDE="/dev/null", SAPF_HISTORY=str(tmp_path / "history"),
-               SAPF_LOG=str(tmp_path / "log"), TERM="xterm")
+    env = dict(os.environ, STAC_PRELUDE="/dev/null", STAC_HISTORY=str(tmp_path / "history"),
+               STAC_LOG=str(tmp_path / "log"), TERM="xterm")
     proc = subprocess.Popen([str(SAPF), "-q"], stdin=tty, stdout=tty, stderr=tty, env=env, start_new_session=True)
     os.close(tty)
 

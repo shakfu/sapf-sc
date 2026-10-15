@@ -33,7 +33,7 @@ int runningTextures();
 // The NRT command file for channels with their voices up to `seconds`, the main def named `name`.
 std::string nrtScore(Thread& th, Arg channels, const std::string& name, double seconds);
 
-// Renders an NRT score with the embedded scsynth to name.wav in $SAPF_RECORDINGS, else the temp
+// Renders an NRT score with the embedded scsynth to name.wav in $STAC_RECORDINGS, else the temp
 // folder, at the interpreter's rate. Returns the path; throws, naming word, when the render fails.
 std::string renderScore(Thread& th, const std::string& score, const std::string& name, int channels, double seconds,
 	const char* word);

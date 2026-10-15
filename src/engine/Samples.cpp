@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "Samples.hpp"
+#include "Namespace.hpp"
 #include "Resources.hpp"
 #include "Scsynth.hpp"
 #include <algorithm>
@@ -192,6 +193,7 @@ static void playbuf_(Thread& th, Prim* prim)
 
 void AddSampleOps()
 {
+	SapfWords sapf;
 	vm.def("sf>", 1, 1, sfread_, "(filename --> channels) a WAV or AIFF file's channels, played once at rate 1 from an scsynth buffer. PlayBuf.");
 	vm.def("playbuf", 3, 1, playbuf_, "(filename rate loop --> channels) a WAV or AIFF file's channels at rate, looped when loop is not 0. PlayBuf.");
 }
