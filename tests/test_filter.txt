@@ -17,6 +17,7 @@
 "[1 2 3 4 5 6][] keepWhile [] equals"
 "[1 2 3 4 5 6][1 1 1 1 0 0 0 0] skipWhile [5 6] equals"
 "[1 2 3 4 5 6] \x[x 5 <] skipWhile [5 6] equals"
+"[1 2 3 4 5 6] Z \x[x 5 <] skipWhile [5 6] Z equals"
 "[1 2 3 4 5 6][1 1 1 1 0 0 0 0] keepWhile [1 2 3 4] equals"
 "[1][1 1 1 1 0 0 0 0] keepWhile [1] equals"
 "[1 2 3 4 5 6][1] keepWhile [1] equals"

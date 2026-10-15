@@ -13,8 +13,7 @@ target_include_directories(
 target_link_libraries(
 	sapf
 	PRIVATE
-	sapf_engine
-	$<$<TARGET_EXISTS:sapf_server>:sapf_server>
+	$<IF:$<TARGET_EXISTS:sapf_server>,sapf_server,sapf_engine>
 )
 
 set_target_properties(

@@ -31,8 +31,6 @@
 #include "sapf/platform/WindowsCompat.hpp"
 #endif
 
-const Z kOneThird = 1. / 3.;
-
 // list ops
 #pragma mark LIST OPS
 
@@ -1980,36 +1978,6 @@ struct NGrowz : public Gen
 			for (int i = 0; i < n; ++i) {
 				out[i] = start;
 				start *= step;	
-			}
-			_start = start;
-			_n -= n;
-			mOut = mOut->nextp();
-		}
-	}
-};
-
-struct NCubicLinez : public Gen
-{
-	Z _start;
-	Z _step;
-	int64_t _n;
-
-	NCubicLinez(Thread& th, Z start, Z step, int64_t n) : Gen(th, itemTypeZ, true), _start(start), _step(step), _n(n) {}
-
-	virtual const char* TypeName() const override { return "NCubicLinez"; }
-
-	virtual void pull(Thread& th) override
-	{	
-		if (_n <= 0) {
-			end();
-		} else {
-			int n = (int)std::min(_n, (int64_t)mBlockSize);
-			Z* out = mOut->fulfillz(n);
-			Z start = _start;
-			Z step = _step;
-			for (int i = 0; i < n; ++i) {
-				out[i] = start*start*start;
-				start += step;	
 			}
 			_start = start;
 			_n -= n;
@@ -4182,7 +4150,7 @@ static void skipWhile_(Thread& th, Prim* prim)
 						if (a->isV()) {
 							for (int64_t j = 0; j < remain; ++j) a2->v()[j] = a->v()[j+i];
 						} else {
-							memcpy(a2->v(), a->v() + i, remain * a->elemSize());
+							memcpy(a2->z(), a->z() + i, remain * a->elemSize());
 						}
                     }
                     return;
