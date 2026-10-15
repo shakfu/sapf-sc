@@ -2,13 +2,13 @@
 
 Status: working document, 2026-10-15.
 
-The things a live coder types most, in sclang and in stac. Each stac line is checked against the design in [stac.md](stac.md) and [stac-syntax-1.md](stac-syntax-1.md). Friction found here decides open questions in those documents.
+The things a live coder types most, in sclang and in stac. Each stac line is checked against the design in [stac.md](stac.md). Friction found here decided open questions there; candidates C1-C9 are now part of that design.
 
 Each phrase shows:
 
 - `sclang`: idiomatic SuperCollider.
-- `stac draft`: the current design, as written.
-- `stac fix`: the same line with the candidates in [Candidates](#candidates), where they help.
+- `stac draft`: the design before this phrasebook.
+- `stac fix`: the same line with the candidates in [Candidates](#candidates), as [stac.md](stac.md) now has it.
 
 Argument orders come from `../nanosynth/spec/sclang-reference.json` (SC 3.14.1). No stac line runs today unless marked "works today".
 
@@ -221,7 +221,7 @@ def verb in mix:.4 = [in 2 io.in mix .8 .5 freeverb]
 {:out fx} pad
 ```
 
-`io.in` is the one namespaced word an everyday def needs. `addAction` shares the Form with control values (open question 10 in stac-syntax-1.md).
+`io.in` is the one namespaced word an everyday def needs. `addAction` shares the Form with control values (open question 9 in [stac.md](stac.md)).
 
 ## Control
 
@@ -369,6 +369,51 @@ stac has no `inf`; sapf-sc reports it undefined. C4 adds it.
 [440 0 sinosc .1 *] 4 "tone" render
 ```
 
+## Style
+
+A one-liner suits performance. A sound worth keeping gets refactored. P11 as a one-liner:
+
+```stac-fix
+[2 dust .01 .2 decay2 800 sinosc * = s  s s .5 .375 4 combc + .2 *] play
+```
+
+Refactored:
+
+```stac-fix
+\in "(in --> out) a 375 ms echo." [in .5 .375 4 combc] = echo
+
+[
+    2 dust .01 .2 decay2      ; clicks: 10 ms attack, 200 ms decay
+    800 sinosc *              ; ring them at 800 Hz
+    = s
+    s  s echo +               ; dry plus echo
+    .2 *
+] play
+```
+
+Works today with sapf-sc arities (`2 1 dust`, `800 0 sinosc`), checked with `>sd` in `build/sapf`.
+
+Rules, in order of effect:
+
+1. One stage per line: source, colouring, effect, level. Lists may span lines.
+2. Comment numbers, not words. `; 10 ms attack` explains `.01`; `decay2` needs no comment.
+3. Bind reused values with `= name`. Avoid stack shuffling.
+4. Factor an effect into a function with a help string. `help` shows the stack effect today; stac hints will show it while typing.
+5. Align comments in a column. Whitespace between tokens is not significant.
+6. Use a keyword Form when positional numbers are ambiguous. `.5 .375 4 combc` hides which is the delay; `{:in s :maxdelaytime .5 :delaytime .375 :decaytime 4} combc` names each. The cost is about 3x the length, so keep it for saved code.
+7. Promote a kept sound to a `def`. Its numbers become controls:
+
+```stac-fix
+def clicks rate:2 ring:800 amp:.2 = [
+    rate dust .01 .2 decay2  ring sinosc *  = s
+    s  s echo +  amp *
+]
+
+{:ring 1200} clicks
+```
+
+Whitespace is significant in 3 cases: `-2` vs `- 2`, `5/4` vs `5 / 4`, and `2pi`. A dot before a digit starts a number: `*.5` is `*` then `.5`.
+
 ## Candidates
 
 | | Candidate | Phrases | Mechanism |
@@ -399,9 +444,9 @@ The list is a convention to keep by hand. It is 12 names, not a table of 407 cla
 
 | Open question | Evidence | Settled as |
 |-|-|-|
-| Positional arity (stac.md 1) | 12 of 23 phrases pass a value only to fill a tail parameter, or switch to the keyword Form | C1 |
-| Default rate (stac-syntax-1 1) | `.kr` appears only on envelopes and LFOs, where SC users also write it | highest rate by default stands |
-| Short aliases (stac-syntax-1 6) | the longest everyday names are `lfnoise1`, `freeverb`, `envgen` | not needed |
-| Namespace boundaries (stac-syntax-1 3) | everyday phrases need `io.in` once and `info.poll` never, given C9 | category rule stands; move `in` and `out` bare |
-| Synth options in the control Form (stac-syntax-1 10) | P12 is the only phrase that needs one | open; rare enough to keep simple |
-| Patterns (stac.md) | P18-P20 need C5 and C6 | add both to the pattern design |
+| Positional arity | 12 of 23 phrases pass a value only to fill a tail parameter, or switch to the keyword Form | C1 |
+| Default rate | `.kr` appears only on envelopes and LFOs, where SC users also write it | highest rate by default stands |
+| Short aliases | the longest everyday names are `lfnoise1`, `freeverb`, `envgen` | not needed |
+| Namespace boundaries | everyday phrases need `io.in` once and `info.poll` never, given C9 | category rule stands; move `in` and `out` bare |
+| Synth options in the control Form | P12 is the only phrase that needs one | open; rare enough to keep simple |
+| Patterns | P18-P20 need C5 and C6 | add both to the pattern design |
