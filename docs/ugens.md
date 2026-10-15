@@ -96,8 +96,11 @@ A `maxdelay` of 0 means the delay time, which must then be a constant.
 | `imps` | `TDuty`, `Dseq` | exact, apart from drift | rate must be a real |
 
 - Values and durations are reals or lists of reals; the README gives how streams are stored.
+
 - sapf fires on every sample above zero; SC fires when the trigger rises above zero. Single-sample triggers such as `impulse` behave the same.
+
 - sapf sums `rate / SR` per frame in double precision, so a step can start one frame late: frame 481 for .01 s at 48 kHz. SC counts frames and starts it at 480.
+
 - sapf integrates a signal rate within each step. `Duty` reads its duration once per step, so `steps` and `imps` reject a UGen rate.
 
 ## Envelopes
