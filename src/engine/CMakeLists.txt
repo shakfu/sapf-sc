@@ -18,6 +18,12 @@ set(ENGINE_SOURCES
 	Types.cpp
 	Graph.cpp
 	SCUGens.cpp
+	SpecUGens.cpp
+	EnvOps.cpp
+	DefOps.cpp
+	ResourceOps.cpp
+	PatternOps.cpp
+	Completion.cpp
 	Scsynth.cpp
 	Texture.cpp
 	Wavetables.cpp

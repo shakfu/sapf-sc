@@ -17,6 +17,7 @@
 #include "VM.hpp"
 #include "Opcode.hpp"
 #include "Parser.hpp"
+#include "Completion.hpp"
 #include "MultichannelExpansion.hpp"
 #include "elapsedTime.hpp"
 #include <stdexcept>
@@ -203,7 +204,7 @@ VM::VM()
 {
 	initElapsedTime();
 
-	_ee = new Form(0, NULL);
+	_ee = new Form(new Table(new TableMap(0)), NULL);
 
 	builtins = new GTable();
 
@@ -238,6 +239,35 @@ static const char* getPrompt(int parsingWhat)
 		case parsingArray:  return "[sapf> ";
 		case parsingEnvir:  return "{sapf> ";
 	}
+}
+#endif
+
+#if USE_REPLXX
+// Tab completes the name at the cursor, NS.word included (Completion.hpp).
+static void completeCallback(const char* input, replxx_completions* out, int* contextLen, void* th)
+{
+	std::string context = completionContext(input);
+	*contextLen = (int)context.size();
+	for (std::string const& c : completions(*(Thread*)th, context)) replxx_add_completion(out, c.c_str());
+}
+
+// Shows the stack effect of the word at the cursor, or of its only completion.
+static void hintCallback(const char* input, replxx_hints* out, int* contextLen, ReplxxColor* color, void* th)
+{
+	std::string context = completionContext(input);
+	if (context.empty()) return;
+	Thread& t = *(Thread*)th;
+	std::string word = context;
+	std::string effect = stackEffect(t, word);
+	if (effect.empty()) {
+		std::vector<std::string> all = completions(t, context);
+		if (all.size() != 1) return;
+		word = all[0];
+		effect = stackEffect(t, word);
+	}
+	*contextLen = (int)context.size();
+	*color = REPLXX_COLOR_GRAY;
+	replxx_add_hint(out, (word + (effect.empty() ? "" : "  " + effect)).c_str());
 }
 #endif
 
@@ -375,6 +405,8 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 	// Configure replxx
 	replxx_set_max_history_size(replxx, 800);
 	replxx_set_unique_history(replxx, 1);
+	replxx_set_completion_callback(replxx, completeCallback, this);
+	replxx_set_hint_callback(replxx, hintCallback, this);
 	replxx_history_load(replxx, historyfilename);
 #endif
 

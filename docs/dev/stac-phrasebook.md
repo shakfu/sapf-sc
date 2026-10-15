@@ -7,10 +7,12 @@ The things a live coder types most, in sclang and in stac. Each stac line is che
 Each phrase shows:
 
 - `sclang`: idiomatic SuperCollider.
+
 - `stac draft`: the design before this phrasebook.
+
 - `stac fix`: the same line with the candidates in [Candidates](#candidates), as [stac.md](stac.md) now has it.
 
-Argument orders come from `../nanosynth/spec/sclang-reference.json` (SC 3.14.1). No stac line runs today unless marked "works today".
+Argument orders come from `spec/sclang-reference.json` (SC 3.14.1). No stac line runs today unless marked "works today".
 
 ## Sound
 
@@ -333,12 +335,12 @@ b = Buffer.read(s, "loop.wav");
 { PlayBuf.ar(2, b, BufRateScale.kr(b), loop: 1) * 0.5 }.play;
 ```
 ```stac-draft
-"loop.wav" buf.read = b
-[2 b b buf.bufratescale.kr 1 0 1 0 buf.playbuf .5 *] play
+"loop.wav" buffer.read = b
+[2 b b buffer.bufratescale.kr 1 0 1 0 buffer.playbuf .5 *] play
 ```
 ```stac-fix
-"loop.wav" buf.read = b
-[{:numChannels 2 :bufnum b :rate b buf.bufratescale.kr :loop 1} buf.playbuf .5 *] play
+"loop.wav" buffer.read = b
+[{:numChannels 2 :bufnum b :rate b buffer.bufratescale.kr :loop 1} buffer.playbuf .5 *] play
 ```
 
 `playbuf` takes 7 arguments. C1 drops only `doneAction`, so the keyword Form stays the readable choice. A prelude word for the common case, e.g. `b loopbuf`, would serve live use.
@@ -350,10 +352,10 @@ b = Buffer.read(s, "loop.wav");
   Saw.ar(f) * 0.1 }.play;
 ```
 ```stac-draft
-[8 0 impulse.kr 0 [60 63 67 70] 1000000 dem.dseq dem.demand.kr midicps saw .1 *] play
+[8 0 impulse.kr 0 [60 63 67 70] 1000000 demand.dseq demand.demand.kr midicps saw .1 *] play
 ```
 ```stac-fix
-[8 impulse.kr 0 [60 63 67 70] inf dem.dseq dem.demand.kr midicps saw .1 *] play
+[8 impulse.kr 0 [60 63 67 70] inf demand.dseq demand.demand.kr midicps saw .1 *] play
 ```
 
 stac has no `inf`; sapf-sc reports it undefined. C4 adds it.
@@ -396,11 +398,17 @@ Works today with sapf-sc arities (`2 1 dust`, `800 0 sinosc`), checked with `>sd
 Rules, in order of effect:
 
 1. One stage per line: source, colouring, effect, level. Lists may span lines.
+
 2. Comment numbers, not words. `; 10 ms attack` explains `.01`; `decay2` needs no comment.
+
 3. Bind reused values with `= name`. Avoid stack shuffling.
+
 4. Factor an effect into a function with a help string. `help` shows the stack effect today; stac hints will show it while typing.
+
 5. Align comments in a column. Whitespace between tokens is not significant.
+
 6. Use a keyword Form when positional numbers are ambiguous. `.5 .375 4 combc` hides which is the delay; `{:in s :maxdelaytime .5 :delaytime .375 :decaytime 4} combc` names each. The cost is about 3x the length, so keep it for saved code.
+
 7. Promote a kept sound to a `def`. Its numbers become controls:
 
 ```stac-fix

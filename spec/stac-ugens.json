@@ -1,0 +1,244 @@
+{
+  "_doc": [
+    "Hand-kept overlay on sclang-reference.json and sclang-wire.json for stac's generated UGen words. scripts/gen_ugens.py joins them into src/engine/SpecUGens.inc. See docs/dev/stac.md, UGens.",
+    "groups: the help categories each namespace takes, by a class's first category. The empty name is the bare words, which stay in ug only until phase 5. Only the groups listed here are generated.",
+    "place: classes put in a group by hand, over their category.",
+    "hidden: classes the compiler emits and no one types.",
+    "skip: classes not generated yet, with the reason.",
+    "tail: argument names a positional call omits when they trail.",
+    "classes.wire: input order, only where sclang-wire.json has no trusted order. 'name' sends the argument; '*name' splices its list; '#name' sends its list's size; '*a/b' splices a's list padded or cut to b's size; '*a~b' splices a's list wrapped to b's value, as LocalIn's default.wrapExtend(numChannels); '&name' sends an Env as SC's Env.asArray, '&&name' as asArrayForInterpolation; '%name' interleaves the rows of name's list, as sclang's flop.flat, filling missing rows from classes.fill.",
+    "classes.outputs: '#name' when the output count is the size of an argument's list; '=name' when it is the value of an argument that is also sent (MFCC); 'name' when it is the value of an argument that is not sent.",
+    "classes.positional: overrides the tail rule's argument count.",
+    "classes.unsent: arguments sclang applies after the UGen, as LinXFade2 multiplies by level; stac drops them, as it drops mul and add.",
+    "classes.defaults: numeric defaults where sclang's are expressions or symbols."
+  ],
+  "groups": {
+    "": [
+      "Generators>Deterministic",
+      "Generators>Stochastic",
+      "Generators>Single-value",
+      "Filters",
+      "Filters>Linear",
+      "Filters>Nonlinear",
+      "Filters>Pitch",
+      "Delays",
+      "Envelopes",
+      "Multichannel>Panners",
+      "Multichannel>Select",
+      "Triggers",
+      "Maths",
+      "Conversion",
+      "Reverbs",
+      "Dynamics"
+    ],
+    "buffer": [
+      "Buffer",
+      "Buffer>Info",
+      "Delays>Buffer"
+    ],
+    "demand": [
+      "Demand"
+    ],
+    "analysis": [
+      "Analysis",
+      "Analysis>Amplitude",
+      "Analysis>Pitch"
+    ],
+    "ambisonics": [
+      "Multichannel>Ambisonics"
+    ],
+    "beqsuite": [
+      "Filters>BEQSuite"
+    ],
+    "bela": [
+      "Bela"
+    ],
+    "chaos": [
+      "Generators>Chaotic"
+    ],
+    "fft": [
+      "FFT",
+      "Convolution"
+    ],
+    "granular": [
+      "Generators>Granular"
+    ],
+    "info": [
+      "Info"
+    ],
+    "io": [
+      "InOut"
+    ],
+    "node": [
+      "Synth control"
+    ],
+    "random": [
+      "Random"
+    ],
+    "ui": [
+      "User interaction"
+    ]
+  },
+  "place": {
+    "In": "",
+    "Out": "",
+    "ClearBuf": "buffer",
+    "SetBuf": "buffer",
+    "RandID": "random",
+    "RandSeed": "random",
+    "BlockSize": "info",
+    "NodeID": "info",
+    "ScopeOut2": "io"
+  },
+  "hidden": [
+    "BinaryOpUGen",
+    "UnaryOpUGen",
+    "MulAdd",
+    "Sum3",
+    "Sum4",
+    "Control",
+    "TrigControl",
+    "LagControl",
+    "AudioControl",
+    "OutputProxy",
+    "ListDUGen",
+    "InfoUGenBase",
+    "BufInfoUGenBase",
+    "MaxLocalBufs"
+  ],
+  "skip": {
+    "Changed": "sclang code that emits other UGens",
+    "CompanderD": "sclang code that emits other UGens",
+    "HilbertFIR": "sclang code that emits other UGens",
+    "VarLag": "sclang code that emits other UGens",
+    "Splay": "sclang code that emits other UGens",
+    "SplayAz": "sclang code that emits other UGens",
+    "Dstutter": "deprecated alias of Ddup",
+    "Dunique": "sclang code that emits other UGens",
+    "LocalBuf": "sclang code that emits other UGens",
+    "Tap": "sclang code that emits other UGens",
+    "Dpoll": "label sent as characters",
+    "SendReply": "string argument",
+    "InRect": "Rect argument",
+    "DynKlank": "specification array",
+    "DynKlang": "specification array",
+    "UnpackFFT": "sclang code that emits other UGens",
+    "InBus": "sclang code that emits other UGens",
+    "Poll": "label sent as characters",
+    "SendPeakRMS": "string argument"
+  },
+  "tail": [
+    "phase",
+    "iphase",
+    "doneAction",
+    "levelScale",
+    "levelBias",
+    "timeScale",
+    "trigger",
+    "startPos",
+    "reset",
+    "level",
+    "levelComp",
+    "center"
+  ],
+  "classes": {
+    "Demand": {
+      "outputs": "#demandUGens"
+    },
+    "Dreset": {
+      "positional": 2
+    },
+    "Duty": {
+      "positional": 3
+    },
+    "TDuty": {
+      "positional": 3
+    },
+    "Dwrand": {
+      "wire": [
+        "repeats",
+        "#list",
+        "*weights/list",
+        "*list"
+      ]
+    },
+    "LinXFade2": {
+      "unsent": [
+        "level"
+      ]
+    },
+    "Klank": {
+      "wire": [
+        "input",
+        "freqscale",
+        "freqoffset",
+        "decayscale",
+        "%specificationsArrayRef"
+      ],
+      "fill": [
+        1.0,
+        1.0
+      ],
+      "positional": 2
+    },
+    "Klang": {
+      "wire": [
+        "freqscale",
+        "freqoffset",
+        "%specificationsArrayRef"
+      ],
+      "fill": [
+        1.0,
+        0.0
+      ],
+      "positional": 1
+    },
+    "LocalIn": {
+      "wire": [
+        "*default~numChannels"
+      ],
+      "outputs": "numChannels"
+    },
+    "DecodeB2": {
+      "wire": [
+        "w",
+        "x",
+        "y",
+        "orientation"
+      ],
+      "outputs": "numChans",
+      "_note": "sclang's DecodeB2 writes `orientation = 0.5` inside its multiNew call, so it always sends 0.5. stac sends the argument."
+    },
+    "AmpComp": {
+      "defaults": {
+        "root": 261.6255653005986
+      },
+      "_note": "sclang's default is 60.midicps"
+    },
+    "Onsets": {
+      "defaults": {
+        "odftype": 3
+      },
+      "_note": "sclang's default is \\\\rcomplex, index 3 of [power magsum complex rcomplex phase wphase mkl]"
+    },
+    "MFCC": {
+      "outputs": "=numcoeff"
+    },
+    "EnvGen": {
+      "wire": [
+        "gate",
+        "levelScale",
+        "levelBias",
+        "timeScale",
+        "doneAction",
+        "&envelope"
+      ]
+    },
+    "IEnvGen": {
+      "wire": [
+        "index",
+        "&&envelope"
+      ]
+    }
+  }
+}

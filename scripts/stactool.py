@@ -4,15 +4,15 @@
     stactool.py lint [--sapf PATH] [--prelude PATH] FILE...
 
 The lexer ports the token rules of src/engine/Parser.cpp and keeps whitespace
-and comments, so source -> tokens -> source is exact. stac's `def` statement
-is not built and lints as an error.
+and comments, so source -> tokens -> source is exact, and reads stac's
+`def` statement as the parser does.
 
 Errors, each one the compiler also rejects:
     E1 unterminated string         E6 bad lambda header
     E2 unclosed bracket            E7 '=' without a name
     E3 unexpected closer           E8 extra digit after '@'
     E4 prefix without a name       E9 rebinding a free variable in a lambda
-    E5 '#' not followed by '['
+    E5 '#' not followed by '['     E10 malformed def statement
 Warnings:
     W1 undefined word (bound later, misspelt, or a malformed number like 10ms)
     W2 '=' hides a built-in word
@@ -217,6 +217,36 @@ class Lexer:
         if tok.text == '=':
             tok.kind = 'bind'
             self.binding(tok)
+        elif tok.text == 'def':
+            tok.kind = 'def'
+            self.definition(tok)
+
+    def definition(self, kw: Token):
+        """def NAME PARAM* = [ BODY ], PARAM being name or name:LITERAL (Parser.cpp, parseDef)."""
+        name = self.symbol('defname')
+        if not name or name.text == '=':
+            self.err(kw.start, 'E10', 'expected a name after def')
+            return
+        while True:
+            param = self.symbol('param')
+            if not param:
+                self.err(kw.start, 'E10', "expected '=' after the parameters of def")
+                return
+            if param.text == '=':
+                param.kind = 'bind'
+                break
+            if self.c() == ':':
+                colon = self.emit('prefix', self.i + 1)
+                j = number_end(self.s, self.i)
+                if j is None:
+                    self.err(colon.start, 'E10', "expected a number after ':' in def")
+                    return
+                self.emit('num', j)
+        self.trivia()
+        if self.c() == '[':
+            self.open('[', 'lopen')
+        else:
+            self.err(kw.start, 'E10', "expected '[' after def's '='")
 
     def binding(self, eq: Token):
         self.trivia()
@@ -360,8 +390,8 @@ def format_source(src: str, indent: str = '    ') -> str:
         out.append(indent * level + text if text else '')
         for t in toks:
             if t.kind == 'lopen':
-                stack[-1].append(g)  # the lambda header's entry
-            elif t.kind in OPENERS or t.kind == 'lambda':
+                stack[-1].append(g)  # the lambda or def header's entry
+            elif t.kind in OPENERS or t.kind in ('lambda', 'def'):
                 stack.append([g])
             elif t.kind == 'close':
                 stack.pop()
@@ -397,6 +427,8 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
     frames: list[Frame] = []
     brackets: list[str] = []
     params: list[str] = []
+    defs: list[Token | None] = []  # per lambda frame: the def name it binds when it closes
+    pending_def: Token | None = None
     toks = lx.toks
 
     def warn(tok, code, msg):
@@ -428,12 +460,18 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
     for n, t in enumerate(toks):
         k = t.kind
         if k == 'lambda':
-            params = []
+            params, pending_def = [], None
+        elif k == 'def':
+            params, pending_def = [], None
+        elif k == 'defname':
+            pending_def = t
         elif k == 'param':
             params.append(t.text)
         elif k == 'lopen':
             frames.append(Frame({p: [t, 0, False] for p in params}))
             brackets.append('lambda')
+            defs.append(pending_def)
+            pending_def = None
         elif k in ('open', 'bopen'):
             brackets.append(k)
         elif k == 'close' and brackets:
@@ -441,16 +479,31 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
                 for name, (tok, uses, is_bind) in frames.pop().locals.items():
                     if is_bind and not uses:
                         warn(tok, 'W3', f"'{name}' is bound but never used")
+                defname = defs.pop()
+                if defname is not None:  # bound after its body compiles, as the compiler does
+                    if defname.text in builtins:
+                        warn(defname, 'W2', f"def {defname.text} hides a built-in word")
+                    if frames:
+                        frames[-1].locals.setdefault(defname.text, [defname, 0, True])
+                    else:
+                        workspace.add(defname.text)
         elif k == 'name':
             bind(t)
         elif k == 'word' or (k == 'sym' and toks[n - 1].kind == 'prefix' and toks[n - 1].text == '`'):
             if not lookup(t.text):
                 hint = '; not a number, so read as a word' if _looks_numeric(t.text) else ''
+                hint += ''.join(f'; {w}?' for w in namespaced(t.text, builtins))
                 warn(t, 'W1', f"'{t.text}' is undefined{hint}")
         elif k == 'prefix' and n + 1 < len(toks) and toks[n + 1].kind in TRIVIA:
             warn(t, 'W4', f"space after '{t.text}'; write '{t.text}name'")
     diags.sort(key=lambda d: (d.line, d.col))
     return diags, workspace
+
+
+def namespaced(word: str, builtins: set[str]) -> list[str]:
+    """NS.word for each namespace holding word; ug, the index of every UGen, only when no other does."""
+    found = sorted(b for b in builtins if b.endswith('.' + word))
+    return [b for b in found if not b.startswith('ug.')] or found
 
 
 def builtin_words(sapf: Path) -> set[str]:

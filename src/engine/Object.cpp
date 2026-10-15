@@ -164,6 +164,18 @@ Z ZRef::derefz() const
 }
 
 
+namespace {
+struct NoValue : public Object {
+	virtual const char* TypeName() const override { return "NoValue"; }
+};
+}
+
+Object* noValue()
+{
+	static Object* nothing = [] { Object* o = new NoValue(); o->retain(); return o; }();
+	return nothing;
+}
+
 Form::Form(P<Table> const& inTable, P<Form> const& inNext)
 	: Object(), mTable(inTable), mNextForm(inNext)
 {
@@ -2162,6 +2174,7 @@ TableMap::~TableMap()
 
 bool TableMap::getIndex(Arg inKey, int64_t inKeyHash, size_t& outIndex)
 {
+	if (mSize == 0) return false;
 	size_t mask = mMask;
 	size_t i = inKeyHash & mask;
 	size_t* indices = mIndices;

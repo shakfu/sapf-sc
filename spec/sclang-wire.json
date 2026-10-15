@@ -1,0 +1,7337 @@
+{
+ "categories": {
+  "A2K": [
+   "Conversion"
+  ],
+  "APF": [
+   "Filters>Linear",
+   "Undocumented"
+  ],
+  "AllpassC": [
+   "Delays"
+  ],
+  "AllpassL": [
+   "Delays"
+  ],
+  "AllpassN": [
+   "Delays"
+  ],
+  "AmpComp": [
+   "Analysis>Amplitude"
+  ],
+  "AmpCompA": [
+   "Analysis>Amplitude"
+  ],
+  "Amplitude": [
+   "Analysis>Amplitude"
+  ],
+  "AnalogIn": [
+   "Bela"
+  ],
+  "AnalogOut": [
+   "Bela"
+  ],
+  "BAllPass": [
+   "Filters>BEQSuite"
+  ],
+  "BBandPass": [
+   "Filters>BEQSuite"
+  ],
+  "BBandStop": [
+   "Filters>BEQSuite"
+  ],
+  "BHiPass": [
+   "Filters>BEQSuite"
+  ],
+  "BHiShelf": [
+   "Filters>BEQSuite"
+  ],
+  "BLowPass": [
+   "Filters>BEQSuite"
+  ],
+  "BLowShelf": [
+   "Filters>BEQSuite"
+  ],
+  "BPF": [
+   "Filters>Linear"
+  ],
+  "BPZ2": [
+   "Filters>Linear"
+  ],
+  "BPeakEQ": [
+   "Filters>BEQSuite"
+  ],
+  "BRF": [
+   "Filters>Linear"
+  ],
+  "BRZ2": [
+   "Filters>Linear"
+  ],
+  "Balance2": [
+   "Multichannel>Panners"
+  ],
+  "Ball": [
+   "Filters>Nonlinear",
+   "Generators>PhysicalModels"
+  ],
+  "BeatTrack": [
+   "Analysis",
+   "FFT"
+  ],
+  "BeatTrack2": [
+   "Analysis",
+   "FFT"
+  ],
+  "BelaScopeOut": [
+   "Bela"
+  ],
+  "BiPanB2": [
+   "Multichannel>Ambisonics"
+  ],
+  "BinaryOpUGen": [
+   "Algebraic"
+  ],
+  "Blip": [
+   "Generators>Deterministic"
+  ],
+  "BrownNoise": [
+   "Generators>Stochastic"
+  ],
+  "BufAllpassC": [
+   "Delays>Buffer"
+  ],
+  "BufAllpassL": [
+   "Delays>Buffer"
+  ],
+  "BufAllpassN": [
+   "Delays>Buffer"
+  ],
+  "BufChannels": [
+   "Buffer>Info"
+  ],
+  "BufCombC": [
+   "Delays>Buffer"
+  ],
+  "BufCombL": [
+   "Delays>Buffer"
+  ],
+  "BufCombN": [
+   "Delays>Buffer"
+  ],
+  "BufDelayC": [
+   "Delays>Buffer"
+  ],
+  "BufDelayL": [
+   "Delays>Buffer"
+  ],
+  "BufDelayN": [
+   "Delays>Buffer"
+  ],
+  "BufDur": [
+   "Buffer>Info"
+  ],
+  "BufFrames": [
+   "Buffer>Info"
+  ],
+  "BufInfoUGenBase": [
+   "Base"
+  ],
+  "BufRateScale": [
+   "Buffer>Info"
+  ],
+  "BufRd": [
+   "Buffer"
+  ],
+  "BufSampleRate": [
+   "Buffer>Info"
+  ],
+  "BufSamples": [
+   "Buffer>Info"
+  ],
+  "BufWr": [
+   "Buffer"
+  ],
+  "COsc": [
+   "Generators>Deterministic"
+  ],
+  "Changed": [
+   "Triggers",
+   "Filters>Linear"
+  ],
+  "CheckBadValues": [
+   "Info"
+  ],
+  "Clip": [
+   "Maths"
+  ],
+  "ClipNoise": [
+   "Generators>Stochastic"
+  ],
+  "CoinGate": [
+   "Generators>Stochastic"
+  ],
+  "CombC": [
+   "Delays"
+  ],
+  "CombL": [
+   "Delays"
+  ],
+  "CombN": [
+   "Delays"
+  ],
+  "Compander": [
+   "Dynamics"
+  ],
+  "CompanderD": [
+   "Dynamics"
+  ],
+  "Control": [
+   "Synth control"
+  ],
+  "ControlDur": [
+   "Info"
+  ],
+  "ControlRate": [
+   "Info"
+  ],
+  "Convolution": [
+   "FFT",
+   "Convolution"
+  ],
+  "Convolution2": [
+   "FFT",
+   "Convolution"
+  ],
+  "Convolution2L": [
+   "FFT",
+   "Convolution"
+  ],
+  "Convolution3": [
+   "Convolution"
+  ],
+  "Crackle": [
+   "Generators>Stochastic"
+  ],
+  "CuspL": [
+   "Generators>Chaotic"
+  ],
+  "CuspN": [
+   "Generators>Chaotic"
+  ],
+  "DC": [
+   "Generators>Single-value"
+  ],
+  "Dbrown": [
+   "Demand"
+  ],
+  "Dbufrd": [
+   "Buffer",
+   "Demand"
+  ],
+  "Dbufwr": [
+   "Buffer",
+   "Demand"
+  ],
+  "Dconst": [
+   "Demand"
+  ],
+  "Ddup": [
+   "Demand"
+  ],
+  "Decay": [
+   "Filters>Linear",
+   "Envelopes"
+  ],
+  "Decay2": [
+   "Filters>Linear",
+   "Envelopes"
+  ],
+  "DecodeB2": [
+   "Multichannel>Ambisonics"
+  ],
+  "DegreeToKey": [
+   "Conversion"
+  ],
+  "DelTapRd": [
+   "Buffer",
+   "Delays"
+  ],
+  "DelTapWr": [
+   "Buffer",
+   "Delays"
+  ],
+  "Delay1": [
+   "Delays"
+  ],
+  "Delay2": [
+   "Delays"
+  ],
+  "DelayC": [
+   "Delays"
+  ],
+  "DelayL": [
+   "Delays"
+  ],
+  "DelayN": [
+   "Delays"
+  ],
+  "Demand": [
+   "Demand"
+  ],
+  "DemandEnvGen": [
+   "Demand",
+   "Envelopes"
+  ],
+  "DetectIndex": [
+   "Buffer"
+  ],
+  "DetectSilence": [
+   "Synth control",
+   "Analysis>Amplitude"
+  ],
+  "Dgeom": [
+   "Demand"
+  ],
+  "Dibrown": [
+   "Demand"
+  ],
+  "DigitalIO": [
+   "Bela"
+  ],
+  "DigitalIn": [
+   "Bela"
+  ],
+  "DigitalOut": [
+   "Bela"
+  ],
+  "DiskIn": [
+   "InOut",
+   "Buffer"
+  ],
+  "DiskOut": [
+   "InOut",
+   "Buffer"
+  ],
+  "Diwhite": [
+   "Demand"
+  ],
+  "Done": [
+   "Synth control",
+   "Server>Nodes"
+  ],
+  "Dpoll": [
+   "Demand",
+   "Info"
+  ],
+  "Drand": [
+   "Demand"
+  ],
+  "Dreset": [
+   "Demand"
+  ],
+  "Dseq": [
+   "Demand"
+  ],
+  "Dser": [
+   "Demand"
+  ],
+  "Dseries": [
+   "Demand"
+  ],
+  "Dshuf": [
+   "Demand",
+   "Random"
+  ],
+  "Dstutter": [
+   "Demand"
+  ],
+  "Dswitch": [
+   "Demand"
+  ],
+  "Dswitch1": [
+   "Demand"
+  ],
+  "Dunique": [
+   "Demand"
+  ],
+  "Dust": [
+   "Generators>Stochastic"
+  ],
+  "Dust2": [
+   "Generators>Stochastic"
+  ],
+  "Duty": [
+   "Demand"
+  ],
+  "Dwhite": [
+   "Demand"
+  ],
+  "Dwrand": [
+   "Demand",
+   "Random"
+  ],
+  "Dxrand": [
+   "Demand"
+  ],
+  "DynKlang": [
+   "Generators>Deterministic"
+  ],
+  "DynKlank": [
+   "Generators>Deterministic",
+   "Filters>Linear"
+  ],
+  "EnvGen": [
+   "Envelopes"
+  ],
+  "ExpRand": [
+   "Random"
+  ],
+  "FBSineC": [
+   "Generators>Chaotic"
+  ],
+  "FBSineL": [
+   "Generators>Chaotic"
+  ],
+  "FBSineN": [
+   "Generators>Chaotic"
+  ],
+  "FFT": [
+   "FFT"
+  ],
+  "FFTTrigger": [
+   "FFT"
+  ],
+  "FOS": [
+   "Filters>Linear"
+  ],
+  "FSinOsc": [
+   "Generators>Deterministic"
+  ],
+  "Fold": [
+   "Maths"
+  ],
+  "FoldIndex": [
+   "Buffer"
+  ],
+  "Formant": [
+   "Generators>Deterministic"
+  ],
+  "Formlet": [
+   "Filters>Linear"
+  ],
+  "Free": [
+   "Synth control"
+  ],
+  "FreeSelf": [
+   "Synth control"
+  ],
+  "FreeSelfWhenDone": [
+   "Synth control"
+  ],
+  "FreeVerb": [
+   "Reverbs"
+  ],
+  "FreeVerb2": [
+   "Reverbs"
+  ],
+  "FreqShift": [
+   "Filters>Nonlinear",
+   "Filters>Pitch"
+  ],
+  "GVerb": [
+   "Reverbs"
+  ],
+  "Gate": [
+   "Triggers"
+  ],
+  "GbmanL": [
+   "Generators>Chaotic"
+  ],
+  "GbmanN": [
+   "Generators>Chaotic"
+  ],
+  "Gendy1": [
+   "Generators>Stochastic"
+  ],
+  "Gendy2": [
+   "Generators>Stochastic"
+  ],
+  "Gendy3": [
+   "Generators>Stochastic"
+  ],
+  "GrainBuf": [
+   "Buffer",
+   "Generators>Granular"
+  ],
+  "GrainFM": [
+   "Generators>Granular"
+  ],
+  "GrainIn": [
+   "Generators>Granular"
+  ],
+  "GrainSin": [
+   "Generators>Granular"
+  ],
+  "GrayNoise": [
+   "Generators>Stochastic"
+  ],
+  "HPF": [
+   "Filters>Linear"
+  ],
+  "HPZ1": [
+   "Filters>Linear"
+  ],
+  "HPZ2": [
+   "Filters>Linear"
+  ],
+  "Hasher": [
+   "Filters>Nonlinear",
+   "Random"
+  ],
+  "HenonC": [
+   "Generators>Chaotic"
+  ],
+  "HenonL": [
+   "Generators>Chaotic"
+  ],
+  "HenonN": [
+   "Generators>Chaotic"
+  ],
+  "Hilbert": [
+   "Filters>Nonlinear"
+  ],
+  "HilbertFIR": [
+   "Filters>Nonlinear"
+  ],
+  "IEnvGen": [
+   "Envelopes"
+  ],
+  "IFFT": [
+   "FFT"
+  ],
+  "IRand": [
+   "Random"
+  ],
+  "Impulse": [
+   "Generators>Deterministic"
+  ],
+  "In": [
+   "InOut"
+  ],
+  "InBus": [
+   "InOut"
+  ],
+  "InFeedback": [
+   "InOut"
+  ],
+  "InRange": [
+   "Maths"
+  ],
+  "InRect": [
+   "Maths"
+  ],
+  "InTrig": [
+   "InOut",
+   "Triggers"
+  ],
+  "Index": [
+   "Buffer"
+  ],
+  "IndexInBetween": [
+   "Buffer"
+  ],
+  "IndexL": [
+   "Buffer"
+  ],
+  "InfoUGenBase": [
+   "Base"
+  ],
+  "Integrator": [
+   "Filters>Linear",
+   "Maths"
+  ],
+  "K2A": [
+   "Conversion"
+  ],
+  "KeyState": [
+   "User interaction"
+  ],
+  "KeyTrack": [
+   "Analysis>Pitch"
+  ],
+  "Klang": [
+   "Generators>Deterministic"
+  ],
+  "Klank": [
+   "Generators>Deterministic",
+   "Filters>Linear"
+  ],
+  "LFClipNoise": [
+   "Generators>Stochastic"
+  ],
+  "LFCub": [
+   "Generators>Deterministic"
+  ],
+  "LFDClipNoise": [
+   "Generators>Stochastic"
+  ],
+  "LFDNoise0": [
+   "Generators>Stochastic"
+  ],
+  "LFDNoise1": [
+   "Generators>Stochastic"
+  ],
+  "LFDNoise3": [
+   "Generators>Stochastic"
+  ],
+  "LFGauss": [
+   "Generators>Deterministic"
+  ],
+  "LFNoise0": [
+   "Generators>Stochastic"
+  ],
+  "LFNoise1": [
+   "Generators>Stochastic"
+  ],
+  "LFNoise2": [
+   "Generators>Stochastic"
+  ],
+  "LFPar": [
+   "Generators>Deterministic"
+  ],
+  "LFPulse": [
+   "Generators>Deterministic"
+  ],
+  "LFSaw": [
+   "Generators>Deterministic"
+  ],
+  "LFTri": [
+   "Generators>Deterministic"
+  ],
+  "LPF": [
+   "Filters>Linear"
+  ],
+  "LPZ1": [
+   "Filters>Linear"
+  ],
+  "LPZ2": [
+   "Filters>Linear"
+  ],
+  "Lag": [
+   "Filters>Linear"
+  ],
+  "Lag2": [
+   "Filters>Linear"
+  ],
+  "Lag2UD": [
+   "Filters"
+  ],
+  "Lag3": [
+   "Filters>Linear"
+  ],
+  "Lag3UD": [
+   "Filters"
+  ],
+  "LagControl": [
+   "Synth control"
+  ],
+  "LagIn": [
+   "InOut"
+  ],
+  "LagUD": [
+   "Filters"
+  ],
+  "LastValue": [
+   "Triggers"
+  ],
+  "Latch": [
+   "Triggers"
+  ],
+  "LatoocarfianC": [
+   "Generators>Chaotic"
+  ],
+  "LatoocarfianL": [
+   "Generators>Chaotic"
+  ],
+  "LatoocarfianN": [
+   "Generators>Chaotic"
+  ],
+  "LeakDC": [
+   "Filters>Linear"
+  ],
+  "LeastChange": [
+   "Maths"
+  ],
+  "Limiter": [
+   "Dynamics"
+  ],
+  "LinCongC": [
+   "Generators>Chaotic"
+  ],
+  "LinCongL": [
+   "Generators>Chaotic"
+  ],
+  "LinCongN": [
+   "Generators>Chaotic"
+  ],
+  "LinExp": [
+   "Maths"
+  ],
+  "LinPan2": [
+   "Multichannel>Panners"
+  ],
+  "LinRand": [
+   "Random"
+  ],
+  "LinXFade2": [
+   "Multichannel>Select"
+  ],
+  "Line": [
+   "Envelopes"
+  ],
+  "Linen": [
+   "Envelopes"
+  ],
+  "LocalBuf": [
+   "Buffer"
+  ],
+  "LocalIn": [
+   "InOut"
+  ],
+  "LocalOut": [
+   "InOut"
+  ],
+  "Logistic": [
+   "Generators>Chaotic"
+  ],
+  "LorenzL": [
+   "Generators>Chaotic"
+  ],
+  "Loudness": [
+   "Analysis>Amplitude"
+  ],
+  "MFCC": [
+   "Analysis"
+  ],
+  "MantissaMask": [
+   "Filters>Nonlinear"
+  ],
+  "MaxLocalBufs": [
+   "InOut"
+  ],
+  "Median": [
+   "Filters>Nonlinear"
+  ],
+  "MidEQ": [
+   "Filters>Linear"
+  ],
+  "ModDif": [
+   "Maths"
+  ],
+  "MoogFF": [
+   "Filters"
+  ],
+  "MostChange": [
+   "Maths"
+  ],
+  "MouseButton": [
+   "User interaction"
+  ],
+  "MouseX": [
+   "User interaction"
+  ],
+  "MouseY": [
+   "User interaction"
+  ],
+  "MulAdd": [
+   "Maths"
+  ],
+  "MultiplexAnalogIn": [
+   "Bela"
+  ],
+  "NRand": [
+   "Random"
+  ],
+  "Normalizer": [
+   "Dynamics"
+  ],
+  "NumAudioBuses": [
+   "Info"
+  ],
+  "NumBuffers": [
+   "Info"
+  ],
+  "NumControlBuses": [
+   "Info"
+  ],
+  "NumInputBuses": [
+   "Info"
+  ],
+  "NumOutputBuses": [
+   "Info"
+  ],
+  "NumRunningSynths": [
+   "Info"
+  ],
+  "OffsetOut": [
+   "InOut"
+  ],
+  "OnePole": [
+   "Filters>Linear"
+  ],
+  "OneZero": [
+   "Filters>Linear"
+  ],
+  "Onsets": [
+   "Analysis"
+  ],
+  "Osc": [
+   "Generators>Deterministic"
+  ],
+  "OscN": [
+   "Generators>Deterministic"
+  ],
+  "Out": [
+   "InOut"
+  ],
+  "OutputProxy": [
+   "Base"
+  ],
+  "PSinGrain": [
+   "Generators>Deterministic"
+  ],
+  "PV_Add": [
+   "FFT"
+  ],
+  "PV_BinScramble": [
+   "FFT"
+  ],
+  "PV_BinShift": [
+   "FFT"
+  ],
+  "PV_BinWipe": [
+   "FFT"
+  ],
+  "PV_BrickWall": [
+   "FFT"
+  ],
+  "PV_ConformalMap": [
+   "FFT"
+  ],
+  "PV_Conj": [
+   "FFT"
+  ],
+  "PV_Copy": [
+   "FFT"
+  ],
+  "PV_CopyPhase": [
+   "FFT"
+  ],
+  "PV_Diffuser": [
+   "FFT"
+  ],
+  "PV_Div": [
+   "FFT"
+  ],
+  "PV_HainsworthFoote": [
+   "FFT"
+  ],
+  "PV_JensenAndersen": [
+   "FFT"
+  ],
+  "PV_LocalMax": [
+   "FFT"
+  ],
+  "PV_MagAbove": [
+   "FFT"
+  ],
+  "PV_MagBelow": [
+   "FFT"
+  ],
+  "PV_MagClip": [
+   "FFT"
+  ],
+  "PV_MagDiv": [
+   "FFT"
+  ],
+  "PV_MagFreeze": [
+   "FFT"
+  ],
+  "PV_MagMul": [
+   "FFT"
+  ],
+  "PV_MagNoise": [
+   "FFT"
+  ],
+  "PV_MagShift": [
+   "FFT"
+  ],
+  "PV_MagSmear": [
+   "FFT"
+  ],
+  "PV_MagSquared": [
+   "FFT"
+  ],
+  "PV_Max": [
+   "FFT"
+  ],
+  "PV_Min": [
+   "FFT"
+  ],
+  "PV_Mul": [
+   "FFT"
+  ],
+  "PV_PhaseShift": [
+   "FFT"
+  ],
+  "PV_PhaseShift270": [
+   "FFT"
+  ],
+  "PV_PhaseShift90": [
+   "FFT"
+  ],
+  "PV_RandComb": [
+   "FFT"
+  ],
+  "PV_RandWipe": [
+   "FFT"
+  ],
+  "PV_RectComb": [
+   "FFT"
+  ],
+  "PV_RectComb2": [
+   "FFT"
+  ],
+  "PackFFT": [
+   "FFT"
+  ],
+  "Pan2": [
+   "Multichannel>Panners"
+  ],
+  "Pan4": [
+   "Multichannel>Panners"
+  ],
+  "PanAz": [
+   "Multichannel>Panners"
+  ],
+  "PanB": [
+   "Multichannel>Ambisonics"
+  ],
+  "PanB2": [
+   "Multichannel>Ambisonics"
+  ],
+  "PartConv": [
+   "FFT",
+   "Convolution"
+  ],
+  "Pause": [
+   "Synth control"
+  ],
+  "PauseSelf": [
+   "Synth control"
+  ],
+  "PauseSelfWhenDone": [
+   "Synth control",
+   "Undocumented"
+  ],
+  "Peak": [
+   "Analysis>Amplitude"
+  ],
+  "PeakFollower": [
+   "Analysis>Amplitude"
+  ],
+  "Phasor": [
+   "Triggers",
+   "Buffer"
+  ],
+  "PinkNoise": [
+   "Generators>Stochastic"
+  ],
+  "Pitch": [
+   "Analysis>Pitch"
+  ],
+  "PitchShift": [
+   "Filters>Pitch"
+  ],
+  "PlayBuf": [
+   "Buffer"
+  ],
+  "Pluck": [
+   "Delays"
+  ],
+  "Poll": [
+   "Info"
+  ],
+  "Pulse": [
+   "Generators>Deterministic"
+  ],
+  "PulseCount": [
+   "Triggers"
+  ],
+  "PulseDivider": [
+   "Triggers"
+  ],
+  "QuadC": [
+   "Generators>Chaotic"
+  ],
+  "QuadL": [
+   "Generators>Chaotic"
+  ],
+  "QuadN": [
+   "Generators>Chaotic"
+  ],
+  "RHPF": [
+   "Filters>Linear"
+  ],
+  "RLPF": [
+   "Filters>Linear"
+  ],
+  "RadiansPerSample": [
+   "Info"
+  ],
+  "Ramp": [
+   "Filters>Linear"
+  ],
+  "Rand": [
+   "Random"
+  ],
+  "RandID": [
+   "Generators>Stochastic",
+   "Random"
+  ],
+  "RandSeed": [
+   "Generators>Stochastic",
+   "Random"
+  ],
+  "RecordBuf": [
+   "Buffer"
+  ],
+  "ReplaceOut": [
+   "InOut"
+  ],
+  "Resonz": [
+   "Filters>Linear"
+  ],
+  "Ringz": [
+   "Filters>Linear"
+  ],
+  "Rotate2": [
+   "Multichannel>Ambisonics",
+   "Multichannel>Panners"
+  ],
+  "RunningMax": [
+   "Maths"
+  ],
+  "RunningMin": [
+   "Maths"
+  ],
+  "RunningSum": [
+   "Analysis",
+   "Maths"
+  ],
+  "SOS": [
+   "Filters>Linear"
+  ],
+  "SampleDur": [
+   "Info"
+  ],
+  "SampleRate": [
+   "Info"
+  ],
+  "Sanitize": [
+   "Info"
+  ],
+  "Saw": [
+   "Generators>Deterministic"
+  ],
+  "Schmidt": [
+   "Maths"
+  ],
+  "ScopeOut": [
+   "Buffer",
+   "Undocumented"
+  ],
+  "Select": [
+   "Multichannel>Select"
+  ],
+  "SendPeakRMS": [
+   "Analysis>Amplitude"
+  ],
+  "SendReply": [
+   "Triggers"
+  ],
+  "SendTrig": [
+   "Triggers"
+  ],
+  "SetResetFF": [
+   "Triggers"
+  ],
+  "Shaper": [
+   "Buffer"
+  ],
+  "SharedIn": [
+   "InOut"
+  ],
+  "SharedOut": [
+   "InOut"
+  ],
+  "SinOsc": [
+   "Generators>Deterministic"
+  ],
+  "SinOscFB": [
+   "Generators>Deterministic",
+   "Generators>Chaotic"
+  ],
+  "Slew": [
+   "Filters>Nonlinear"
+  ],
+  "Slope": [
+   "Analysis",
+   "Filters>Linear",
+   "Maths"
+  ],
+  "SpecCentroid": [
+   "FFT"
+  ],
+  "SpecFlatness": [
+   "FFT"
+  ],
+  "SpecPcile": [
+   "FFT"
+  ],
+  "Splay": [
+   "Multichannel>Panners"
+  ],
+  "SplayAz": [
+   "Multichannel>Panners"
+  ],
+  "Spring": [
+   "Filters>Nonlinear",
+   "Generators>PhysicalModels"
+  ],
+  "StandardL": [
+   "Generators>Chaotic"
+  ],
+  "StandardN": [
+   "Generators>Chaotic"
+  ],
+  "Stepper": [
+   "Triggers"
+  ],
+  "StereoConvolution2L": [
+   "FFT",
+   "Convolution"
+  ],
+  "SubsampleOffset": [
+   "Info"
+  ],
+  "Sum3": [
+   "Algebraic"
+  ],
+  "Sum4": [
+   "Algebraic"
+  ],
+  "Sweep": [
+   "Triggers"
+  ],
+  "SyncSaw": [
+   "Generators>Deterministic"
+  ],
+  "T2A": [
+   "Conversion",
+   "Triggers"
+  ],
+  "T2K": [
+   "Conversion",
+   "Triggers"
+  ],
+  "TBall": [
+   "Filters>Nonlinear",
+   "Generators>PhysicalModels"
+  ],
+  "TDelay": [
+   "Triggers",
+   "Delays"
+  ],
+  "TDuty": [
+   "Demand"
+  ],
+  "TExpRand": [
+   "Random",
+   "Triggers"
+  ],
+  "TGrains": [
+   "Buffer",
+   "Generators>Granular"
+  ],
+  "TIRand": [
+   "Random",
+   "Triggers"
+  ],
+  "TRand": [
+   "Random",
+   "Triggers"
+  ],
+  "TWindex": [
+   "Random",
+   "Triggers"
+  ],
+  "Tap": [
+   "Buffer",
+   "Delays>Buffer"
+  ],
+  "Timer": [
+   "Triggers"
+  ],
+  "ToggleFF": [
+   "Triggers"
+  ],
+  "Trig": [
+   "Triggers"
+  ],
+  "Trig1": [
+   "Triggers"
+  ],
+  "TrigControl": [
+   "Synth control",
+   "Undocumented"
+  ],
+  "TwoPole": [
+   "Filters>Linear"
+  ],
+  "TwoZero": [
+   "Filters>Linear"
+  ],
+  "UnaryOpUGen": [
+   "Algebraic"
+  ],
+  "Unpack1FFT": [
+   "FFT",
+   "Demand"
+  ],
+  "UnpackFFT": [
+   "FFT",
+   "Demand"
+  ],
+  "VDiskIn": [
+   "InOut",
+   "Buffer"
+  ],
+  "VOsc": [
+   "Generators>Deterministic"
+  ],
+  "VOsc3": [
+   "Generators>Deterministic"
+  ],
+  "VarLag": [
+   "Filters>Linear"
+  ],
+  "VarSaw": [
+   "Generators>Deterministic"
+  ],
+  "Vibrato": [
+   "Generators>Deterministic",
+   "Generators>Stochastic",
+   "Filters>Pitch"
+  ],
+  "Warp1": [
+   "Buffer",
+   "Generators>Granular"
+  ],
+  "WhiteNoise": [
+   "Generators>Stochastic"
+  ],
+  "Wrap": [
+   "Maths"
+  ],
+  "WrapIndex": [
+   "Buffer"
+  ],
+  "XFade2": [
+   "Multichannel>Select"
+  ],
+  "XLine": [
+   "Envelopes"
+  ],
+  "XOut": [
+   "InOut"
+  ],
+  "ZeroCrossing": [
+   "Analysis>Pitch"
+  ]
+ },
+ "sclang_version": "3.14.1",
+ "ugens": {
+  "A2K": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "APF": {
+   "ar": {
+    "from": "TwoPole",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "radius"
+    ]
+   },
+   "kr": {
+    "from": "TwoPole",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "radius"
+    ]
+   }
+  },
+  "AllpassC": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   },
+   "kr": {
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "AllpassL": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   },
+   "kr": {
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "AllpassN": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   },
+   "kr": {
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "AmpComp": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "root",
+     "exp"
+    ]
+   },
+   "ir": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "root",
+     "exp"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "root",
+     "exp"
+    ]
+   }
+  },
+  "AmpCompA": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "root",
+     "minAmp",
+     "rootAmp"
+    ]
+   },
+   "ir": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "root",
+     "minAmp",
+     "rootAmp"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "root",
+     "minAmp",
+     "rootAmp"
+    ]
+   }
+  },
+  "Amplitude": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "attackTime",
+     "releaseTime"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "attackTime",
+     "releaseTime"
+    ]
+   }
+  },
+  "AnalogIn": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "analogPin"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "analogPin"
+    ]
+   }
+  },
+  "AnalogOut": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "analogPin",
+     "output"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "analogPin",
+     "output"
+    ]
+   }
+  },
+  "AudioControl": {
+   "ar": {
+    "status": "mismatch",
+    "wire": [
+     "*values"
+    ]
+   }
+  },
+  "BAllPass": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   }
+  },
+  "BBandPass": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "bw"
+    ]
+   }
+  },
+  "BBandStop": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "bw"
+    ]
+   }
+  },
+  "BHiPass": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   }
+  },
+  "BHiShelf": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rs",
+     "db"
+    ]
+   }
+  },
+  "BLowPass": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   }
+  },
+  "BLowShelf": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rs",
+     "db"
+    ]
+   }
+  },
+  "BPF": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   }
+  },
+  "BPZ2": {
+   "ar": {
+    "from": "LPZ2",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "LPZ2",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "BPeakEQ": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq",
+     "db"
+    ]
+   }
+  },
+  "BRF": {
+   "ar": {
+    "from": "BPF",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   },
+   "kr": {
+    "from": "BPF",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   }
+  },
+  "BRZ2": {
+   "ar": {
+    "from": "LPZ2",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "LPZ2",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "Balance2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "left",
+     "right",
+     "pos",
+     "level"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "left",
+     "right",
+     "pos",
+     "level"
+    ]
+   }
+  },
+  "Ball": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "g",
+     "damp",
+     "friction"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "g",
+     "damp",
+     "friction"
+    ]
+   }
+  },
+  "BeatTrack": {
+   "kr": {
+    "reassigns": [
+     "chain"
+    ],
+    "status": "verified",
+    "wire": [
+     "chain",
+     "lock"
+    ]
+   }
+  },
+  "BeatTrack2": {
+   "kr": {
+    "fallback": {
+     "weightingscheme": "-2.1"
+    },
+    "status": "verified",
+    "wire": [
+     "busindex",
+     "numfeatures",
+     "windowsize",
+     "phaseaccuracy",
+     "lock",
+     "weightingscheme"
+    ]
+   }
+  },
+  "BelaScopeOut": {
+   "ar": {
+    "reassigns": [
+     "channelsArray"
+    ],
+    "status": "verified",
+    "wire": [
+     "offset",
+     "*channelsArray"
+    ]
+   }
+  },
+  "BiPanB2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "inA",
+     "inB",
+     "azimuth",
+     "gain"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "inA",
+     "inB",
+     "azimuth",
+     "gain"
+    ]
+   }
+  },
+  "BinaryOpUGen": {
+   "new": {
+    "status": "mismatch",
+    "wire": [
+     "selector",
+     "a",
+     "b"
+    ]
+   }
+  },
+  "Blip": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "numharm"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "numharm"
+    ]
+   }
+  },
+  "BlockSize": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "BrownNoise": {
+   "ar": {
+    "from": "WhiteNoise",
+    "status": "verified",
+    "wire": []
+   },
+   "kr": {
+    "from": "WhiteNoise",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "BufAllpassC": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "BufCombN",
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "BufAllpassL": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "BufCombN",
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "BufAllpassN": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "BufCombN",
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "BufChannels": {
+   "ir": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   },
+   "kr": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   }
+  },
+  "BufCombC": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "BufCombN",
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "BufCombL": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "BufCombN",
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "BufCombN": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "BufDelayC": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "BufDelayN",
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime"
+    ]
+   },
+   "kr": {
+    "from": "BufDelayN",
+    "status": "consistent",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime"
+    ]
+   }
+  },
+  "BufDelayL": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "BufDelayN",
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime"
+    ]
+   },
+   "kr": {
+    "from": "BufDelayN",
+    "status": "consistent",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime"
+    ]
+   }
+  },
+  "BufDelayN": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "status": "verified",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "buf",
+     "in",
+     "delaytime"
+    ]
+   }
+  },
+  "BufDur": {
+   "ir": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   },
+   "kr": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   }
+  },
+  "BufFrames": {
+   "ir": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   },
+   "kr": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   }
+  },
+  "BufInfoUGenBase": {
+   "ir": {
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   }
+  },
+  "BufRateScale": {
+   "ir": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   },
+   "kr": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   }
+  },
+  "BufRd": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "phase",
+     "loop",
+     "interpolation"
+    ]
+   },
+   "kr": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "phase",
+     "loop",
+     "interpolation"
+    ]
+   }
+  },
+  "BufSampleRate": {
+   "ir": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   },
+   "kr": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   }
+  },
+  "BufSamples": {
+   "ir": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   },
+   "kr": {
+    "from": "BufInfoUGenBase",
+    "status": "verified",
+    "wire": [
+     "bufnum"
+    ]
+   }
+  },
+  "BufWr": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "phase",
+     "loop",
+     "*inputArray"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "phase",
+     "loop",
+     "*inputArray"
+    ]
+   }
+  },
+  "COsc": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "freq",
+     "beats"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "freq",
+     "beats"
+    ]
+   }
+  },
+  "Changed": {
+   "ar": {
+    "status": "unparsed"
+   },
+   "kr": {
+    "status": "unparsed"
+   }
+  },
+  "CheckBadValues": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "id",
+     "post"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "id",
+     "post"
+    ]
+   }
+  },
+  "ClearBuf": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "buf"
+    ]
+   }
+  },
+  "Clip": {
+   "ar": {
+    "from": "InRange",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "ir": {
+    "from": "InRange",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "kr": {
+    "from": "InRange",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "ClipNoise": {
+   "ar": {
+    "from": "WhiteNoise",
+    "status": "verified",
+    "wire": []
+   },
+   "kr": {
+    "from": "WhiteNoise",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "CoinGate": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "prob",
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "prob",
+     "in"
+    ]
+   }
+  },
+  "CombC": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   },
+   "kr": {
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "CombL": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   },
+   "kr": {
+    "from": "CombN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "CombN": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime"
+    ]
+   }
+  },
+  "Compander": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "control",
+     "thresh",
+     "slopeBelow",
+     "slopeAbove",
+     "clampTime",
+     "relaxTime"
+    ]
+   }
+  },
+  "CompanderD": {
+   "ar": {
+    "status": "unparsed"
+   }
+  },
+  "Control": {
+   "ir": {
+    "status": "mismatch",
+    "wire": [
+     "*values"
+    ]
+   },
+   "kr": {
+    "status": "mismatch",
+    "wire": [
+     "*values"
+    ]
+   }
+  },
+  "ControlDur": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "ControlRate": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "Convolution": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "kernel",
+     "framesize"
+    ]
+   }
+  },
+  "Convolution2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "kernel",
+     "trigger",
+     "framesize"
+    ]
+   }
+  },
+  "Convolution2L": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "kernel",
+     "trigger",
+     "framesize",
+     "crossfade"
+    ]
+   }
+  },
+  "Convolution3": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "kernel",
+     "trigger",
+     "framesize"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "kernel",
+     "trigger",
+     "framesize"
+    ]
+   }
+  },
+  "Crackle": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "chaosParam"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "chaosParam"
+    ]
+   }
+  },
+  "CuspL": {
+   "ar": {
+    "from": "CuspN",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "xi"
+    ]
+   }
+  },
+  "CuspN": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "xi"
+    ]
+   }
+  },
+  "DC": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "Dbrown": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "length",
+     "lo",
+     "hi",
+     "step"
+    ]
+   }
+  },
+  "Dbufrd": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "phase",
+     "loop"
+    ]
+   }
+  },
+  "Dbufwr": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "phase",
+     "input",
+     "loop"
+    ]
+   }
+  },
+  "Dconst": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "sum",
+     "in",
+     "tolerance"
+    ]
+   }
+  },
+  "Ddup": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "n",
+     "in"
+    ]
+   }
+  },
+  "Decay": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "decayTime"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "decayTime"
+    ]
+   }
+  },
+  "Decay2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "attackTime",
+     "decayTime"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "attackTime",
+     "decayTime"
+    ]
+   }
+  },
+  "DecodeB2": {
+   "ar": {
+    "status": "unverified",
+    "wire": [
+     "numChans",
+     "w",
+     "x",
+     "y",
+     "?orientation = 0.5"
+    ]
+   },
+   "kr": {
+    "status": "unverified",
+    "wire": [
+     "numChans",
+     "w",
+     "x",
+     "y",
+     "?orientation = 0.5"
+    ]
+   }
+  },
+  "DegreeToKey": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in",
+     "octave"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in",
+     "octave"
+    ]
+   }
+  },
+  "DelTapRd": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "phase",
+     "delTime",
+     "interp"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "phase",
+     "delTime",
+     "interp"
+    ]
+   }
+  },
+  "DelTapWr": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "in"
+    ]
+   }
+  },
+  "Delay1": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "x1"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "x1"
+    ]
+   }
+  },
+  "Delay2": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "x1",
+     "x2"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "x1",
+     "x2"
+    ]
+   }
+  },
+  "DelayC": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "DelayN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime"
+    ]
+   },
+   "kr": {
+    "from": "DelayN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime"
+    ]
+   }
+  },
+  "DelayL": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "from": "DelayN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime"
+    ]
+   },
+   "kr": {
+    "from": "DelayN",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime"
+    ]
+   }
+  },
+  "DelayN": {
+   "ar": {
+    "audio": [
+     "in"
+    ],
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "maxdelaytime",
+     "delaytime"
+    ]
+   }
+  },
+  "Demand": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "trig",
+     "reset",
+     "*demandUGens"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "trig",
+     "reset",
+     "*demandUGens"
+    ]
+   }
+  },
+  "DemandEnvGen": {
+   "ar": {
+    "reassigns": [
+     "gate",
+     "reset"
+    ],
+    "status": "consistent",
+    "wire": [
+     "level",
+     "dur",
+     "shape",
+     "curve",
+     "gate",
+     "reset",
+     "levelScale",
+     "levelBias",
+     "timeScale",
+     "doneAction"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "level",
+     "dur",
+     "shape",
+     "curve",
+     "gate",
+     "reset",
+     "levelScale",
+     "levelBias",
+     "timeScale",
+     "doneAction"
+    ]
+   }
+  },
+  "DetectIndex": {
+   "ar": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   }
+  },
+  "DetectSilence": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "amp",
+     "time",
+     "doneAction"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "amp",
+     "time",
+     "doneAction"
+    ]
+   }
+  },
+  "Dgeom": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "length",
+     "start",
+     "grow"
+    ]
+   }
+  },
+  "Dibrown": {
+   "new": {
+    "from": "Dbrown",
+    "status": "verified",
+    "wire": [
+     "length",
+     "lo",
+     "hi",
+     "step"
+    ]
+   }
+  },
+  "DigitalIO": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "digitalPin",
+     "output",
+     "pinMode"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "digitalPin",
+     "output",
+     "pinMode"
+    ]
+   }
+  },
+  "DigitalIn": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "digitalPin"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "digitalPin"
+    ]
+   }
+  },
+  "DigitalOut": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "digitalPin",
+     "output"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "digitalPin",
+     "output"
+    ]
+   }
+  },
+  "DiskIn": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "loop"
+    ]
+   }
+  },
+  "DiskOut": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "*channelsArray"
+    ]
+   }
+  },
+  "Diwhite": {
+   "new": {
+    "from": "Dwhite",
+    "status": "verified",
+    "wire": [
+     "length",
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "Done": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "src"
+    ]
+   }
+  },
+  "Dpoll": {
+   "new": {
+    "status": "mismatch",
+    "wire": [
+     "in",
+     "label",
+     "run",
+     "trigid"
+    ]
+   }
+  },
+  "Drand": {
+   "new": {
+    "from": "ListDUGen",
+    "status": "verified",
+    "wire": [
+     "repeats",
+     "*list"
+    ]
+   }
+  },
+  "Dreset": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "reset"
+    ]
+   }
+  },
+  "Dseq": {
+   "new": {
+    "from": "ListDUGen",
+    "status": "verified",
+    "wire": [
+     "repeats",
+     "*list"
+    ]
+   }
+  },
+  "Dser": {
+   "new": {
+    "from": "ListDUGen",
+    "status": "verified",
+    "wire": [
+     "repeats",
+     "*list"
+    ]
+   }
+  },
+  "Dseries": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "length",
+     "start",
+     "step"
+    ]
+   }
+  },
+  "Dshuf": {
+   "new": {
+    "from": "ListDUGen",
+    "status": "verified",
+    "wire": [
+     "repeats",
+     "*list"
+    ]
+   }
+  },
+  "Dstutter": {
+   "new": {
+    "status": "unparsed"
+   }
+  },
+  "Dswitch": {
+   "new": {
+    "from": "Dswitch1",
+    "status": "consistent",
+    "wire": [
+     "index",
+     "*list"
+    ]
+   }
+  },
+  "Dswitch1": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "index",
+     "*list"
+    ]
+   }
+  },
+  "Dunique": {
+   "new": {
+    "status": "unparsed"
+   }
+  },
+  "Dust": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "density"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "density"
+    ]
+   }
+  },
+  "Dust2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "density"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "density"
+    ]
+   }
+  },
+  "Duty": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "dur",
+     "reset",
+     "doneAction",
+     "level"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "dur",
+     "reset",
+     "doneAction",
+     "level"
+    ]
+   }
+  },
+  "Dwhite": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "length",
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "Dwrand": {
+   "new": {
+    "reassigns": [
+     "weights"
+    ],
+    "status": "unverified",
+    "wire": [
+     "repeats",
+     "?size",
+     "*weights",
+     "*list"
+    ]
+   }
+  },
+  "Dxrand": {
+   "new": {
+    "from": "ListDUGen",
+    "status": "verified",
+    "wire": [
+     "repeats",
+     "*list"
+    ]
+   }
+  },
+  "DynKlang": {
+   "ar": {
+    "status": "unverified",
+    "wire": [
+     "specificationsArrayRef",
+     "freqscale",
+     "freqoffset"
+    ]
+   },
+   "kr": {
+    "status": "unverified",
+    "wire": [
+     "specificationsArrayRef",
+     "freqscale",
+     "freqoffset"
+    ]
+   }
+  },
+  "DynKlank": {
+   "ar": {
+    "status": "unverified",
+    "wire": [
+     "specificationsArrayRef",
+     "input",
+     "freqscale",
+     "freqoffset",
+     "decayscale"
+    ]
+   },
+   "kr": {
+    "status": "unverified",
+    "wire": [
+     "specificationsArrayRef",
+     "input",
+     "freqscale",
+     "freqoffset",
+     "decayscale"
+    ]
+   }
+  },
+  "EnvGen": {
+   "ar": {
+    "reassigns": [
+     "envelope"
+    ],
+    "status": "mismatch",
+    "wire": [
+     "gate",
+     "levelScale",
+     "levelBias",
+     "timeScale",
+     "doneAction",
+     "envelope"
+    ]
+   },
+   "kr": {
+    "reassigns": [
+     "envelope"
+    ],
+    "status": "mismatch",
+    "wire": [
+     "gate",
+     "levelScale",
+     "levelBias",
+     "timeScale",
+     "doneAction",
+     "envelope"
+    ]
+   }
+  },
+  "ExpRand": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "FBSineC": {
+   "ar": {
+    "from": "FBSineN",
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "im",
+     "fb",
+     "a",
+     "c",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "FBSineL": {
+   "ar": {
+    "from": "FBSineN",
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "im",
+     "fb",
+     "a",
+     "c",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "FBSineN": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "im",
+     "fb",
+     "a",
+     "c",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "FFT": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "in",
+     "hop",
+     "wintype",
+     "active",
+     "winsize"
+    ]
+   }
+  },
+  "FFTTrigger": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "hop",
+     "polar"
+    ]
+   }
+  },
+  "FOS": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "a0",
+     "a1",
+     "b1"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "a0",
+     "a1",
+     "b1"
+    ]
+   }
+  },
+  "FSinOsc": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   }
+  },
+  "Fold": {
+   "ar": {
+    "from": "InRange",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "ir": {
+    "from": "InRange",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "kr": {
+    "from": "InRange",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "FoldIndex": {
+   "ar": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   }
+  },
+  "Formant": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "fundfreq",
+     "formfreq",
+     "bwfreq"
+    ]
+   }
+  },
+  "Formlet": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "freq",
+     "attacktime",
+     "decaytime"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "freq",
+     "attacktime",
+     "decaytime"
+    ]
+   }
+  },
+  "Free": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "trig",
+     "id"
+    ]
+   }
+  },
+  "FreeSelf": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "FreeSelfWhenDone": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "src"
+    ]
+   }
+  },
+  "FreeVerb": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "mix",
+     "room",
+     "damp"
+    ]
+   }
+  },
+  "FreeVerb2": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "in2",
+     "mix",
+     "room",
+     "damp"
+    ]
+   }
+  },
+  "FreqShift": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "freq",
+     "phase"
+    ]
+   }
+  },
+  "GVerb": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "roomsize",
+     "revtime",
+     "damping",
+     "inputbw",
+     "spread",
+     "drylevel",
+     "earlyreflevel",
+     "taillevel",
+     "maxroomsize"
+    ]
+   }
+  },
+  "Gate": {
+   "ar": {
+    "from": "Latch",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   },
+   "kr": {
+    "from": "Latch",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   }
+  },
+  "GbmanL": {
+   "ar": {
+    "from": "GbmanN",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "GbmanN": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "Gendy1": {
+   "ar": {
+    "fallback": {
+     "knum": "initCPs"
+    },
+    "status": "consistent",
+    "wire": [
+     "ampdist",
+     "durdist",
+     "adparam",
+     "ddparam",
+     "minfreq",
+     "maxfreq",
+     "ampscale",
+     "durscale",
+     "initCPs",
+     "knum"
+    ]
+   },
+   "kr": {
+    "fallback": {
+     "knum": "initCPs"
+    },
+    "status": "consistent",
+    "wire": [
+     "ampdist",
+     "durdist",
+     "adparam",
+     "ddparam",
+     "minfreq",
+     "maxfreq",
+     "ampscale",
+     "durscale",
+     "initCPs",
+     "knum"
+    ]
+   }
+  },
+  "Gendy2": {
+   "ar": {
+    "fallback": {
+     "knum": "initCPs"
+    },
+    "status": "consistent",
+    "wire": [
+     "ampdist",
+     "durdist",
+     "adparam",
+     "ddparam",
+     "minfreq",
+     "maxfreq",
+     "ampscale",
+     "durscale",
+     "initCPs",
+     "knum",
+     "a",
+     "c"
+    ]
+   },
+   "kr": {
+    "fallback": {
+     "knum": "initCPs"
+    },
+    "status": "consistent",
+    "wire": [
+     "ampdist",
+     "durdist",
+     "adparam",
+     "ddparam",
+     "minfreq",
+     "maxfreq",
+     "ampscale",
+     "durscale",
+     "initCPs",
+     "knum",
+     "a",
+     "c"
+    ]
+   }
+  },
+  "Gendy3": {
+   "ar": {
+    "fallback": {
+     "knum": "initCPs"
+    },
+    "status": "consistent",
+    "wire": [
+     "ampdist",
+     "durdist",
+     "adparam",
+     "ddparam",
+     "freq",
+     "ampscale",
+     "durscale",
+     "initCPs",
+     "knum"
+    ]
+   },
+   "kr": {
+    "fallback": {
+     "knum": "initCPs"
+    },
+    "status": "consistent",
+    "wire": [
+     "ampdist",
+     "durdist",
+     "adparam",
+     "ddparam",
+     "freq",
+     "ampscale",
+     "durscale",
+     "initCPs",
+     "knum"
+    ]
+   }
+  },
+  "GrainBuf": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "trigger",
+     "dur",
+     "sndbuf",
+     "rate",
+     "pos",
+     "interp",
+     "pan",
+     "envbufnum",
+     "maxGrains"
+    ]
+   }
+  },
+  "GrainFM": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "trigger",
+     "dur",
+     "carfreq",
+     "modfreq",
+     "index",
+     "pan",
+     "envbufnum",
+     "maxGrains"
+    ]
+   }
+  },
+  "GrainIn": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "trigger",
+     "dur",
+     "in",
+     "pan",
+     "envbufnum",
+     "maxGrains"
+    ]
+   }
+  },
+  "GrainSin": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "trigger",
+     "dur",
+     "freq",
+     "pan",
+     "envbufnum",
+     "maxGrains"
+    ]
+   }
+  },
+  "GrayNoise": {
+   "ar": {
+    "from": "WhiteNoise",
+    "status": "verified",
+    "wire": []
+   },
+   "kr": {
+    "from": "WhiteNoise",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "HPF": {
+   "ar": {
+    "from": "LPF",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq"
+    ]
+   },
+   "kr": {
+    "from": "LPF",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq"
+    ]
+   }
+  },
+  "HPZ1": {
+   "ar": {
+    "from": "LPZ1",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "LPZ1",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "HPZ2": {
+   "ar": {
+    "from": "LPZ2",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "LPZ2",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "Hasher": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "HenonC": {
+   "ar": {
+    "from": "HenonN",
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "x0",
+     "x1"
+    ]
+   }
+  },
+  "HenonL": {
+   "ar": {
+    "from": "HenonN",
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "x0",
+     "x1"
+    ]
+   }
+  },
+  "HenonN": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "x0",
+     "x1"
+    ]
+   }
+  },
+  "Hilbert": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "HilbertFIR": {
+   "ar": {
+    "status": "unparsed"
+   }
+  },
+  "IEnvGen": {
+   "ar": {
+    "reassigns": [
+     "envelope"
+    ],
+    "status": "mismatch",
+    "wire": [
+     "index",
+     "envelope"
+    ]
+   },
+   "kr": {
+    "reassigns": [
+     "envelope"
+    ],
+    "status": "mismatch",
+    "wire": [
+     "index",
+     "envelope"
+    ]
+   }
+  },
+  "IFFT": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "wintype",
+     "winsize"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "wintype",
+     "winsize"
+    ]
+   },
+   "new": {
+    "status": "unparsed"
+   }
+  },
+  "IRand": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "Impulse": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "phase"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "phase"
+    ]
+   }
+  },
+  "In": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "verified",
+    "wire": [
+     "bus"
+    ]
+   },
+   "kr": {
+    "outputs": "numChannels",
+    "status": "verified",
+    "wire": [
+     "bus"
+    ]
+   }
+  },
+  "InBus": {
+   "ar": {
+    "status": "unverified",
+    "wire": [
+     "?Ref(bus)",
+     "numChannels",
+     "offset",
+     "clip"
+    ]
+   },
+   "kr": {
+    "status": "unverified",
+    "wire": [
+     "?Ref(bus)",
+     "numChannels",
+     "offset",
+     "clip"
+    ]
+   }
+  },
+  "InFeedback": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "verified",
+    "wire": [
+     "bus"
+    ]
+   }
+  },
+  "InRange": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "ir": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "InRect": {
+   "ar": {
+    "status": "unverified",
+    "wire": [
+     "x",
+     "y",
+     "?rect.left",
+     "?rect.top",
+     "?rect.right",
+     "?rect.bottom"
+    ]
+   },
+   "kr": {
+    "status": "unverified",
+    "wire": [
+     "x",
+     "y",
+     "?rect.left",
+     "?rect.top",
+     "?rect.right",
+     "?rect.bottom"
+    ]
+   }
+  },
+  "InTrig": {
+   "kr": {
+    "outputs": "numChannels",
+    "status": "verified",
+    "wire": [
+     "bus"
+    ]
+   }
+  },
+  "Index": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   }
+  },
+  "IndexInBetween": {
+   "ar": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   }
+  },
+  "IndexL": {
+   "ar": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   }
+  },
+  "InfoUGenBase": {
+   "ir": {
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "Integrator": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "coef"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "coef"
+    ]
+   }
+  },
+  "K2A": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "KeyState": {
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "keycode",
+     "minval",
+     "maxval",
+     "lag"
+    ]
+   }
+  },
+  "KeyTrack": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "chain",
+     "keydecay",
+     "chromaleak"
+    ]
+   }
+  },
+  "Klang": {
+   "ar": {
+    "reassigns": [
+     "specificationsArrayRef"
+    ],
+    "status": "mismatch",
+    "wire": [
+     "freqscale",
+     "freqoffset",
+     "specificationsArrayRef"
+    ]
+   }
+  },
+  "Klank": {
+   "ar": {
+    "reassigns": [
+     "specificationsArrayRef"
+    ],
+    "status": "mismatch",
+    "wire": [
+     "input",
+     "freqscale",
+     "freqoffset",
+     "decayscale",
+     "specificationsArrayRef"
+    ]
+   }
+  },
+  "LFClipNoise": {
+   "ar": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "LFCub": {
+   "ar": {
+    "from": "LFSaw",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   },
+   "kr": {
+    "from": "LFSaw",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   }
+  },
+  "LFDClipNoise": {
+   "ar": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "LFDNoise0": {
+   "ar": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "LFDNoise1": {
+   "ar": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "LFDNoise3": {
+   "ar": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "LFGauss": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "duration",
+     "width",
+     "iphase",
+     "loop",
+     "doneAction"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "duration",
+     "width",
+     "iphase",
+     "loop",
+     "doneAction"
+    ]
+   }
+  },
+  "LFNoise0": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "LFNoise1": {
+   "ar": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "LFNoise2": {
+   "ar": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "from": "LFNoise0",
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "LFPar": {
+   "ar": {
+    "from": "LFSaw",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   },
+   "kr": {
+    "from": "LFSaw",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   }
+  },
+  "LFPulse": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase",
+     "width"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase",
+     "width"
+    ]
+   }
+  },
+  "LFSaw": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   }
+  },
+  "LFTri": {
+   "ar": {
+    "from": "LFSaw",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   },
+   "kr": {
+    "from": "LFSaw",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase"
+    ]
+   }
+  },
+  "LPF": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq"
+    ]
+   }
+  },
+  "LPZ1": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "LPZ2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "Lag": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "lagTime"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "lagTime"
+    ]
+   }
+  },
+  "Lag2": {
+   "ar": {
+    "from": "Lag",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lagTime"
+    ]
+   },
+   "kr": {
+    "from": "Lag",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lagTime"
+    ]
+   }
+  },
+  "Lag2UD": {
+   "ar": {
+    "from": "LagUD",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lagTimeU",
+     "lagTimeD"
+    ]
+   },
+   "kr": {
+    "from": "LagUD",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lagTimeU",
+     "lagTimeD"
+    ]
+   }
+  },
+  "Lag3": {
+   "ar": {
+    "from": "Lag",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lagTime"
+    ]
+   },
+   "kr": {
+    "from": "Lag",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lagTime"
+    ]
+   }
+  },
+  "Lag3UD": {
+   "ar": {
+    "from": "LagUD",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lagTimeU",
+     "lagTimeD"
+    ]
+   },
+   "kr": {
+    "from": "LagUD",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lagTimeU",
+     "lagTimeD"
+    ]
+   }
+  },
+  "LagControl": {
+   "ar": {
+    "status": "unparsed"
+   },
+   "ir": {
+    "status": "unparsed"
+   },
+   "kr": {
+    "reassigns": [
+     "values",
+     "lags"
+    ],
+    "status": "unverified",
+    "wire": [
+     "?values.at(i)",
+     "?lags.at(i)"
+    ]
+   }
+  },
+  "LagIn": {
+   "kr": {
+    "outputs": "numChannels",
+    "status": "verified",
+    "wire": [
+     "bus",
+     "lag"
+    ]
+   }
+  },
+  "LagUD": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lagTimeU",
+     "lagTimeD"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lagTimeU",
+     "lagTimeD"
+    ]
+   }
+  },
+  "LastValue": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "diff"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "diff"
+    ]
+   }
+  },
+  "Latch": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   }
+  },
+  "LatoocarfianC": {
+   "ar": {
+    "from": "LatoocarfianN",
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "c",
+     "d",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "LatoocarfianL": {
+   "ar": {
+    "from": "LatoocarfianN",
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "c",
+     "d",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "LatoocarfianN": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "c",
+     "d",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "LeakDC": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "coef"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "coef"
+    ]
+   }
+  },
+  "LeastChange": {
+   "ar": {
+    "from": "MostChange",
+    "status": "consistent",
+    "wire": [
+     "a",
+     "b"
+    ]
+   },
+   "kr": {
+    "from": "MostChange",
+    "status": "consistent",
+    "wire": [
+     "a",
+     "b"
+    ]
+   }
+  },
+  "Limiter": {
+   "ar": {
+    "from": "Normalizer",
+    "status": "verified",
+    "wire": [
+     "in",
+     "level",
+     "dur"
+    ]
+   }
+  },
+  "LinCongC": {
+   "ar": {
+    "from": "LinCongN",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "a",
+     "c",
+     "m",
+     "xi"
+    ]
+   }
+  },
+  "LinCongL": {
+   "ar": {
+    "from": "LinCongN",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "a",
+     "c",
+     "m",
+     "xi"
+    ]
+   }
+  },
+  "LinCongN": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "a",
+     "c",
+     "m",
+     "xi"
+    ]
+   }
+  },
+  "LinExp": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "srclo",
+     "srchi",
+     "dstlo",
+     "dsthi"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "srclo",
+     "srchi",
+     "dstlo",
+     "dsthi"
+    ]
+   }
+  },
+  "LinPan2": {
+   "ar": {
+    "from": "Pan2",
+    "status": "verified",
+    "wire": [
+     "in",
+     "pos",
+     "level"
+    ]
+   },
+   "kr": {
+    "from": "Pan2",
+    "status": "verified",
+    "wire": [
+     "in",
+     "pos",
+     "level"
+    ]
+   }
+  },
+  "LinRand": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "lo",
+     "hi",
+     "minmax"
+    ]
+   }
+  },
+  "LinXFade2": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "inA",
+     "inB",
+     "pan"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "inA",
+     "inB",
+     "pan"
+    ]
+   }
+  },
+  "Line": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "start",
+     "end",
+     "dur",
+     "doneAction"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "start",
+     "end",
+     "dur",
+     "doneAction"
+    ]
+   }
+  },
+  "Linen": {
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "gate",
+     "attackTime",
+     "susLevel",
+     "releaseTime",
+     "doneAction"
+    ]
+   }
+  },
+  "ListDUGen": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "repeats",
+     "*list"
+    ]
+   }
+  },
+  "LocalBuf": {
+   "new": {
+    "status": "mismatch",
+    "wire": [
+     "numChannels",
+     "numFrames"
+    ]
+   }
+  },
+  "LocalIn": {
+   "ar": {
+    "status": "unverified",
+    "wire": [
+     "numChannels",
+     "?*default"
+    ]
+   },
+   "kr": {
+    "status": "unverified",
+    "wire": [
+     "numChannels",
+     "?*default"
+    ]
+   }
+  },
+  "LocalOut": {
+   "ar": {
+    "reassigns": [
+     "channelsArray"
+    ],
+    "status": "verified",
+    "wire": [
+     "*channelsArray"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "*channelsArray"
+    ]
+   }
+  },
+  "Logistic": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "chaosParam",
+     "freq",
+     "init"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "chaosParam",
+     "freq",
+     "init"
+    ]
+   }
+  },
+  "LorenzL": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "s",
+     "r",
+     "b",
+     "h",
+     "xi",
+     "yi",
+     "zi"
+    ]
+   }
+  },
+  "Loudness": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "chain",
+     "smask",
+     "tmask"
+    ]
+   }
+  },
+  "MFCC": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "chain",
+     "numcoeff"
+    ]
+   }
+  },
+  "MantissaMask": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "bits"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "bits"
+    ]
+   }
+  },
+  "MaxLocalBufs": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "=0"
+    ]
+   }
+  },
+  "Median": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "length",
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "length",
+     "in"
+    ]
+   }
+  },
+  "MidEQ": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "freq",
+     "rq",
+     "db"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "freq",
+     "rq",
+     "db"
+    ]
+   }
+  },
+  "ModDif": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "x",
+     "y",
+     "mod"
+    ]
+   },
+   "ir": {
+    "status": "consistent",
+    "wire": [
+     "x",
+     "y",
+     "mod"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "x",
+     "y",
+     "mod"
+    ]
+   }
+  },
+  "MoogFF": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "gain",
+     "reset"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "gain",
+     "reset"
+    ]
+   }
+  },
+  "MostChange": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "a",
+     "b"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "a",
+     "b"
+    ]
+   }
+  },
+  "MouseButton": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "minval",
+     "maxval",
+     "lag"
+    ]
+   }
+  },
+  "MouseX": {
+   "kr": {
+    "reassigns": [
+     "warp"
+    ],
+    "status": "consistent",
+    "wire": [
+     "minval",
+     "maxval",
+     "warp",
+     "lag"
+    ]
+   }
+  },
+  "MouseY": {
+   "kr": {
+    "from": "MouseX",
+    "reassigns": [
+     "warp"
+    ],
+    "status": "consistent",
+    "wire": [
+     "minval",
+     "maxval",
+     "warp",
+     "lag"
+    ]
+   }
+  },
+  "MulAdd": {
+   "new": {
+    "status": "unverified",
+    "wire": [
+     "?args"
+    ]
+   }
+  },
+  "MultiplexAnalogIn": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "analogPin",
+     "muxChannel"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "analogPin",
+     "muxChannel"
+    ]
+   }
+  },
+  "NRand": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "lo",
+     "hi",
+     "n"
+    ]
+   }
+  },
+  "NodeID": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "Normalizer": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "level",
+     "dur"
+    ]
+   }
+  },
+  "NumAudioBuses": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "NumBuffers": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "NumControlBuses": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "NumInputBuses": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "NumOutputBuses": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "NumRunningSynths": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   },
+   "kr": {
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "OffsetOut": {
+   "ar": {
+    "from": "Out",
+    "reassigns": [
+     "channelsArray"
+    ],
+    "status": "verified",
+    "wire": [
+     "bus",
+     "*channelsArray"
+    ]
+   },
+   "kr": {
+    "status": "unparsed"
+   }
+  },
+  "OnePole": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "coef"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "coef"
+    ]
+   }
+  },
+  "OneZero": {
+   "ar": {
+    "from": "OnePole",
+    "status": "verified",
+    "wire": [
+     "in",
+     "coef"
+    ]
+   },
+   "kr": {
+    "from": "OnePole",
+    "status": "verified",
+    "wire": [
+     "in",
+     "coef"
+    ]
+   }
+  },
+  "Onsets": {
+   "kr": {
+    "reassigns": [
+     "odftype"
+    ],
+    "status": "consistent",
+    "wire": [
+     "chain",
+     "threshold",
+     "odftype",
+     "relaxtime",
+     "floor",
+     "mingap",
+     "medianspan",
+     "whtype",
+     "rawodf"
+    ]
+   }
+  },
+  "Osc": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "freq",
+     "phase"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "freq",
+     "phase"
+    ]
+   }
+  },
+  "OscN": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "freq",
+     "phase"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "freq",
+     "phase"
+    ]
+   }
+  },
+  "Out": {
+   "ar": {
+    "reassigns": [
+     "channelsArray"
+    ],
+    "status": "verified",
+    "wire": [
+     "bus",
+     "*channelsArray"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bus",
+     "*channelsArray"
+    ]
+   }
+  },
+  "OutputProxy": {
+   "new": {
+    "status": "unparsed"
+   }
+  },
+  "PSinGrain": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "dur",
+     "amp"
+    ]
+   }
+  },
+  "PV_Add": {
+   "new": {
+    "from": "PV_MagMul",
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB"
+    ]
+   }
+  },
+  "PV_BinScramble": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "wipe",
+     "width",
+     "trig"
+    ]
+   }
+  },
+  "PV_BinShift": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "stretch",
+     "shift",
+     "interp"
+    ]
+   }
+  },
+  "PV_BinWipe": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB",
+     "wipe"
+    ]
+   }
+  },
+  "PV_BrickWall": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "wipe"
+    ]
+   }
+  },
+  "PV_ConformalMap": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "areal",
+     "aimag"
+    ]
+   }
+  },
+  "PV_Conj": {
+   "new": {
+    "from": "PV_MagSquared",
+    "status": "verified",
+    "wire": [
+     "buffer"
+    ]
+   }
+  },
+  "PV_Copy": {
+   "new": {
+    "from": "PV_MagMul",
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB"
+    ]
+   }
+  },
+  "PV_CopyPhase": {
+   "new": {
+    "from": "PV_MagMul",
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB"
+    ]
+   }
+  },
+  "PV_Diffuser": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "trig"
+    ]
+   }
+  },
+  "PV_Div": {
+   "new": {
+    "from": "PV_MagMul",
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB"
+    ]
+   }
+  },
+  "PV_HainsworthFoote": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "proph",
+     "propf",
+     "threshold",
+     "waittime"
+    ]
+   }
+  },
+  "PV_JensenAndersen": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "propsc",
+     "prophfe",
+     "prophfc",
+     "propsf",
+     "threshold",
+     "waittime"
+    ]
+   }
+  },
+  "PV_LocalMax": {
+   "new": {
+    "from": "PV_MagAbove",
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "threshold"
+    ]
+   }
+  },
+  "PV_MagAbove": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "threshold"
+    ]
+   }
+  },
+  "PV_MagBelow": {
+   "new": {
+    "from": "PV_MagAbove",
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "threshold"
+    ]
+   }
+  },
+  "PV_MagClip": {
+   "new": {
+    "from": "PV_MagAbove",
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "threshold"
+    ]
+   }
+  },
+  "PV_MagDiv": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB",
+     "zeroed"
+    ]
+   }
+  },
+  "PV_MagFreeze": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "freeze"
+    ]
+   }
+  },
+  "PV_MagMul": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB"
+    ]
+   }
+  },
+  "PV_MagNoise": {
+   "new": {
+    "from": "PV_MagSquared",
+    "status": "verified",
+    "wire": [
+     "buffer"
+    ]
+   }
+  },
+  "PV_MagShift": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "stretch",
+     "shift"
+    ]
+   }
+  },
+  "PV_MagSmear": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "buffer",
+     "bins"
+    ]
+   }
+  },
+  "PV_MagSquared": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "buffer"
+    ]
+   }
+  },
+  "PV_Max": {
+   "new": {
+    "from": "PV_MagMul",
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB"
+    ]
+   }
+  },
+  "PV_Min": {
+   "new": {
+    "from": "PV_MagMul",
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB"
+    ]
+   }
+  },
+  "PV_Mul": {
+   "new": {
+    "from": "PV_MagMul",
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB"
+    ]
+   }
+  },
+  "PV_PhaseShift": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "shift",
+     "integrate"
+    ]
+   }
+  },
+  "PV_PhaseShift270": {
+   "new": {
+    "from": "PV_MagSquared",
+    "status": "verified",
+    "wire": [
+     "buffer"
+    ]
+   }
+  },
+  "PV_PhaseShift90": {
+   "new": {
+    "from": "PV_MagSquared",
+    "status": "verified",
+    "wire": [
+     "buffer"
+    ]
+   }
+  },
+  "PV_RandComb": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "wipe",
+     "trig"
+    ]
+   }
+  },
+  "PV_RandWipe": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB",
+     "wipe",
+     "trig"
+    ]
+   }
+  },
+  "PV_RectComb": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "numTeeth",
+     "phase",
+     "width"
+    ]
+   }
+  },
+  "PV_RectComb2": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "bufferA",
+     "bufferB",
+     "numTeeth",
+     "phase",
+     "width"
+    ]
+   }
+  },
+  "PackFFT": {
+   "new": {
+    "reassigns": [
+     "tobin"
+    ],
+    "status": "consistent",
+    "wire": [
+     "chain",
+     "bufsize",
+     "frombin",
+     "tobin",
+     "zeroothers",
+     "#magsphases",
+     "*magsphases"
+    ]
+   }
+  },
+  "Pan2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "pos",
+     "level"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "pos",
+     "level"
+    ]
+   }
+  },
+  "Pan4": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "xpos",
+     "ypos",
+     "level"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "xpos",
+     "ypos",
+     "level"
+    ]
+   }
+  },
+  "PanAz": {
+   "ar": {
+    "outputs": "numChans",
+    "status": "verified",
+    "wire": [
+     "in",
+     "pos",
+     "level",
+     "width",
+     "orientation"
+    ]
+   },
+   "kr": {
+    "outputs": "numChans",
+    "status": "verified",
+    "wire": [
+     "in",
+     "pos",
+     "level",
+     "width",
+     "orientation"
+    ]
+   }
+  },
+  "PanB": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "azimuth",
+     "elevation",
+     "gain"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "azimuth",
+     "elevation",
+     "gain"
+    ]
+   }
+  },
+  "PanB2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "azimuth",
+     "gain"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "azimuth",
+     "gain"
+    ]
+   }
+  },
+  "PartConv": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "fftsize",
+     "irbufnum"
+    ]
+   }
+  },
+  "Pause": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "gate",
+     "id"
+    ]
+   }
+  },
+  "PauseSelf": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "PauseSelfWhenDone": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "src"
+    ]
+   }
+  },
+  "Peak": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   }
+  },
+  "PeakFollower": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "decay"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "decay"
+    ]
+   }
+  },
+  "Phasor": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "rate",
+     "start",
+     "end",
+     "resetPos"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "rate",
+     "start",
+     "end",
+     "resetPos"
+    ]
+   }
+  },
+  "PinkNoise": {
+   "ar": {
+    "from": "WhiteNoise",
+    "status": "verified",
+    "wire": []
+   },
+   "kr": {
+    "from": "WhiteNoise",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "Pitch": {
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "initFreq",
+     "minFreq",
+     "maxFreq",
+     "execFreq",
+     "maxBinsPerOctave",
+     "median",
+     "ampThreshold",
+     "peakThreshold",
+     "downSample",
+     "clar"
+    ]
+   }
+  },
+  "PitchShift": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "windowSize",
+     "pitchRatio",
+     "pitchDispersion",
+     "timeDispersion"
+    ]
+   }
+  },
+  "PlayBuf": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "rate",
+     "trigger",
+     "startPos",
+     "loop",
+     "doneAction"
+    ]
+   },
+   "kr": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "rate",
+     "trigger",
+     "startPos",
+     "loop",
+     "doneAction"
+    ]
+   }
+  },
+  "Pluck": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig",
+     "maxdelaytime",
+     "delaytime",
+     "decaytime",
+     "coef"
+    ]
+   }
+  },
+  "Poll": {
+   "ar": {
+    "status": "mismatch",
+    "wire": [
+     "trig",
+     "in",
+     "label",
+     "trigid"
+    ]
+   },
+   "kr": {
+    "status": "mismatch",
+    "wire": [
+     "trig",
+     "in",
+     "label",
+     "trigid"
+    ]
+   },
+   "new": {
+    "status": "mismatch",
+    "wire": [
+     "trig",
+     "in",
+     "label",
+     "trigid"
+    ]
+   }
+  },
+  "Pulse": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "width"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "width"
+    ]
+   }
+  },
+  "PulseCount": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "reset"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "reset"
+    ]
+   }
+  },
+  "PulseDivider": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "div",
+     "start"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "div",
+     "start"
+    ]
+   }
+  },
+  "QuadC": {
+   "ar": {
+    "from": "QuadN",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "c",
+     "xi"
+    ]
+   }
+  },
+  "QuadL": {
+   "ar": {
+    "from": "QuadN",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "c",
+     "xi"
+    ]
+   }
+  },
+  "QuadN": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "a",
+     "b",
+     "c",
+     "xi"
+    ]
+   }
+  },
+  "RHPF": {
+   "ar": {
+    "from": "RLPF",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   },
+   "kr": {
+    "from": "RLPF",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   }
+  },
+  "RLPF": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "rq"
+    ]
+   }
+  },
+  "RadiansPerSample": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "Ramp": {
+   "ar": {
+    "from": "Lag",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lagTime"
+    ]
+   },
+   "kr": {
+    "from": "Lag",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lagTime"
+    ]
+   }
+  },
+  "Rand": {
+   "new": {
+    "status": "verified",
+    "wire": [
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "RandID": {
+   "ir": {
+    "status": "verified",
+    "wire": [
+     "id"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "id"
+    ]
+   }
+  },
+  "RandSeed": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "trig",
+     "seed"
+    ]
+   },
+   "ir": {
+    "status": "verified",
+    "wire": [
+     "trig",
+     "seed"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "trig",
+     "seed"
+    ]
+   }
+  },
+  "RecordBuf": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "offset",
+     "recLevel",
+     "preLevel",
+     "run",
+     "loop",
+     "trigger",
+     "doneAction",
+     "*inputArray"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "offset",
+     "recLevel",
+     "preLevel",
+     "run",
+     "loop",
+     "trigger",
+     "doneAction",
+     "*inputArray"
+    ]
+   }
+  },
+  "ReplaceOut": {
+   "ar": {
+    "from": "Out",
+    "reassigns": [
+     "channelsArray"
+    ],
+    "status": "verified",
+    "wire": [
+     "bus",
+     "*channelsArray"
+    ]
+   },
+   "kr": {
+    "from": "Out",
+    "status": "verified",
+    "wire": [
+     "bus",
+     "*channelsArray"
+    ]
+   }
+  },
+  "Resonz": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "bwr"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "bwr"
+    ]
+   }
+  },
+  "Ringz": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "decaytime"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "decaytime"
+    ]
+   }
+  },
+  "Rotate2": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "x",
+     "y",
+     "pos"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "x",
+     "y",
+     "pos"
+    ]
+   }
+  },
+  "RunningMax": {
+   "ar": {
+    "from": "Peak",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   },
+   "kr": {
+    "from": "Peak",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   }
+  },
+  "RunningMin": {
+   "ar": {
+    "from": "Peak",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   },
+   "kr": {
+    "from": "Peak",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "trig"
+    ]
+   }
+  },
+  "RunningSum": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "numsamp"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "numsamp"
+    ]
+   }
+  },
+  "SOS": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "a0",
+     "a1",
+     "a2",
+     "b1",
+     "b2"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "a0",
+     "a1",
+     "a2",
+     "b1",
+     "b2"
+    ]
+   }
+  },
+  "SampleDur": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "SampleRate": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "Sanitize": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "replace"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "replace"
+    ]
+   }
+  },
+  "Saw": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq"
+    ]
+   }
+  },
+  "Schmidt": {
+   "ar": {
+    "from": "InRange",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "ir": {
+    "from": "InRange",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "kr": {
+    "from": "InRange",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "ScopeOut": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "*inputArray"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "*inputArray"
+    ]
+   }
+  },
+  "ScopeOut2": {
+   "ar": {
+    "fallback": {
+     "scopeFrames": "maxFrames"
+    },
+    "status": "verified",
+    "wire": [
+     "scopeNum",
+     "maxFrames",
+     "scopeFrames",
+     "*inputArray"
+    ]
+   },
+   "kr": {
+    "fallback": {
+     "scopeFrames": "maxFrames"
+    },
+    "status": "verified",
+    "wire": [
+     "scopeNum",
+     "maxFrames",
+     "scopeFrames",
+     "*inputArray"
+    ]
+   }
+  },
+  "Select": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "which",
+     "*array"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "which",
+     "*array"
+    ]
+   }
+  },
+  "SendPeakRMS": {
+   "ar": {
+    "status": "unparsed"
+   },
+   "kr": {
+    "status": "unparsed"
+   }
+  },
+  "SendReply": {
+   "ar": {
+    "status": "unparsed"
+   },
+   "kr": {
+    "status": "unparsed"
+   }
+  },
+  "SendTrig": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "id",
+     "value"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "id",
+     "value"
+    ]
+   }
+  },
+  "SetBuf": {
+   "new": {
+    "reassigns": [
+     "values"
+    ],
+    "status": "consistent",
+    "wire": [
+     "buf",
+     "offset",
+     "#values",
+     "*values"
+    ]
+   }
+  },
+  "SetResetFF": {
+   "ar": {
+    "from": "PulseCount",
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "reset"
+    ]
+   },
+   "kr": {
+    "from": "PulseCount",
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "reset"
+    ]
+   }
+  },
+  "Shaper": {
+   "ar": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   }
+  },
+  "SharedIn": {
+   "kr": {
+    "outputs": "numChannels",
+    "status": "verified",
+    "wire": [
+     "bus"
+    ]
+   }
+  },
+  "SharedOut": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bus",
+     "*channelsArray"
+    ]
+   }
+  },
+  "SinOsc": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "phase"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "phase"
+    ]
+   }
+  },
+  "SinOscFB": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "feedback"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "feedback"
+    ]
+   }
+  },
+  "Slew": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "up",
+     "dn"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "up",
+     "dn"
+    ]
+   }
+  },
+  "Slope": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "SpecCentroid": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "buffer"
+    ]
+   }
+  },
+  "SpecFlatness": {
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "buffer"
+    ]
+   }
+  },
+  "SpecPcile": {
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "buffer",
+     "fraction",
+     "interpolate",
+     "binout"
+    ]
+   }
+  },
+  "Splay": {
+   "ar": {
+    "status": "unverified",
+    "wire": [
+     "spread",
+     "level",
+     "center",
+     "levelComp",
+     "*inArray"
+    ]
+   },
+   "kr": {
+    "status": "unverified",
+    "wire": [
+     "spread",
+     "level",
+     "center",
+     "levelComp",
+     "*inArray"
+    ]
+   }
+  },
+  "SplayAz": {
+   "ar": {
+    "status": "unparsed"
+   },
+   "kr": {
+    "status": "unparsed"
+   }
+  },
+  "Spring": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "spring",
+     "damp"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "spring",
+     "damp"
+    ]
+   }
+  },
+  "StandardL": {
+   "ar": {
+    "from": "StandardN",
+    "status": "verified",
+    "wire": [
+     "freq",
+     "k",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "StandardN": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "k",
+     "xi",
+     "yi"
+    ]
+   }
+  },
+  "Stepper": {
+   "ar": {
+    "fallback": {
+     "resetval": "min"
+    },
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "reset",
+     "min",
+     "max",
+     "step",
+     "resetval"
+    ]
+   },
+   "kr": {
+    "fallback": {
+     "resetval": "min"
+    },
+    "status": "consistent",
+    "wire": [
+     "trig",
+     "reset",
+     "min",
+     "max",
+     "step",
+     "resetval"
+    ]
+   }
+  },
+  "StereoConvolution2L": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "kernelL",
+     "kernelR",
+     "trigger",
+     "framesize",
+     "crossfade"
+    ]
+   }
+  },
+  "SubsampleOffset": {
+   "ir": {
+    "from": "InfoUGenBase",
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "Sum3": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "in0",
+     "in1",
+     "in2"
+    ]
+   }
+  },
+  "Sum4": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "in0",
+     "in1",
+     "in2",
+     "in3"
+    ]
+   }
+  },
+  "Sweep": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "trig",
+     "rate"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "trig",
+     "rate"
+    ]
+   }
+  },
+  "SyncSaw": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "syncFreq",
+     "sawFreq"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "syncFreq",
+     "sawFreq"
+    ]
+   }
+  },
+  "T2A": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "offset"
+    ]
+   }
+  },
+  "T2K": {
+   "kr": {
+    "from": "A2K",
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  },
+  "TBall": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "g",
+     "damp",
+     "friction"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "in",
+     "g",
+     "damp",
+     "friction"
+    ]
+   }
+  },
+  "TDelay": {
+   "ar": {
+    "from": "Trig1",
+    "status": "verified",
+    "wire": [
+     "in",
+     "dur"
+    ]
+   },
+   "kr": {
+    "from": "Trig1",
+    "status": "verified",
+    "wire": [
+     "in",
+     "dur"
+    ]
+   }
+  },
+  "TDuty": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "dur",
+     "reset",
+     "doneAction",
+     "level",
+     "gapFirst"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "dur",
+     "reset",
+     "doneAction",
+     "level",
+     "gapFirst"
+    ]
+   }
+  },
+  "TExpRand": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "lo",
+     "hi",
+     "trig"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "lo",
+     "hi",
+     "trig"
+    ]
+   }
+  },
+  "TGrains": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "trigger",
+     "bufnum",
+     "rate",
+     "centerPos",
+     "dur",
+     "pan",
+     "amp",
+     "interp"
+    ]
+   }
+  },
+  "TIRand": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "lo",
+     "hi",
+     "trig"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "lo",
+     "hi",
+     "trig"
+    ]
+   }
+  },
+  "TRand": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "lo",
+     "hi",
+     "trig"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "lo",
+     "hi",
+     "trig"
+    ]
+   }
+  },
+  "TWindex": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "normalize",
+     "*array"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "normalize",
+     "*array"
+    ]
+   }
+  },
+  "Tap": {
+   "ar": {
+    "status": "unparsed"
+   }
+  },
+  "Timer": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "trig"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "trig"
+    ]
+   }
+  },
+  "ToggleFF": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "trig"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "trig"
+    ]
+   }
+  },
+  "Trig": {
+   "ar": {
+    "from": "Trig1",
+    "status": "verified",
+    "wire": [
+     "in",
+     "dur"
+    ]
+   },
+   "kr": {
+    "from": "Trig1",
+    "status": "verified",
+    "wire": [
+     "in",
+     "dur"
+    ]
+   }
+  },
+  "Trig1": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "dur"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "dur"
+    ]
+   }
+  },
+  "TrigControl": {
+   "ir": {
+    "from": "Control",
+    "status": "mismatch",
+    "wire": [
+     "*values"
+    ]
+   },
+   "kr": {
+    "from": "Control",
+    "status": "mismatch",
+    "wire": [
+     "*values"
+    ]
+   }
+  },
+  "TwoPole": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "radius"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "radius"
+    ]
+   }
+  },
+  "TwoZero": {
+   "ar": {
+    "from": "TwoPole",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "radius"
+    ]
+   },
+   "kr": {
+    "from": "TwoPole",
+    "status": "verified",
+    "wire": [
+     "in",
+     "freq",
+     "radius"
+    ]
+   }
+  },
+  "UnaryOpUGen": {
+   "new": {
+    "status": "mismatch",
+    "wire": [
+     "selector",
+     "a"
+    ]
+   }
+  },
+  "Unpack1FFT": {
+   "new": {
+    "status": "consistent",
+    "wire": [
+     "chain",
+     "bufsize",
+     "binindex",
+     "whichmeasure"
+    ]
+   }
+  },
+  "UnpackFFT": {
+   "new": {
+    "status": "unparsed"
+   }
+  },
+  "VDiskIn": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "rate",
+     "loop",
+     "sendID"
+    ]
+   }
+  },
+  "VOsc": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufpos",
+     "freq",
+     "phase"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufpos",
+     "freq",
+     "phase"
+    ]
+   }
+  },
+  "VOsc3": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "bufpos",
+     "freq1",
+     "freq2",
+     "freq3"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bufpos",
+     "freq1",
+     "freq2",
+     "freq3"
+    ]
+   }
+  },
+  "VarLag": {
+   "ar": {
+    "status": "unverified",
+    "wire": [
+     "in",
+     "time",
+     "curvature",
+     "warp",
+     "start"
+    ]
+   },
+   "kr": {
+    "status": "unverified",
+    "wire": [
+     "in",
+     "time",
+     "curvature",
+     "warp",
+     "start"
+    ]
+   }
+  },
+  "VarSaw": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase",
+     "width"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "freq",
+     "iphase",
+     "width"
+    ]
+   }
+  },
+  "Vibrato": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "rate",
+     "depth",
+     "delay",
+     "onset",
+     "rateVariation",
+     "depthVariation",
+     "iphase",
+     "trig"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "freq",
+     "rate",
+     "depth",
+     "delay",
+     "onset",
+     "rateVariation",
+     "depthVariation",
+     "iphase",
+     "trig"
+    ]
+   }
+  },
+  "Warp1": {
+   "ar": {
+    "outputs": "numChannels",
+    "status": "consistent",
+    "wire": [
+     "bufnum",
+     "pointer",
+     "freqScale",
+     "windowSize",
+     "envbufnum",
+     "overlaps",
+     "windowRandRatio",
+     "interp"
+    ]
+   }
+  },
+  "WhiteNoise": {
+   "ar": {
+    "status": "verified",
+    "wire": []
+   },
+   "kr": {
+    "status": "verified",
+    "wire": []
+   }
+  },
+  "Wrap": {
+   "ar": {
+    "from": "InRange",
+    "status": "verified",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "ir": {
+    "from": "InRange",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   },
+   "kr": {
+    "from": "InRange",
+    "status": "consistent",
+    "wire": [
+     "in",
+     "lo",
+     "hi"
+    ]
+   }
+  },
+  "WrapIndex": {
+   "ar": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   },
+   "kr": {
+    "from": "Index",
+    "status": "verified",
+    "wire": [
+     "bufnum",
+     "in"
+    ]
+   }
+  },
+  "XFade2": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "inA",
+     "inB",
+     "pan",
+     "level"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "inA",
+     "inB",
+     "pan",
+     "level"
+    ]
+   }
+  },
+  "XLine": {
+   "ar": {
+    "status": "consistent",
+    "wire": [
+     "start",
+     "end",
+     "dur",
+     "doneAction"
+    ]
+   },
+   "kr": {
+    "status": "consistent",
+    "wire": [
+     "start",
+     "end",
+     "dur",
+     "doneAction"
+    ]
+   }
+  },
+  "XOut": {
+   "ar": {
+    "reassigns": [
+     "channelsArray"
+    ],
+    "status": "verified",
+    "wire": [
+     "bus",
+     "xfade",
+     "*channelsArray"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "bus",
+     "xfade",
+     "*channelsArray"
+    ]
+   }
+  },
+  "ZeroCrossing": {
+   "ar": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   },
+   "kr": {
+    "status": "verified",
+    "wire": [
+     "in"
+    ]
+   }
+  }
+ }
+}

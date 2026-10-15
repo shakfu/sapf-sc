@@ -53,7 +53,7 @@ V popGraphIn(Thread& th, const char* msg)
 	return v;
 }
 
-static V outputsOf(P<UGenNode> const& node)
+V outputsOf(P<UGenNode> const& node)
 {
 	int numOutputs = node->numOutputs;
 	if (numOutputs == 1)
@@ -80,16 +80,34 @@ V toKR(Arg v)
 	if (u->fixedRate) return makeUGen("A2K", rateKR, {v});
 	P<UGenNode> copy = new UGenNode(u->name.c_str(), rateKR, u->inputs, u->numOutputs, u->special, u->pure);
 	copy->krOf = u;
+	copy->spec = u->spec;
 	return new Sig(copy, s->index);
 }
 
-V makeParam(const char* name, double value)
+V toIR(Arg v)
 {
-	P<UGenNode> node = new UGenNode(name, rateKR, {}, 1, 0, true);
+	if (!isSig(v)) return v;
+	Sig* s = (Sig*)v.o();
+	UGenNode* u = s->node->krOf ? s->node->krOf() : s->node();
+	if (u->rate == rateIR) return new Sig(u, s->index);
+	P<UGenNode> copy = new UGenNode(u->name.c_str(), rateIR, u->inputs, u->numOutputs, u->special, u->pure);
+	copy->krOf = u;
+	copy->spec = u->spec;
+	return new Sig(copy, s->index);
+}
+
+V makeParam(const char* name, double value, int kind, int order)
+{
+	static const int rates[] = {rateKR, rateIR, rateKR, rateAR};
+	P<UGenNode> node = new UGenNode(name, rates[kind], {}, 1, 0, true);
 	node->isParam = true;
 	node->paramDefault = value;
+	node->paramKind = kind;
+	node->paramOrder = order;
 	return new Sig(node, 0);
 }
+
+std::vector<P<UGenNode>>* gDefRoots = nullptr;
 
 ////////////////////////////////////////////////////////////////////////////////
 // operators
@@ -233,9 +251,6 @@ V Sig::binaryOpWithZList(Thread& th, BinaryOp* op, List* _a)
 ////////////////////////////////////////////////////////////////////////////////
 // SCgf compiler
 
-namespace {
-
-// Appends `v` to `out` if it is a Sig or real; recurses into finite lists.
 void flattenChannels(Thread& th, Arg v, std::vector<V>& out)
 {
 	if (v.isReal() || isSig(v)) {
@@ -250,6 +265,8 @@ void flattenChannels(Thread& th, Arg v, std::vector<V>& out)
 		wrongType(">sd : channels", "UGen, Real or List of them", v);
 	}
 }
+
+namespace {
 
 struct Writer {
 	std::string bytes;
@@ -352,12 +369,22 @@ struct WorkGraph {
 	std::map<UGenNode*, bool> used;               // originals referenced directly
 	std::map<UGenNode*, P<UGenNode>> work;        // original -> copy
 	std::map<UGenNode*, P<UGenNode>> krWork;      // original -> copy of its kr version
+	std::map<UGenNode*, P<UGenNode>> irWork;      // original -> copy of its ir version
+	std::vector<P<UGenNode>> riders;              // riders of the nodes reached, once each
 	std::map<std::pair<UGenNode*, int>, V> a2k;   // (original, output) -> A2K of its copy
+	std::vector<P<UGenNode>> keep;                // nodes made during compilation, alive until it ends
 
 	void markUsed(Arg v)
 	{
 		if (!isSig(v)) return;
 		UGenNode* u = ((Sig*)v.o())->node();
+		for (UGenNode* owner : {u, u->krOf()})
+			if (owner)
+				for (P<UGenNode> const& r : owner->riders)
+					if (std::find(riders.begin(), riders.end(), r) == riders.end()) {
+						riders.push_back(r);
+						for (Arg in : r->inputs) markUsed(in);
+					}
 		if (u->krOf) {
 			for (Arg in : u->inputs) markUsed(in);
 			return;
@@ -375,14 +402,19 @@ struct WorkGraph {
 		c->serial = u->serial;
 		c->isParam = u->isParam;
 		c->paramDefault = u->paramDefault;
+		c->paramKind = u->paramKind;
+		c->paramOrder = u->paramOrder;
 		c->fixedRate = u->fixedRate;
 		c->endGate = u->endGate;
 		c->texture = u->texture;
 		c->wavetable = u->wavetable;
 		c->tableBuf = u->tableBuf;
 		c->sample = u->sample;
+		c->spec = u->spec;
 		memo[u] = c;
-		for (Arg in : u->inputs) c->inputs.push_back(remap(in));
+		// A generated UGen's kr method takes its inputs as given; its ar method raised some.
+		auto& from = rate != rateAR && !u->krInputs.empty() ? u->krInputs : u->inputs;
+		for (Arg in : from) c->inputs.push_back(remap(in));
 		return c();
 	}
 
@@ -396,6 +428,9 @@ struct WorkGraph {
 		if (!u->krOf)
 			return new Sig(copyOf(u, u->rate, work), s->index);
 		UGenNode* orig = u->krOf();
+		// ir has no conversion from audio rate, so an ir copy is its own node
+		if (u->rate == rateIR)
+			return new Sig(copyOf(orig, rateIR, irWork), s->index);
 		if (!used[orig])
 			return new Sig(copyOf(orig, rateKR, krWork), s->index);
 		auto key = std::make_pair(orig, s->index);
@@ -424,7 +459,8 @@ V endChannel(Thread& th, Arg chan)
 
 // Lowers audio-rate nodes to control rate where every consumer is a control-rate sapf UGen. Out,
 // which consumes the channels, is audio rate. So is a ugen node: a control-rate analysis UGen
-// such as Amplitude reads its whole audio input, not one sample per block.
+// such as Amplitude reads its whole audio input, not one sample per block. Generated UGen words
+// take no part (docs/dev/stac.md, open question 1).
 void inferRates(const std::vector<V>& chans)
 {
 	std::vector<UGenNode*> nodes;
@@ -442,9 +478,12 @@ void inferRates(const std::vector<V>& chans)
 	for (bool changed = true; changed;) {
 		changed = false;
 		for (UGenNode* u : nodes) {
-			if (u->rate != rateAR || u->fixedRate || feedsOut[u] || consumers[u].empty()) continue;
+			if (u->rate != rateAR || u->fixedRate || u->spec >= 0 || feedsOut[u] || consumers[u].empty()) continue;
 			auto& cs = consumers[u];
-			if (std::all_of(cs.begin(), cs.end(), [](UGenNode* c) { return c->rate == rateKR && !c->fixedRate; })) {
+			// A generated UGen word (spec >= 0) runs at the rate written, and may read its whole audio
+			// input at kr, as FFT does; it neither lowers nor is lowered.
+			if (std::all_of(cs.begin(), cs.end(),
+					[](UGenNode* c) { return c->rate == rateKR && !c->fixedRate && c->spec < 0; })) {
 				u->rate = rateKR;
 				changed = true;
 			}
@@ -568,57 +607,100 @@ std::vector<UGenNode*> sampleNodesOf(Thread& th, Arg channels) { return nodesOf(
 
 std::string compileSynthDef(Thread& th, Arg channels, const std::string& name, int outBus)
 {
+	DefParts parts;
+	parts.outBus = (double)outBus;
+	return compileDef(th, channels, name, parts);
+}
+
+std::string compileDef(Thread& th, Arg channels, const std::string& name, DefParts const& parts)
+{
 	std::vector<V> original;
 	flattenChannels(th, channels, original);
-	if (original.empty()) {
+	if (original.empty() && parts.roots.empty()) {
 		post(">sd : no channels\n");
 		throw errFailed;
 	}
 	WorkGraph g;
 	for (Arg c : original) g.markUsed(c);
+	for (Arg p : parts.params) g.markUsed(p);
+	g.markUsed(parts.outBus);
+	for (auto& r : parts.roots)
+		for (Arg in : r->inputs) g.markUsed(in);
 	std::vector<V> chans;
 	for (Arg c : original) chans.push_back(endChannel(th, g.remap(c)));
-	inferRates(chans);
-
-	// Out.ar takes audio-rate inputs only.
-	std::vector<V> outInputs = {(double)outBus};
-	for (Arg c : chans) {
-		if (c.isReal())
-			outInputs.push_back(makeUGen("DC", rateAR, {c}));
-		else if (rateOf(c) != rateAR)
-			outInputs.push_back(makeUGen("K2A", rateAR, {c}));
-		else
-			outInputs.push_back(c);
-	}
-	P<UGenNode> outNode = new UGenNode("Out", rateAR, outInputs, 0, 0, false);
+	std::vector<UGenNode*> roots;
+	for (auto& r : parts.roots) roots.push_back(g.copyOf(r(), r->rate, g.work));
+	for (auto& r : g.riders) roots.push_back(g.copyOf(r(), r->rate, g.work));
+	std::vector<V> inferFrom = chans;
+	for (UGenNode* r : roots) inferFrom.push_back(V(new Sig(r, 0)));
+	inferRates(inferFrom);
 
 	std::vector<UGenNode*> ugens;
 	std::map<UGenNode*, bool> seen;
-	collect(outNode(), ugens, seen);
+	P<UGenNode> outNode;
+	if (!chans.empty()) {
+		// Out.ar takes audio-rate inputs only.
+		std::vector<V> outInputs = {g.remap(parts.outBus)};
+		for (Arg c : chans) {
+			if (c.isReal())
+				outInputs.push_back(makeUGen("DC", rateAR, {c}));
+			else if (rateOf(c) != rateAR)
+				outInputs.push_back(makeUGen("K2A", rateAR, {c}));
+			else
+				outInputs.push_back(c);
+		}
+		outNode = new UGenNode("Out", rateAR, outInputs, 0, 0, false);
+		collect(outNode(), ugens, seen);
+	}
+	for (UGenNode* r : roots) collect(r, ugens, seen);
+	for (Arg p : parts.params) {
+		V c = g.remap(p);
+		if (isSig(c)) collect(((Sig*)c.o())->node(), ugens, seen);
+	}
 	std::sort(ugens.begin(), ugens.end(), [](UGenNode* a, UGenNode* b) { return a->serial < b->serial; });
 
-	// Parameters become outputs of one Control, sorted by name, placed first.
+	// Parameters become outputs of Control UGens, one per kind in SC's order: ir, tr, ar, kr. A def's
+	// parameters keep their declared order within a kind; ctl's follow, sorted by name.
 	std::vector<UGenNode*> params;
 	std::vector<UGenNode*> rest;
 	for (UGenNode* u : ugens) (u->isParam ? params : rest).push_back(u);
-	std::stable_sort(params.begin(), params.end(), [](UGenNode* a, UGenNode* b) { return a->name < b->name; });
-	for (size_t i = 1; i < params.size(); ++i) {
-		if (params[i]->name == params[i-1]->name) {
-			post(">sd : parameter '%s' is defined more than once\n", params[i]->name.c_str());
+	static const int kindRank[] = {3, 0, 1, 2}; // by paramKR, paramIR, paramTR, paramAR
+	std::stable_sort(params.begin(), params.end(), [](UGenNode* a, UGenNode* b) {
+		if (kindRank[a->paramKind] != kindRank[b->paramKind]) return kindRank[a->paramKind] < kindRank[b->paramKind];
+		bool ad = a->paramOrder >= 0, bd = b->paramOrder >= 0;
+		if (ad != bd) return ad;
+		if (ad) return a->paramOrder < b->paramOrder;
+		return a->name < b->name;
+	});
+	std::map<std::string, int> seenNames;
+	for (UGenNode* p : params) {
+		if (seenNames[p->name]++) {
+			post(">sd : parameter '%s' is defined more than once\n", p->name.c_str());
 			throw errFailed;
 		}
 	}
-	if (!params.empty()) {
-		P<UGenNode> control = new UGenNode("Control", rateKR, {}, (int)params.size(), 0, true);
-		std::map<UGenNode*, int> paramIndex;
-		for (size_t i = 0; i < params.size(); ++i) paramIndex[params[i]] = (int)i;
-		for (UGenNode* u : rest)
-			for (V& in : u->inputs)
-				if (isSig(in) && ((Sig*)in.o())->node->isParam)
-					in = new Sig(control, paramIndex[((Sig*)in.o())->node()]);
-		rest.insert(rest.begin(), control());
-		g.work[nullptr] = control; // keep it alive with the other copies
+	std::vector<P<UGenNode>> controls;
+	std::map<UGenNode*, std::pair<UGenNode*, int>> paramOut;
+	for (size_t i = 0; i < params.size();) {
+		size_t j = i;
+		while (j < params.size() && params[j]->paramKind == params[i]->paramKind) ++j;
+		static const char* names[] = {"Control", "Control", "TrigControl", "AudioControl"};
+		static const int rates[] = {rateKR, rateIR, rateKR, rateAR};
+		int kind = params[i]->paramKind;
+		P<UGenNode> control = new UGenNode(names[kind], rates[kind], {}, (int)(j - i), (int)i, true);
+		for (size_t k = i; k < j; ++k) paramOut[params[k]] = {control(), (int)(k - i)};
+		controls.push_back(control);
+		i = j;
 	}
+	for (UGenNode* u : rest)
+		for (V& in : u->inputs)
+			if (isSig(in) && ((Sig*)in.o())->node->isParam) {
+				auto& [control, index] = paramOut[((Sig*)in.o())->node()];
+				in = new Sig(control, index);
+			}
+	for (size_t k = controls.size(); k-- > 0;) rest.insert(rest.begin(), controls[k]());
+	g.keep.insert(g.keep.end(), controls.begin(), controls.end()); // alive with the other copies
+	if (outNode) g.keep.push_back(outNode);
 
 	std::vector<UGenNode*> ordered = sortTopologically(rest);
 

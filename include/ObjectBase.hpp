@@ -150,4 +150,8 @@ public:
     virtual V binaryOpWithZList(Thread& th, BinaryOp* op, List* _a) { wrongType("binaryOpWithZList", "Real, or List", this); return V(); }
 };
 
+// What a dot method returns when it changes something and leaves nothing on the stack, as
+// x.free does. The VM's dot opcode does not push it.
+Object* noValue();
+
 #endif // SAPF_OBJECTBASE_HPP

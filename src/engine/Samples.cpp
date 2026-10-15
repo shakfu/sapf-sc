@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "Samples.hpp"
+#include "Resources.hpp"
 #include "Scsynth.hpp"
 #include <algorithm>
 #include <cstring>
@@ -126,6 +127,12 @@ V endEach(Thread& th, Arg channels, Arg frames)
 }
 
 } // namespace
+
+SampleInfo sampleBuffer(Thread& th, Arg path, const char* msg)
+{
+	P<SampleFile> file = openSample(th, path, msg);
+	return {bufferFor(file->absolute), file->channels, file->frames, file->absolute};
+}
 
 std::vector<std::string> loadSamples(Thread& th, Arg channels, LoadedTables& loaded, bool absolute)
 {

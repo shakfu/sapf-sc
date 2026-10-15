@@ -13,6 +13,7 @@ Policy: sapf-sc computes what sapf's code and documentation describe, not what u
 | Classic wavetables | not compiled: `saw`, `square`, `tri`, `pulse` are SC UGens |
 | `lpf` coefficients | not compiled: `lpf` is SC's `LPF` |
 | `Z` and `V` call every output finite | fixed |
+| `{}` crashes | fixed |
 
 ## Signal minus signal is reversed
 
@@ -47,3 +48,7 @@ Probable cause, not verified: `fillWaveTable` interleaves magnitudes and angles,
 ## `Z` and `V` call every output finite
 
 `[2 0 1] cyc finite` gives 0; `[2 0 1] cyc Z finite` gives 1. `ZGen` and `VGen` (`src/engine/StreamOps.cpp`) pass `true` as the `Gen` finite flag whatever their input. Original sapf rarely asks; sapf-sc's `seq` and `iseq` measured a finite list with `length()`, which forced `pat picks $/ Z` (three examples, `native algorhythms`) until memory ran out. Both now pass `a.isFinite()`, and `readItems` counts values instead of calling `length()`.
+
+## `{}` crashes
+
+`{} pr cr` segfaults. Braces with no keys evaluate to `vm._ee`, built as `new Form(0, NULL)` (`src/engine/VM.cpp`): a Form with no table. `Form::print` and `Form::get` dereference the table. sapf-sc gives `_ee` an empty table, and `TableMap::getIndex` returns not found for an empty map, whose index array is null. `{}` is the keyword call that takes every default, as in `{} ug.whitenoise`.

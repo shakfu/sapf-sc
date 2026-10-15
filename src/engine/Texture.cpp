@@ -6,6 +6,7 @@
 //    (at your option) any later version.
 
 #include "Texture.hpp"
+#include "Resources.hpp"
 #include "Scsynth.hpp"
 #include "Samples.hpp"
 #include <algorithm>
@@ -206,12 +207,14 @@ static void ola_(Thread& th, Prim* prim)
 	double rate = th.popFloat("ola : rate");
 	V hops = th.pop();
 	V sounds = th.pop();
-	if (numChannels < 1 || numChannels > kLastBus - kFirstBus) throw errOutOfRange;
+	// bus.audio takes buses from the top of the range down; ola's stay below them.
+	int lastBus = std::min(kLastBus, audioBusFloor());
+	if (numChannels < 1 || numChannels > lastBus - kFirstBus) throw errOutOfRange;
 	if (rate <= 0.) {
 		post("ola : rate must be positive\n");
 		throw errOutOfRange;
 	}
-	if (gNextBus + numChannels > kLastBus) gNextBus = kFirstBus;
+	if (gNextBus + numChannels > lastBus) gNextBus = kFirstBus;
 	int bus = gNextBus;
 	gNextBus += (int)numChannels;
 	V in = makeUGen("In", rateAR, {(double)bus}, (int)numChannels, 0, false, true);

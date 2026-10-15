@@ -9,11 +9,17 @@ stac does not implement sapf. [shakfu/sapf](https://github.com/shakfu/sapf) does
 ## Principles
 
 1. **Two tiers.** Lang values live in the interpreter. Graph values are nodes of a SynthDef. No sample is ever computed in the interpreter.
+
 2. **SC's UGens, SC's units.** A UGen's word is its SC class name in lower case. It takes SC's arguments in SC's units: `sinosc`'s phase is in radians.
+
 3. **Short to type.** Everyday words are bare, lower case, and need no shift key. Specialised groups sit in namespaces, which also scope tab completion.
+
 4. **Audio rate unless lowered.** A UGen runs at the highest rate its class offers. `.kr` lowers it.
+
 5. **Lazy lists are patterns.** sapf's infinite streams already do what sclang's `Pattern` classes do. stac schedules them.
+
 6. **sapf compatibility is a library.** `sapf.stac` defines sapf's words on top of stac. The core does not carry them.
+
 7. **Little new syntax.** One keyword, `def`. Everything else uses the sapf parser as it is.
 
 ## Core kept from sapf
@@ -46,14 +52,14 @@ Removed: the `ZList` signal. A program that reads or rearranges samples in the i
 440 sinosc                      ; SinOsc.ar(440)
 [100 101] saw 800 .3 rlpf       ; RLPF.ar(Saw.ar([100, 101]), 800, 0.3)
 .2 sinosc.kr 200 * 400 +        ; SinOsc.kr(0.2) * 200 + 400
-[1 2 3] inf dem.dseq            ; Dseq([1, 2, 3], inf)
+[1 2 3] inf demand.dseq            ; Dseq([1, 2, 3], inf)
 ```
 
 A UGen's word is its SC class name in lower case. No two of SC's 407 class names differ only in case. SC class names average 7.7 characters and 2.2 capitals; the lower-case word needs no shift key.
 
 ### The spec
 
-`../nanosynth/spec/sclang-reference.json` is extracted from SC 3.14.1's class library:
+`spec/sclang-reference.json` is extracted from SC 3.14.1's class library:
 
 | | Count |
 |-|-|
@@ -65,7 +71,19 @@ A UGen's word is its SC class name in lower case. No two of SC's 407 class names
 | methods with a fixed output count | 610 |
 | methods whose output count is an argument (`PlayBuf`, `In`...) | 25 |
 
-Each method lists argument names, defaults, output count and operator index. stac generates a primitive per class from it at build time. `sc3-plugins-reference.json` adds the sc3-plugins set. nanosynth compiles from the same spec, so SCgf parity tests can cover every class.
+Each method lists argument names, defaults, output count and operator index. `scripts/gen_ugens.py` generates `src/engine/SpecUGens.inc` from it; a test fails when the table is stale.
+
+The spec has no wire order. `Duty`'s arguments are `dur reset level doneAction`; its inputs are `dur reset doneAction level`. `scripts/sclang_wire.py` reads each rate method's `multiNew` or `multiNewList` call from the SC 3.14.1 class library in `build/_deps` into `spec/sclang-wire.json`. It then fills each map with the probe's argument values and checks that it reproduces the probe's recorded inputs.
+
+| Status | Methods |
+|-|-|
+| verified: reproduces the inputs, all arguments distinct | 365 |
+| consistent: reproduces them, but two arguments shared a value | 214 |
+| unverified: an expression the extractor does not read | 19 |
+| mismatch: envelopes, `Klank` specs, `Poll` labels, `Control`s, operators | 18 |
+| unparsed: sclang composites and calls through other methods | 19 |
+
+579 of 635 methods (91%) have a trusted order. The rest need entries in `spec/stac-ugens.json`, or stay hidden. The extractor reproduced all 17 demand wire orders first written by hand. sclang 3.13 cannot compile the 3.14 class library, which uses keyword arguments, so a runtime probe would need sclang 3.14.1.
 
 A variable output count comes from a `numChannels` argument, which must be a constant.
 
@@ -89,30 +107,30 @@ Each SC help file names its categories, e.g. `categories:: UGens>Filters>Linear`
 | Conversion | `a2k`, `k2a`, `t2a` |
 | Reverbs, Dynamics | `freeverb`, `gverb`, `limiter`, `compander` |
 
-**Namespaces.** 229 UGens. A category gets a namespace when it forms its own sub-language, targets one setting, or clashes with interpreter words.
+**Namespaces.** 228 UGens. A category gets a namespace when it forms its own sub-language, targets one setting, or clashes with interpreter words.
 
 | Namespace | Category | UGens | Examples |
 |-|-|-|-|
 | `fft` | FFT, Convolution | 49 | `fft.fft`, `fft.ifft`, `fft.pv_magfreeze` |
-| `buf` | Buffer, Buffer>Info, Delays>Buffer | 38 | `buf.playbuf`, `buf.bufrd`, `buf.localbuf` |
-| `dem` | Demand | 24 | `dem.dseq`, `dem.dwhite`, `dem.demand`, `dem.duty` |
+| `buffer` | Buffer, Buffer>Info, Delays>Buffer | 38 | `buffer.playbuf`, `buffer.bufrd`, `buffer.localbuf` |
+| `demand` | Demand | 24 | `demand.dseq`, `demand.dwhite`, `demand.demand`, `demand.duty` |
 | `chaos` | Generators>Chaotic | 23 | `chaos.henonn`, `chaos.logistic` |
-| `io` | InOut, less `in` and `out` | 16 | `io.localin`, `io.diskin`, `io.replaceout` |
-| `info` | Info | 17 | `info.samplerate`, `info.poll`, `info.nodeid` |
-| `ana` | Analysis | 16 | `ana.amplitude`, `ana.pitch`, `ana.onsets` |
-| `rnd` | Random | 11 | `rnd.rand`, `rnd.exprand`, `rnd.trand` |
-| `beq` | Filters>BEQSuite | 8 | `beq.blowpass`, `beq.bpeakeq` |
+| `io` | InOut, less `in`, `out` and `maxlocalbufs` | 15 | `io.localin`, `io.diskin`, `io.replaceout` |
+| `info` | Info | 17 | `info.samplerate`, `info.nodeid`; `Poll` is the `.poll` method |
+| `analysis` | Analysis | 16 | `analysis.amplitude`, `analysis.pitch`, `analysis.onsets` |
+| `random` | Random | 11 | `random.rand`, `random.exprand`, `random.trand` |
+| `beqsuite` | Filters>BEQSuite | 8 | `beqsuite.blowpass`, `beqsuite.bpeakeq` |
 | `node` | Synth control | 8 | `node.freeself`, `node.detectsilence` |
 | `bela` | Bela | 7 | `bela.analogin` |
-| `amb` | Multichannel>Ambisonics | 5 | `amb.panb2`, `amb.decodeb2` |
+| `ambisonics` | Multichannel>Ambisonics | 5 | `ambisonics.panb2`, `ambisonics.decodeb2` |
 | `ui` | User interaction | 4 | `ui.mousex`, `ui.keystate` |
-| `gran` | Generators>Granular | 3 | `gran.grainsin`, `gran.grainfm` |
+| `granular` | Generators>Granular | 3 | `granular.grainsin`, `granular.grainfm` |
 
-**Placed by hand: 9 classes.** `blocksize`, `nodeid` to `info`; `clearbuf`, `setbuf` to `buf`; `scopeout2` to `io`, which have no category. `randid`, `randseed` to `rnd`. `in`, `out` bare: the phrasebook's effect phrase (P12) needs `in`, and `out` is its pair.
+**Placed by hand: 9 classes.** `blocksize`, `nodeid` to `info`; `clearbuf`, `setbuf` to `buffer`; `scopeout2` to `io`, which have no category. `randid`, `randseed` to `random`. `in`, `out` bare: the phrasebook's effect phrase (P12) needs `in`, and `out` is its pair.
 
-**Hidden: 13 classes** the compiler emits and no one types: `binaryopugen`, `unaryopugen`, `muladd`, `sum3`, `sum4`, `control`, `trigcontrol`, `lagcontrol`, `audiocontrol`, `outputproxy`, `listdugen`, `infougenbase`, `bufinfougenbase`.
+**Hidden: 14 classes** the compiler emits and no one types: `binaryopugen`, `unaryopugen`, `muladd`, `sum3`, `sum4`, `control`, `trigcontrol`, `lagcontrol`, `audiocontrol`, `outputproxy`, `listdugen`, `infougenbase`, `bufinfougenbase`, and `maxlocalbufs`, which `LocalBuf` emits.
 
-**The index `ug`** holds all 394 public UGens under their plain names. `ug.<TAB>` browses the set; `ug.lpf` reaches a bare UGen that a user binding hides.
+**The index `ug`** holds all 393 public UGens under their plain names. `ug.<TAB>` browses the set; `ug.lpf` reaches a bare UGen that a user binding hides.
 
 `splay` and `splayaz` are in the spec but are sclang code that emits other UGens. The prelude's `splay` takes one argument and replaces the generated word; see [Prelude words](#prelude-words).
 
@@ -120,7 +138,7 @@ Each SC help file names its categories, e.g. `categories:: UGens>Filters>Linear`
 
 Against the 530 core interpreter words, one bare UGen clashes: `ramp`. The core's `ramp` clamps to 0..1; SC's `Ramp` is a linear lag. The core's `ramp` appears in neither `sapf-prelude.txt` nor `sapf-examples.txt`, so it moves to `sapf.ramp`.
 
-`rand`, `irand` and `linrand` do not clash: their UGens live in `rnd`. `1 5 rand` draws a real when the def is built. `1 5 rnd.rand` draws a new value per synth. The pair marks the tier, as `rrand` and `Rand` do in sclang.
+`rand`, `irand` and `linrand` do not clash: their UGens live in `random`. `1 5 rand` draws a real when the def is built. `1 5 random.rand` draws a new value per synth. The pair marks the tier, as `rrand` and `Rand` do in sclang.
 
 No namespace name matches a core word or a bare UGen.
 
@@ -144,11 +162,13 @@ Only trailing ones are dropped, so argument positions never shift. Omitted argum
 
 12 of the phrasebook's 23 phrases passed a value only to fill a tail parameter, or fell back to keywords, before this rule.
 
+The rule misfires where a stoplist name is a class's main input: `level` in `Duty` and `TDuty`, `reset` in `Dreset`. `spec/stac-ugens.json` overrides those 3 of 21 demand classes.
+
 Keyword: a Form in place of the arguments names any of them, tail parameters included, and takes SC's defaults for the rest.
 
 ```
 {:in sig :pos .5 :level .8} pan2
-{:numChannels 2 :bufnum b :rate b buf.bufratescale.kr :loop 1} buf.playbuf
+{:numChannels 2 :bufnum b :rate b buffer.bufratescale.kr :loop 1} buffer.playbuf
 ```
 
 Lists expand to channels, as in both sapf and SC. A list of Forms expands too.
@@ -175,6 +195,7 @@ Rate methods per class:
 A call runs at the highest rate its class offers: `ar`, else `kr`, else `ir`, else `new`. The two possible errors differ in kind:
 
 - A UGen at `ar` that could run at `kr` sounds the same and uses more CPU. Not measured.
+
 - A UGen at `kr` that should run at `ar` sounds wrong. `kr` updates once per 64-frame block, 750 Hz at 48 kHz, so an oscillator above 375 Hz aliases.
 
 In the phrasebook, `.kr` appears only on envelopes and LFOs, where SC users also write it.
@@ -197,6 +218,8 @@ A dot after a UGen word applies a method to the `Sig` it left. A dot ends a word
 
 `.kr` on a UGen without `kr` is an error. `.kr` on a real returns the real.
 
+Built: all three. `.ir` on a node also used at another rate makes a second node, since no UGen converts to scalar rate. `.poll` labels the output `UGen(Class)` as sclang does; nanosynth's default label is the bare class name. The `Poll` is attached to the polled node and compiles wherever that node does, since `Poll` writes no output for a channel to read.
+
 ### Operators
 
 Math on a `Sig` builds `BinaryOpUGen` or `UnaryOpUGen` and folds constants; this works today. On reals it computes in the interpreter. Where sapf's operator name differs from SC's selector, stac takes SC's: `midicps` for `nnhz`, `cpsmidi` for `hznn`. `sapf.stac` aliases the sapf names.
@@ -218,7 +241,9 @@ sclang pseudo-UGens and phrasebook helpers, written in stac:
 `sinosc` and `fft.pv_magfreeze` are generated primitives. A word bound to a Form pushes the Form instead of calling it, so a UGen word cannot be a Form.
 
 - Rate belongs to the result, not the class.
+
 - `` `sinosc `` pushes the primitive as a function: ``[`sinosc `lfsaw] @ \f [440 0 f] !`` gives two channels. Works today, with sapf-sc's argument counts.
+
 - Help and argument metadata attach to the primitive, as for every built-in word.
 
 ## Namespaces
@@ -240,7 +265,7 @@ Namespaces may hold both tiers when they share a topic:
 
 | Namespace | Interpreter words | UGens |
 |-|-|-|
-| `buf` | `buf.read`, `buf.load`, `buf.alloc` | `buf.playbuf`, `buf.bufrd`... |
+| `buffer` | `buffer.read`, `buffer.load`, `buffer.alloc` | `buffer.playbuf`, `buffer.bufrd`... |
 | `node` | `node.group` | `node.freeself`, `node.detectsilence`... |
 | `env` | `env.perc`, `env.adsr`, `env.asr`, `env.linen`, `env.new` | none; `envgen` is bare |
 | `bus` | `bus.audio`, `bus.control` | none |
@@ -268,23 +293,32 @@ PARAM := name | name:LITERAL
 ```
 
 - `def` is reserved. The parser handles it in `parseWord`, as it handles `=` (`src/engine/Parser.cpp:630`). `def` is unused in sapf-sc, its prelude and its examples.
+
 - The statement ends at the body's closing `]`. A body may span lines.
+
 - Inside a `def`, `freq:440` reads a name, then a literal after the colon. Elsewhere `:` keeps its meaning as a Form key.
+
 - The `def` parser consumes its own `=`. List destructuring (`= [a b]`) is unaffected.
+
 - A default is a literal number: `440`, `.1`, `-3`, `2pi`, `5/4`. A parameter without one defaults to 0. SC stores defaults as constants in the def file.
+
 - The body compiles as a function body. Each parameter is bound to a control output and hides any word of the same name inside the body: a parameter `in` hides the UGen `in`.
 
 ### Running a `def`
 
 1. Compiles the SynthDef from the body.
-2. Sends it (`/d_recv`) if a server runs, else before the first synth.
-3. Binds `NAME` to a callable `Def`. `{...} NAME` starts a synth with those control values and returns its `Node`. The `Def` type is new; not built.
+
+2. Binds `NAME` to a callable `Def`, after the body compiles, so the body cannot call its own name. `{...} NAME` starts a synth with those control values and pushes its `Node`.
+
+3. Sends the def with its first synth: one `/d_recv` whose completion message is the `/s_new`. Sending at the statement would wait on every def for a server that may not run. `.add` sends it at once.
 
 Running the statement again redefines and resends the def. Synths already playing keep the old graph, as in SC. A def name that hides a UGen or core word gets a warning.
 
-If the body leaves channels, the def adds `out` to a control `out`, default 0, as SC's `Function.play` does. If it leaves none, the body writes its own `out`. Controls take their slot order from parameter order, which settles the `scsy` sidecar slot question in TODO.md.
+If the body leaves channels, the def writes them with `Out` to a control `out`, default 0, appended after the parameters, unless the def declares `out` itself. If it leaves none, the body writes its own, as `out ug.out`. Controls take their slot order from parameter order within each kind, ir, tr, ar, kr as in SC, which settles the `scsy` sidecar slot question in TODO.md. Every declared parameter is a control, used or not.
 
-`` `NAME `` pushes the `Def` without calling it. `.add` resends it; `.write` writes `NAME.scsyndef` and the `scsy` sidecar.
+`` `NAME `` pushes the `Def` without calling it. `.add` resends it; `.write` writes `NAME.scsyndef`. The `scsy` sidecar is not written yet; see phase 3 below.
+
+Dot methods that act, `.set`, `.release`, `.releaseIn`, `.free`, `.add` and `.write`, leave nothing on the stack. The REPL prints the stack after each line, so a returned value would print after every `x.free`.
 
 ### Control types
 
@@ -402,11 +436,20 @@ It has no `synth`, `set` or `release`. `play` starts an unnamed synth; `stop` fr
 | `stop` | `s.freeAll` | `/g_freeAll 0` |
 | `node.group` | `Group()` | `/g_new` |
 | `2 bus.audio` | `Bus.audio(s, 2)` | none; interpreter allocator |
-| `"a.wav" buf.read` | `Buffer.read(s, "a.wav")` | `/b_allocRead` |
-| `#[0 .5 1] buf.load` | `Buffer.loadCollection` | `/b_alloc`, `/b_setn` |
+| `"a.wav" buffer.read` | `Buffer.read(s, "a.wav")` | `/b_allocRead` |
+| `#[0 .5 1] buffer.load` | `Buffer.loadCollection` | `/b_alloc`, `/b_setn` |
 | `["/n_set" 1000 "freq" 440] send` | `s.sendMsg(...)` | as given |
 
-Add actions go in the Form: `{:freq 660 :target g :addAction 'tail}`. See open question 9.
+Add actions go in the Form: `{:freq 660 :target g :addAction 'tail}`. The default is the head of the root node 0. See open question 9.
+
+Built: `/s_new` from a `Def`, `set`, `release`, `releaseIn`, `free`, `bus.audio`, `bus.control` with `v b.set`, `buffer.read`, `buffer.load`, `buffer.alloc`, `{} node.group`, `send`. Not built: freeing a bus or buffer, and `play` pushing a `Node`.
+
+- `node.group` takes the placement Form a def call takes, `{:target g :addAction 'tail}`; `{}` places it at the head of the root. A group is a `Node`, so `set`, `release` and `free` act on all its synths.
+- `bus.control` takes control buses from 16383 down, 4096 in all, clear of the low buses sclang allocates from 0.
+- `send` sends a whole real as an int and any other as a float, as sclang sends an `Integer` and a `Float`.
+
+- `bus.audio` takes buses from 959 down; `ola`, which rotates through 512 and up, wraps below the lowest taken. Buses are not freed; 384 channels remain for `bus.audio` before it reports none left.
+- `buffer.read` puts a file in the sound-file buffer `sf>` would use for it, 0..63, so a file has one buffer. `buffer.load` and `buffer.alloc` take buffers 64..511, below the wave tables. Each sapf process takes its own block of 100000 node IDs from 3000000, chosen from its process ID, so a second or restarted sapf does not reuse the IDs of synths still running. `play`'s fixed IDs from 2000000 still can.
 
 `set` on a running node restores live control, which sapf-sc lost with `zctl`, `zplug` and `set`. Buses and buffers reuse sapf-sc's allocators: private buses 512..959, sample buffers 0..63, wave tables from 512.
 
@@ -426,10 +469,18 @@ player.stop
 ```
 
 - A list field advances once per event. A real field repeats. The stream ends when its shortest finite field ends, the automapping rule sapf already uses.
+
 - A `Sig` in a field is an error. Events carry values, not graphs.
+
 - `play` on an event stream starts one synth per event, `dur` beats apart. `legato` sets when it releases. Bundles go out .2 s ahead, as the `ola` scheduler does now.
+
 - `'rest` in any field makes a rest.
+
 - `:instrument` names a def. It may also be a function; stac compiles it per event and reuses defs that compile alike, as `ola` voices do now.
+
+- `:scale` holds its list; it does not advance, as other list fields do.
+
+Built: `pbind`, `play` on an event stream on the default clock, `player.stop`, the pitch chain below, chords, `'rest`, and `score` for event streams. Each event follows SC's default event: `amp` .1, `dur` 1, `legato` .8; only the def's controls are sent; `sustain` or `dur * legato` sets when a def with `gate` is released. A function `:instrument` takes each argument from the event's field of that name; `freq`, `amp`, `dur`, `legato` and `sustain` get the derived values; `:out` sets the bus it writes to. `dur` and `sustain` are in beats, so `sustain T` lasts `sustain` seconds only at 1 beat per second. Nothing checks that its channels end; one that does not end plays until `stop`.
 
 ### Chords
 
@@ -452,6 +503,10 @@ A field value that is itself a list plays one synth per element, as in SC:
 ### Replacement
 
 `pdef` and `ndef` name a player. Running the line again replaces it: a pattern at the next beat, a sound with a crossfade. They follow SC's `Pdef` and `Ndef`.
+
+Built: `pdef`, on the default clock. It pushes the name's player, the same object each run, so `.stop` ends whichever stream is current. Not built: a quant other than 1; `pdef` on another clock.
+
+Built: `ndef`. Each run compiles the channels times SC's `EnvGate` and starts the synth in the bundle that releases the previous one. `nd.stop` fades out; `{:fadeTime t} nd.set` sets the fade. Not built: SC's private bus and monitor, so one ndef cannot yet read another.
 
 ```
 {:instrument 'ping :midinote [60 62 64] cyc :dur .25} pbind 'mel pdef
@@ -484,18 +539,24 @@ sclang's pattern classes map to existing sapf stream words:
 
 `2 clock.new = clk` makes a clock at 2 beats per second. `p clk.play` plays on it; a method keeps `play`'s arity fixed. `{:tempo 3} clk.set` changes tempo. The default clock runs at 1 beat per second.
 
+Built as described. Event times and releases are in beats, converted to server time when sent, .2 s ahead. A tempo change therefore misses bundles already sent. `score` times events at 1 beat per second.
+
 ### Rendering
 
 - `item seconds "name" render` writes `name.wav` through the NRT renderer. `item` is channels or an event stream.
+
 - `item seconds "name" score` writes `name.osc` for `scsy`, replacing `>nrt`.
+
 - Both take an explicit duration. sapf-sc's `>sf` infers it from where channels end, and refuses many graphs. SC's `Score.render` takes a duration.
+
+Built: both. `render` writes to `$SAPF_RECORDINGS`, as `>sf` does. Events render to 2 channels, SC's default `numOutputBusChannels`; a mono def leaves the second silent.
 
 ## Demand rate
 
-The demand UGens live in `dem`. They take a finite list:
+The demand UGens live in `demand`. They take a finite list:
 
 ```
-[8 impulse.kr 0 [60 63 67 70] inf dem.dseq dem.demand.kr midicps saw .1 *] play
+[8 impulse.kr 0 [60 63 67 70] inf demand.dseq demand.demand.kr midicps saw .1 *] play
 ```
 
 An infinite list is an error; `1024 take` makes it finite. sapf-sc's silent 1024-value cap is removed.
@@ -516,6 +577,8 @@ Each returns an `Env`; `envgen` flattens it into its inputs. Curves are reals or
 
 `N`, `T` and `NZ` on a `Sig` no longer end a synth. `.done` on an envelope or `line` does.
 
+Built: `env.perc`, `env.adsr`, `env.asr`, `env.linen` and `env.new`, with SC's defaults for the arguments they do not take: level 1, curve -4 (`linen`: `'lin`). `ug.envgen` and `ug.ienvgen` take an `Env`, or a list already in SC's envelope format. `.done` and `.kr` apply in either order.
+
 ## Completion
 
 The REPL reads lines with replxx (`src/engine/VM.cpp:255`) and sets no completion callback today. replxx provides `replxx_set_completion_callback` (`thirdparty/replxx/include/replxx.h:309`) and `replxx_set_hint_callback` (`:355`).
@@ -523,10 +586,14 @@ The REPL reads lines with replxx (`src/engine/VM.cpp:255`) and sets no completio
 ### Rules
 
 - A prefix with no dot completes against core words, bare UGens, namespace names and user bindings.
-- A prefix with no dot also offers namespaced matches: `playb<TAB>` gives `buf.playbuf`. A player need not remember which namespace SC's categories chose.
+
+- A prefix with no dot also offers namespaced matches: `playb<TAB>` gives `buffer.playbuf`. A player need not remember which namespace SC's categories chose.
+
 - A prefix with a dot splits at the last dot. The completer looks up the namespace at runtime and offers its keys: `fft.pv_mag<TAB>`, `env.<TAB>`.
+
 - After a value, as in `sinosc.k<TAB>`, the completer cannot know the stack's type without evaluating the line. It offers the `Sig` methods.
-- An undefined bare word that names a namespaced UGen gets a suggestion: `"playbuf" is undefined; buf.playbuf?`.
+
+- An undefined bare word that names a namespaced UGen gets a suggestion: `"playbuf" is undefined; buffer.playbuf?`.
 
 ### Fan-out
 
@@ -534,8 +601,8 @@ The REPL reads lines with replxx (`src/engine/VM.cpp:255`) and sets no completio
 |-|-|-|
 | bare UGens | 165 | median 1, largest `lf` 14 |
 | `fft` | 49 | `pv` 34 |
-| `buf` | 38 | `bu` 17 |
-| `dem` | 24 | median 1 |
+| `buffer` | 38 | `bu` 17 |
+| `demand` | 24 | median 1 |
 | other namespaces | 3 to 23 | short |
 
 `ug` needs no sub-namespaces. The two large lists share an SC prefix inside the namespace (`pv_`, `buf`); see open question 5.
@@ -548,9 +615,14 @@ The hint callback shows a word's stack effect after it is typed, from the help s
 440 sinosc            (freq --> sig)
 ```
 
+Built: the rules and hints above, in `Completion.cpp`, unit-tested in `tests/unit/test_completion.cpp`. Two refinements:
+
+- After a value, the completer offers the methods of every stac object, not only `Sig`'s: `n.rel<TAB>` gives `release` and `releaseIn`.
+- `ug` indexes every UGen, so a namespaced match names its category namespace, and `ug` only for a bare UGen: `pv_magf<TAB>` gives `fft.pv_magfreeze` alone. The undefined-word suggestion follows the same rule, in sapf and in the linter's W1.
+
 ### Editors
 
-Live coding usually sends text from an editor, which gets no REPL completion. `stac --words` prints every binding with its namespace and stack effect, one per line, for editor plugins.
+Live coding usually sends text from an editor, which gets no REPL completion. `stac --words` prints every binding with its namespace and stack effect, one per line, for editor plugins. Not built.
 
 ## sapf.stac
 
@@ -562,8 +634,11 @@ Live coding usually sends text from an editor, which gets no REPL completion. `s
 ```
 
 - [../ugens.md](../ugens.md) moves with it; its fidelity figures describe this library.
+
 - The conformance tests against sapf renders test this library, not the core.
+
 - `sapf-examples.txt` runs with `-p sapf.stac`, which binds the `sapf` words globally.
+
 - The policy in [upstream-sapf-bugs.md](upstream-sapf-bugs.md) applies to this library only. The core follows SC.
 
 ## Naming
@@ -584,25 +659,55 @@ The licence stays GPL-3.0, with sapf's copyright notices and a statement of deri
 Each phase leaves `make test` passing. Until phase 5, new UGen words appear only in namespaces and `ug`, so they cannot collide with sapf-sc's words of the same name and different units, such as `sinosc`'s phase.
 
 1. **Rename.** Binary, environment variables, files, docs. No change in behaviour.
+
 2. **Spec UGens.** Generate a primitive per class into its namespace and `ug`. Tail parameters, keyword Forms, `Sig` methods, `Namespace`. Test SCgf parity with nanosynth for every class.
-3. **Defs and nodes.** The `def` statement, callable `Def`, `synthdef`, `set`, `release`, `releaseIn`, `free`. The `env`, `bus`, `buf`, `node` namespaces and the `Env` type.
-4. **Patterns.** `pbind`, chords, pitch keys, `clock`, `pdef`, `ndef`, `render`, `score`. Rewrite `ola` on them. Completion and hints.
+   Done: 374 words, every namespace in the grouping above, and 155 of the 165 bare UGens, which live in `ug` only until phase 5. `.kr`, `.ir`, `.done`, `.poll`. Of the 393 public classes, 19 are not generated.
+   - `spec/stac-ugens.json` encodes the grouping above: a class goes by its first help category, from `HelpSource/Classes/*.schelp`, unless placed by hand. The generated counts match the tables.
+   - Not generated, with the reason in `spec/stac-ugens.json`:
+     - sclang code that emits other UGens: `Changed`, `CompanderD`, `HilbertFIR`, `VarLag`, `Splay`, `SplayAz`, `DynKlank`, `DynKlang`, `Dunique`, `LocalBuf`, `Tap`, `UnpackFFT`, `InBus`, and `Dstutter`, a deprecated alias of `Ddup`.
+     - strings and other objects as arguments: `Poll`, `Dpoll`, `SendReply`, `SendPeakRMS`, `InRect`.
+   - A `numChannels` argument sets the output count and is not sent, as in `PlayBuf` and `BufRd`. It must be a whole number. `MFCC`'s `numcoeff` sets the count and is sent.
+   - `Klank` and `Klang` take `[freqs amps times]` and send it as sclang's `flop.flat`. An omitted row takes sclang's fill.
+   - An `ar` method that calls `asAudioRateInput` raises a constant input to `DC.ar` and a control-rate one to `K2A.ar`, as sclang does. `.kr` compiles from the inputs as given.
+   - A call takes the defaults of the rate it builds at. `.kr` keeps them: `ug.leakdc.kr`'s `coef` is `ar`'s .995, not `kr`'s .9. This changes a value in 5 classes: `LeakDC`, `Gendy1`, `Gendy2` (`minfreq`, `maxfreq`), `Delay1`, `Delay2` (`x1`, `x2`).
+   - `x ? y` defaults, as in `Stepper`'s `resetval ? min`, apply when a keyword call omits the argument.
+   - Deviations from sclang: `DecodeB2` sends its `orientation`; sclang's source assigns 0.5 inside its call. `Onsets` takes `odftype` as a number, default 3; sclang also takes a symbol.
+   - `tests/py/test_ugen_sweep.py` compiles 262 classes with a distinct value per argument and compares the bytes with nanosynth's. 110 are not swept: missing from nanosynth, demand rate, or lists, output counts, raised inputs or no outputs. `test_spec_ugens.py` covers some of those by hand.
+
+3. **Defs and nodes.** The `def` statement, callable `Def`, `synthdef`, `set`, `release`, `releaseIn`, `free`. The `env`, `bus`, `buffer`, `node` namespaces and the `Env` type.
+   Done so far: the `Env` type and the `env` namespace, which unblock `envgen` and `ienvgen`; the `def` statement, `synthdef`, `Def` and `Node` with `set`, `release`, `releaseIn` and `free`. `bus.audio`, `bus.control`, `buffer.read`, `buffer.load`, `buffer.alloc`, `node.group`, `send`. Not yet: `play` pushing a `Node`, moved to phase 5 because it changes what `play` leaves. The `scsy` sidecar from `.write` waits for a source of ranges: `scsy` needs a sidecar only for ranges, units, curves, CV or a slot order other than the def's (`TODO.md`), and `def` declares none of them.
+
+4. **Patterns.** `pbind`, chords, pitch keys, `clock`, `pdef`, `ndef`, `render`, `score`. Rewrite `ola` on them, deferred to phase 5: `ola`'s voice function takes an index, not event fields, and its conformance test allows only 12 differing frames. Completion and hints.
+   Done: `pbind`, chords, pitch keys, a function as `:instrument`, `play` and `.stop`, `score`, `render`, `clock.new`, `clk.play`, `clk.set`, `pdef`, `ndef`, completion and hints. Not built: `stac --words` for editors.
+
 5. **Split.** Move sapf's words to `sapf`. Bind the 165 bare UGens. Move the core's `ramp` to `sapf.ramp`. Remove the `ZList` signal path, `kr`, `ctl`, `>sd`, `>sf`, `>nrt`, and `N`/`T` on `Sig`.
 
 Phases 1-4 break no program. Phase 5 breaks every program that does not load `sapf.stac`.
 
 ## Open questions
 
-1. **Rate inference.** sapf-sc lowers a node whose consumers are all `kr`. Remove it, or keep it opt-in. It does not lower the common case, an LFO driving an `ar` filter's frequency.
+1. **Rate inference.** sapf-sc lowers a node whose consumers are all `kr`. Decided for generated words: they take no part, neither lowered nor lowering their inputs, because a `kr` UGen such as `FFT` or `Amplitude` reads its whole audio input. The inference stays for sapf's words until phase 5 removes them.
+
 2. **`.ar` on a `kr` UGen.** Raise it with `K2A`, or reject it.
-3. **Render duration.** Explicit only, or inferred when every channel has a `doneAction`.
+
+3. **Render duration.** Explicit only, or inferred when every channel has a `doneAction`. `render` is built with explicit only; inference can be added without breaking it.
+
 4. **`!`.** sapf's `!` applies a function; SC's duplicates. stac keeps sapf's and uses `X` to duplicate.
-5. **Prefix stripping inside a namespace.** `buf.rd` for `buf.bufrd`, `fft.magfreeze` for `fft.pv_magfreeze`, `dem.seq` for `dem.dseq`. Shorter, but SC's help is then searched under a different name.
-6. **Namespace names.** `dem`, `ana`, `amb`, `rnd` are short and opaque; `demand`, `analysis`, `ambi`, `random` read better and complete after 2 letters anyway.
+
+5. **Prefix stripping inside a namespace.** Deferred. Phase 2 generates SC's names unstripped: `buffer.bufrd`, `fft.pv_magfreeze`, `demand.dseq`. Stripping (`buffer.rd`, `demand.seq`) is planned; decided 2026-10-15: do it with question 6 as the last stage. Options and counts: `stac-names.md`.
+
+6. **Namespace names.** Deferred. Phase 2 uses full names: `buffer`, `demand`, `analysis`, `random`, `ambisonics`, `granular`, `beqsuite`. Acronyms stay: `fft`, `io`, `ui`. Short names are planned. Stripping and short names trade against each other (`dem.dseq` and `demand.seq` have the same length), so pick them together, as the last stage.
+
 7. **Control lag.** SC's `\freq.kr(440, 0.1)`. A `def` parameter could take it as `freq:440~.1`. `~` is a name character today, so this needs `def`-only lexing, as `:` does.
+
 8. **Array controls.** Whether `freqs:[100 200]` makes a multichannel control, as SC's `freqs=#[100, 200]` does.
+
 9. **Synth options and control values share one Form.** `target` and `addAction` then cannot name parameters. Only one phrasebook phrase needs an option; a second Form costs a word per call.
+
 10. **Calling a def with all defaults** is `{} blip`. An optional Form reads better but makes the word's arity depend on the stack.
+
 11. **Routines.** sclang has `fork` and `wait`. stac's VM has no coroutines. Event streams cover sequencing; a function scheduled on a clock (`clk 4 fun sched`) covers the rest.
-12. **Spec location.** Vendor `sclang-reference.json` into this repo, or read it from nanosynth at build time.
+
+12. **Spec location.** Decided: vendored as `spec/sclang-reference.json`, from nanosynth `7a212da`. Regenerate it in nanosynth with `make sclang-reference`, then copy it.
+
 13. **`--words` format.** Plain lines, or JSON for editor plugins.

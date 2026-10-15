@@ -43,6 +43,9 @@ def test_lex_is_lossless_and_clean(path):
     (r'"a ""q"" \\n"', [('str', r'"a ""q"" \\n"')]),
     ('@ @@ @2 @101', [('each', '@'), ('each', '@@'), ('each', '@2'), ('each', '@101')]),
     ('#[1] ;c', [('open', '#['), ('num', '1'), ('close', ']')]),
+    ('def beep freq:440 t_trig = [freq]', [('def', 'def'), ('defname', 'beep'), ('param', 'freq'), ('prefix', ':'),
+                                           ('num', '440'), ('param', 't_trig'), ('bind', '='), ('lopen', '['),
+                                           ('word', 'freq'), ('close', ']')]),
 ])
 def test_tokens(src, expect):
     assert kinds(src) == expect
@@ -51,6 +54,7 @@ def test_tokens(src, expect):
 @pytest.mark.parametrize('src,code', [
     ('"open', 'E1'), ('[1', 'E2'), ('1]', 'E3'), ('[1)', 'E3'), ("'", 'E4'), ('#x', 'E5'),
     (r'\a 2 [a]', 'E6'), (r'\a', 'E6'), ('1 =', 'E7'), ('= (a b]', 'E7'), ('@12', 'E8'),
+    ('def = [1]', 'E10'), ('def f a:x = [a]', 'E10'), ('def f a', 'E10'), ('def f a = 1', 'E10'),
 ])
 def test_syntax_errors(src, code):
     assert code in [e.code for e in st.lex(src).errors]
@@ -73,6 +77,11 @@ def test_format_lambda_header_and_comments():
 def test_format_lambda_body_on_own_line():
     src = '\\a b\n"h"\n[\na b +\n] = f\n'
     assert st.format_source(src, '\t') == '\\a b\n\t"h"\n\t[\n\t\ta b +\n\t] = f\n'
+
+
+def test_format_def_body():
+    src = 'def pad freq:220 = [\nfreq ug.saw\n.2 *\n]\n'
+    assert st.format_source(src) == 'def pad freq:220 = [\n    freq ug.saw\n    .2 *\n]\n'
 
 
 def test_format_keeps_inner_spacing_and_strings():
@@ -133,9 +142,24 @@ def test_builtin_words(builtins):
     (r'\a [\b [a] = g  g]', []),
     ('[1 2] = [a b]  a b', []),
     ('x . free', ['W1', 'W4']),
+    ('def beep freq:440 = [freq ug.sinosc]  {} beep', []),
+    ('def beep freq = [beep]', ['W1']),
+    ('def neg x = [x]', ['W2']),
+    ('def f a = [b]', ['W1']),
 ])
 def test_lint(src, expect, builtins):
     assert codes(src, builtins) == expect
+
+
+@pytest.mark.parametrize('src,hint', [
+    ('1 pv_magfreeze', "'pv_magfreeze' is undefined; fft.pv_magfreeze?"),
+    ('1 a2k', "'a2k' is undefined; ug.a2k?"),
+])
+def test_lint_names_the_namespace(src, hint, builtins, tmp_path):
+    """As sapf's own error does."""
+    (d,) = st.analyze(src, builtins)[0]
+    assert d.msg == hint
+    assert hint.replace("'", '"', 2).replace(' undefined', ' an undefined word', 1) in run_sapf(src, tmp_path)
 
 
 def test_lint_prelude_names(builtins):

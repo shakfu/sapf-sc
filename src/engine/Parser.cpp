@@ -16,6 +16,7 @@
 
 #include "Parser.hpp"
 #include "Opcode.hpp"
+#include "Completion.hpp"
 #include <ctype.h>
 #include <cmath>
 #include <cstdarg>
@@ -412,77 +413,140 @@ static bool parseStackEffect(Thread& th, int& outTakes, int& outLeaves)
 	return true;
 }
 
-static bool parseLambda(Thread& th, P<Code>& code)
+struct LambdaArg {
+	P<String> name;
+	int takes = 0;
+	int leaves = 1;
+};
+
+// The body of a function whose arguments are `args`: [ ... ]. Pushes the function.
+static void compileLambda(Thread& th, P<Code>& code, std::vector<LambdaArg> const& args, P<String> const& help)
 {
-	//ScopeLog sl("parseLambda");
-	ParsingWhat pw(th, parsingLambda);
-	th.getc();
-	std::vector<P<String> > args;
-		
 	SaveCompileScope scs(th);
-	
+
 	P<InnerCompileScope> cs = new InnerCompileScope(th.mCompileScope);
 	th.mCompileScope = cs();
-	
-	while (1) {
-		P<String> name;
-		if (!parseSymbol(th, name)) break;
-		args.push_back(name);
-		
-		int takes, leaves;
-		if (!parseStackEffect(th, takes, leaves)) {
-			syntaxError("incorrectly formatted function argument stack effect annotation.");
-		}
-		
+
+	std::vector<P<String> > names;
+	for (LambdaArg const& a : args) {
+		names.push_back(a.name);
 		LocalDef def;
-		def.mName = name;
+		def.mName = a.name;
 		def.mIndex = cs->mLocals.size();
-		def.mTakes = takes;
-		def.mLeaves = leaves;
+		def.mTakes = a.takes;
+		def.mLeaves = a.leaves;
 		cs->mLocals.push_back(def);
 	}
-	
-	skipSpace(th);
-	
-	P<String> help = parseString(th);
 
 	skipSpace(th);
-	
-	int c = th.getc();	
+
+	int c = th.getc();
 	if (c != '[') {
-        post("got char '%c' %d\n", c, c);
+		post("got char '%c' %d\n", c, c);
 		syntaxError("expected open square bracket after argument list");
 	}
-		
-	P<Code> code2 = new Code(8);	
+
+	P<Code> code2 = new Code(8);
 	parseItemList(th, code2, ']');
 
 	code2->add(opReturn, 0.);
 	code2->shrinkToFit();
-	
-		
+
 	// compile code to push all fun vars
 	for (size_t i = 0; i < cs->mVars.size(); ++i) {
 		VarDef& def = cs->mVars[i];
 		V vindex;
 		vindex.i = def.mFromIndex;
-		
+
 		if (def.mFromScope == scopeLocal) {
 			code->add(opPushLocalVar, vindex);
 		} else {
 			code->add(opPushFunVar, vindex);
 		}
 	}
-	if (args.size() > USHRT_MAX || cs->mLocals.size() > USHRT_MAX || cs->mVars.size() > USHRT_MAX)
+	if (names.size() > USHRT_MAX || cs->mLocals.size() > USHRT_MAX || cs->mVars.size() > USHRT_MAX)
 	{
 		post("Too many variables!\n");
 		throw errSyntax;
 	}
 
-    FunDef* def = new FunDef(th, code2, args.size(), cs->mLocals.size(), cs->mVars.size(), help);
-	def->mArgNames = args;
+	FunDef* def = new FunDef(th, code2, names.size(), cs->mLocals.size(), cs->mVars.size(), help);
+	def->mArgNames = names;
 	code->add(opPushFun, def);
+}
 
+static bool parseLambda(Thread& th, P<Code>& code)
+{
+	//ScopeLog sl("parseLambda");
+	ParsingWhat pw(th, parsingLambda);
+	th.getc();
+	std::vector<LambdaArg> args;
+
+	while (1) {
+		LambdaArg arg;
+		if (!parseSymbol(th, arg.name)) break;
+		if (!parseStackEffect(th, arg.takes, arg.leaves)) {
+			syntaxError("incorrectly formatted function argument stack effect annotation.");
+		}
+		args.push_back(arg);
+	}
+
+	skipSpace(th);
+
+	P<String> help = parseString(th);
+
+	compileLambda(th, code, args, help);
+
+	return true;
+}
+
+// stac's def statement (docs/dev/stac.md, Definitions): def NAME PARAM* = [ BODY ], where PARAM is
+// name or name:LITERAL. Compiles to `\PARAMS [BODY] {DEFAULTS} 'NAME synthdef = NAME`.
+static bool parseDef(Thread& th, P<Code>& code)
+{
+	ParsingWhat pw(th, parsingLambda);
+	P<String> name;
+	if (!parseSymbol(th, name) || strcmp(name->cstr(), "=") == 0)
+		syntaxError("expected a name after def");
+
+	std::vector<LambdaArg> params;
+	std::vector<Z> defaults;
+	while (1) {
+		LambdaArg param;
+		if (!parseSymbol(th, param.name))
+			syntaxError("expected '=' after the parameters of def");
+		if (strcmp(param.name->cstr(), "=") == 0) break;
+		Z value = 0.;
+		if (th.c() == ':') {
+			th.getc();
+			if (!parseNumber(th, value))
+				syntaxError("expected a number after ':' in def");
+		}
+		params.push_back(param);
+		defaults.push_back(value);
+	}
+
+	compileLambda(th, code, params, nullptr);
+
+	P<TableMap> tmap = new TableMap(params.size());
+	for (size_t i = 0; i < params.size(); ++i) {
+		V key(params[i].name);
+		tmap->put(i, key, key.Hash());
+	}
+	P<Table> table = new Table(tmap);
+	for (size_t i = 0; i < params.size(); ++i) table->put(i, defaults[i]);
+	code->add(opPushImmediate, V(new Form(table)));
+	code->add(opPushImmediate, V(name));
+
+	V synthdef;
+	if (!vm.builtins->get(th, getsym("synthdef"), synthdef))
+		syntaxError("def needs the synthdef word");
+	code->add(opCallImmediate, synthdef);
+
+	V hidden;
+	if (vm.builtins->get(th, name, hidden))
+		post("warning: def %s hides the built-in word %s\n", name->cstr(), name->cstr());
+	bindVar(th, name, code);
 	return true;
 }
 
@@ -626,7 +690,10 @@ bool parseWord(Thread& th, P<Code>& code)
 	P<String> name;
 
 	if (!parseSymbol(th, name)) return false;
-		
+
+	if (strcmp(name->cstr(), "def")==0)
+		return parseDef(th, code);
+
 	if (strcmp(name->cstr(), "=")==0) {
 
 		skipSpace(th);		
@@ -702,7 +769,9 @@ bool parseWord(Thread& th, P<Code>& code)
 				code->add(opCallWorkspaceVar, vname);
 				break;
 			default :
-				post("\"%s\" is an undefined word\n", name->cstr());
+				post("\"%s\" is an undefined word", name->cstr());
+				for (std::string const& w : namespacedWords(th, name->cstr())) post("; %s?", w.c_str());
+				post("\n");
 				syntaxError("undefined word");
 				
 		}

@@ -152,7 +152,7 @@ void Thread::run(Opcode* opc)
 					V ioValue;
 					if (!pop().dot(th, v, ioValue))
 						notFound(v);
-					push(ioValue);
+					if (ioValue.o() != noValue()) push(ioValue);
 					break;
 				}
 				case opComma :

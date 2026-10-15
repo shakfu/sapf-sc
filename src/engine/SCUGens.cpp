@@ -12,6 +12,7 @@
 #include "Graph.hpp"
 #include "Scsynth.hpp"
 #include "Texture.hpp"
+#include "Patterns.hpp"
 #include "Samples.hpp"
 #include <chrono>
 #include "MathFuns.hpp"
@@ -1009,6 +1010,10 @@ static int gPlayCount = 0;
 static void play_(Thread& th, Prim* prim)
 {
 	V channels = th.pop();
+	if (isEventStream(th, channels)) {
+		playEventStream(th, channels);
+		return;
+	}
 	std::string name = "sapf-play-" + std::to_string(++gPlayCount);
 	std::string def = compileSynthDef(th, channels, name);
 	// at the tail of the root group, after any ola voices it reads; its ola voices stop when it
@@ -1032,6 +1037,7 @@ static void play_(Thread& th, Prim* prim)
 static void stop_(Thread& th, Prim* prim)
 {
 	stopTextures();
+	stopEventStreams();
 	scsynthSend(oscMessage("/clearSched", {})); // ola voices already sent for later
 	scsynthSend(oscMessage("/g_deepFree", {{OscArg::Int, 0, ""}}));
 }
@@ -1088,18 +1094,24 @@ static std::string renderFile(Thread& th, const char* word)
 	V channels = th.pop();
 	double sr = th.rate.sampleRate;
 	double seconds = renderSeconds(th, channels, sr);
-	int64_t frames = (int64_t)std::llround(seconds * sr);
+	return renderScore(th, nrtScore(th, channels, "sapf-render", seconds), name, channelCount(th, channels), seconds,
+		word);
+}
+
+std::string renderScore(Thread& th, const std::string& score, const std::string& name, int channels, double seconds,
+	const char* word)
+{
+	double sr = th.rate.sampleRate;
 	const char* dir = getenv("SAPF_RECORDINGS");
 	std::error_code ec;
 	std::string path = ((dir && *dir) ? std::string(dir) : std::filesystem::temp_directory_path(ec).string()) +
 		"/" + name + ".wav";
-	int n = channelCount(th, channels);
-	std::string error = scsynthRender(nrtScore(th, channels, "sapf-render", seconds), path, n, frames, sr);
+	std::string error = scsynthRender(score, path, channels, (int64_t)std::llround(seconds * sr), sr);
 	if (!error.empty()) {
 		post("%s : %s\n", word, error.c_str());
 		throw errFailed;
 	}
-	post("wrote file '%s'  %d channels  %g secs\n", path.c_str(), n, seconds);
+	post("wrote file '%s'  %d channels  %g secs\n", path.c_str(), channels, seconds);
 	return path;
 }
 
@@ -1243,7 +1255,7 @@ void AddSCUGenOps()
 	DEFMCX(kr, 1, "(in --> out) control-rate version of in. UGens feeding only control-rate UGens become control rate too.")
 	DEF(ctl, 2, 1, "(default name --> out) control-rate synth parameter. Control.")
 	DEF(ugen, 4, 1, "(inputs name rate numOutputs --> out) any SuperCollider UGen. inputs is a list, name a string, rate 'ar 'kr or 'ir.")
-	DEF(play, 1, 0, "(channels -->) sends channels as a SynthDef to scsynth at $SAPF_SCSYNTH (default 127.0.0.1:57110) and starts a synth, and any ola voices it reads.")
+	DEF(play, 1, 0, "(channels -->) sends channels as a SynthDef to scsynth at $SAPF_SCSYNTH (default 127.0.0.1:57110) and starts a synth, and any ola voices it reads. (events --> player) schedules an event stream from pbind, one synth per event; player.stop ends it.")
 	vm.def("stop", 0, 0, stop_, "(-->) frees every synth on the scsynth that play uses.");
 	vm.def(">sf", 2, 0, sfwrite_, "(channels filename -->) renders the channels to filename.wav in $SAPF_RECORDINGS or the temp folder, until the first channel ends. scsynth NRT.");
 	vm.def(">sfo", 2, 0, sfwriteopen_, "(channels filename -->) as >sf, then opens the file in the default application.");

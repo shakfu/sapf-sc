@@ -41,3 +41,6 @@ add_sapf_unit_test(test_array_list test_array_list.cpp)
 
 # Error handling tests
 add_sapf_unit_test(test_errors test_errors.cpp)
+
+# REPL completion and hints
+add_sapf_unit_test(test_completion test_completion.cpp)
