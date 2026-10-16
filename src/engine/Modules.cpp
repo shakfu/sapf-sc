@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <set>
 #include <sstream>
 #include <vector>
 
@@ -71,6 +72,14 @@ void load(const std::string& name, const std::string& path, P<Scope> scope)
 	Pushed<std::vector<std::pair<std::string, int64_t>>*> recording(gDeps, &deps);
 
 	post("loading module %s from '%s'\n", name.c_str(), path.c_str());
+	// a reload is a new version: its consts may differ; a failed one keeps the old version's
+	struct Consts {
+		P<Scope> scope;
+		std::set<std::string> old;
+		bool kept = false;
+		explicit Consts(P<Scope> const& s) : scope(s), old(std::move(s->mConsts)) { scope->mConsts.clear(); }
+		~Consts() { if (!kept) scope->mConsts = std::move(old); }
+	} consts(scope);
 	Thread mt;
 	mt.mScope = scope;
 	mt.mWorkspace = new GForm();
@@ -79,6 +88,7 @@ void load(const std::string& name, const std::string& path, P<Scope> scope)
 	if (!mt.compile(text.c_str(), fun, true)) syntaxError(("import : module " + name + " does not compile").c_str());
 	fun->run(mt);
 	mt.publishWorkspace();
+	consts.kept = true;
 
 	P<Namespace> ns = new Namespace(name.c_str());
 	for (GForm* g = mt.mWorkspace(); g; g = g->mNextForm())
@@ -111,6 +121,13 @@ bool upToDate(Thread& th, Module& m)
 
 } // namespace
 
+std::vector<std::pair<std::string, Namespace*>> loadedModules()
+{
+	std::vector<std::pair<std::string, Namespace*>> out;
+	for (auto& [name, m] : gModules) out.push_back({name, m.ns()});
+	return out;
+}
+
 LoadingFile::LoadingFile(const std::string& path)
 {
 	std::error_code ec;
@@ -122,7 +139,12 @@ LoadingFile::~LoadingFile() { gFileDirs.pop_back(); }
 Namespace* importModule(Thread& th, const std::string& name)
 {
 	std::string path = findModule(name);
-	if (path.empty()) return nullptr;
+	if (path.empty()) {
+		// not on this file's search path: a module already loaded, e.g. std by the prelude, still is
+		auto loaded = gModules.find(name);
+		if (loaded == gModules.end()) return nullptr;
+		path = loaded->second.path;
+	}
 	auto cycle = std::find(gLoading.begin(), gLoading.end(), name);
 	if (cycle != gLoading.end()) {
 		std::string chain;

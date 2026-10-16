@@ -28,3 +28,9 @@ def test_words_entry_fields(sapf_bin):
     w = next(w for w in words() if w["name"] == "clear")
     assert w == {"name": "clear", "section": "stack ops", "effect": "(... -->)",
                  "help": "clears everything off the stack.", "automap": "", "source": "builtin"}
+
+
+def test_words_hides_private_module_words(sapf_bin):
+    names = {w["name"] for w in words(*SAPF_LIB)}
+    assert "std.padz" in names
+    assert not [n for n in names if n.startswith("_") or "._" in n]

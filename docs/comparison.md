@@ -1,4 +1,4 @@
-# sapf and sapf-sc compared
+# stac and sapf compared
 
 ## Baselines
 
@@ -6,13 +6,13 @@
 
 - **sapf (fork)**: [shakfu/sapf](https://github.com/shakfu/sapf), a fork of sapf. It adds Linux and Windows backends (ALSA, RtAudio, RtMidi, libsndfile, FFTW). The word counts and source diffs below are taken against this tree.
 
-- **sapf-sc**: this repository, at `9297625`.
+- **stac**: this repository. sapf's DSP words are in the namespace `sapf`; sapf programs run with `-p prelude.stac -p sapf.stac`, which imports them unqualified. Without `sapf.stac`, the same names are SC's UGens with SC's arguments.
 
-Word counts come from a static scan of `DEF*` macros and `vm.def*` calls in `src/`. Runtime checks used `build/stac`.
+The tables of words below compare sapf's own words with their versions in `sapf`. Runtime checks used `build/stac`.
 
 ## Architecture
 
-| | sapf | sapf-sc |
+| | sapf | stac |
 |-|-|-|
 | Signal | lazy stream of doubles (`ZList`), computed by the interpreter | `Sig`: one output of a UGen graph node |
 | DSP | sapf's own UGens, in C++ | scsynth's core UGens (SuperCollider 3.14.1), float32 |
@@ -20,27 +20,26 @@ Word counts come from a static scan of `DEF*` macros and `vm.def*` calls in `src
 | `play` | pulls samples to the device | compiles a SynthDef, sends it, starts a synth |
 | File render (`>sf`) | pulls samples to a file | scsynth NRT render |
 | Polyphony (`ola`) | mixes streams in the interpreter | one synth per voice on a private bus, scheduled by a thread or written into an NRT score |
-| New outputs | none | `.scsyndef` (`>sd`), NRT score `.osc` (`>nrt`), `scsy` sidecar `name.txt` |
+| New outputs | none | `.scsyndef` (`>sd`, `.write`), NRT score `.osc` (`>nrt`, `score`), `.wav` (`>sf`, `render`), `scsy` sidecar `name.txt` |
 | Dependencies | Accelerate or FFTW, RtAudio, RtMidi, libmanta | libscsynth, libsndfile 1.2.2, PortAudio (non-macOS), Accelerate (macOS) |
 
 ## Language
 
 ### Unchanged
 
-The parser, VM and non-audio words are the same code. Lines differing from `../sapf`:
+The parser, VM and non-audio words are sapf's. Syntax, stack effects, lists, forms, automapping (`@`), reductions and scans, and math on reals behave as in sapf, apart from the bugs listed below.
 
-| File | Lines |
-|-|-|
-| `Parser.cpp`, `CoreOps.cpp`, `SetOps.cpp`, `MultichannelExpansion.cpp` | 0 |
-| `VM.cpp`, `Opcode.cpp` | 1 each |
-| `MathOps.cpp` | 2 (the minus fix) |
-| `Object.cpp` | 20 |
+### Added to the language
 
-Syntax, stack effects, lists, forms, automapping (`@`), reductions and scans, and math on reals behave as in sapf. 620 words share a name.
+- Statements: `def` (functions with checked result types), `synthdef`, `const` and `import`.
+- Namespaces: `sc` for SC's 374 UGens, `sapf`, `stac`, and the server objects `bus`, `buffer`, `group`, `clock`, `env`.
+- Modules: a file imported into its own scope, reloaded when it changes.
+- Late binding: a redefined top-level word reaches running code from its next event. sapf binds early, as Forth does.
+- Server objects and patterns: nodes with `.set` and `.release`, buses, buffers, groups, `pbind`, clocks, `pdef`, `ndef`, `score`, `render`.
 
 ### Two kinds of signal
 
-In sapf, every signal is a `ZList`. `#[1 2 3]`, `440 0 sinosc` and `sf>` output are interchangeable. In sapf-sc they are separate types:
+In sapf, every signal is a `ZList`. `#[1 2 3]`, `440 0 sinosc` and `sf>` output are interchangeable. In stac they are separate types:
 
 - UGen words return `Sig`. List operations on a `Sig` fail: `at`, `reverse`, `sort`, `skip`, reductions. Example: `440 0 sinosc 3 at` gives `wrong type for at : expected List. got Sig.`
 
@@ -48,17 +47,19 @@ In sapf, every signal is a `ZList`. `#[1 2 3]`, `440 0 sinosc` and `sf>` output 
 
 - Math on a `Sig` builds a `BinaryOpUGen` or `UnaryOpUGen`. Math on reals folds in the interpreter.
 
-- A program that inspects or rearranges samples has no sapf-sc equivalent. A SynthDef cannot express it.
+- A program that inspects or rearranges samples has no stac equivalent. A SynthDef cannot express it.
 
 ### Shared words with changed meaning
 
-| Word | sapf | sapf-sc |
+These are the versions in `sapf`, which `sapf.stac` imports.
+
+| Word | sapf | stac's `sapf` |
 |-|-|-|
 | `kr` | `(fun n --> out)`: runs `fun` at `SR / n`, upsamples linearly | `(in --> out)`: control-rate copy; upstream UGens feeding only `kr` inputs become control rate |
 | `sf>` | reads the file into streams, not real time | `(filename --> channels)`: `PlayBuf`, once, from scsynth buffers 0..63; WAV or AIFF only |
-| `play`, `stop` | device playback | synth on scsynth; `stop` frees every synth on that server and ends `ola` scheduling |
+| `play`, `stop` | device playback | synth on scsynth; `stop` frees every synth on that server and ends `ola` scheduling. The core's `play` also pushes the synth's node |
 | `>sf`, `>sfo` | writes until the streams end | NRT render; refuses channels that never end or end on a signal condition (e.g. finite `seq`) |
-| `N`, `T`, `NZ` on a signal | truncate the stream | `EnvGen` drops to zero and frees the synth |
+| `N`, `T`, `NZ` on a signal | truncate the stream | `EnvGen` drops to zero and frees the synth. The core's versions take lists only |
 | `line`, `xline`, `fadeout` | finite stream | UGen, then the synth ends |
 | `saw`, `tri`, `square`, `pulse` | band limited (tables broken upstream) | `LFSaw`/`LFTri`/`LFPulse`, not band limited |
 | `sinoscfb` | any phase | phase must be 0 (`SinOscFB` has no phase input) |
@@ -74,15 +75,18 @@ Per-UGen fidelity against sapf is in [ugens.md](ugens.md).
 
 ### Bug fixes
 
-sapf-sc computes what sapf's code and docs describe. Details in [dev/upstream-sapf-bugs.md](dev/upstream-sapf-bugs.md).
+stac computes what sapf's code and docs describe. Details, and the full list, in [dev/upstream-sapf-bugs.md](dev/upstream-sapf-bugs.md).
 
-| Expression | sapf | sapf-sc |
+| Expression | sapf | stac |
 |-|-|-|
 | `#[1 2 3] #[10 20 30] -` | `#[9 18 27]` | `#[-9 -18 -27]` |
 | `2 ratiosemi` | `log2(2) / 12` | `12` |
 | `[2 0 1] cyc Z finite` | 1 | 0 |
 | `[97 98 99] unspell` | reads uninitialized memory | `"abc"` |
-| `skipWhile` on `ZList`, cutoff mid-chunk | wrong values, reads past buffer | correct (fixed in sapf-sc; see `CHANGELOG.md`) |
+| `skipWhile` on `ZList`, cutoff mid-chunk | wrong values, reads past buffer | correct |
+| `\['oops throw] \['caught] try` | the error escapes | `caught` |
+| `[3 1 2] \a b [a b >] sortf` | fails | `[3 2 1]` |
+| `#[1 1 2] permzwr` | crashes | three signals |
 
 ### Numeric differences
 
@@ -112,9 +116,9 @@ sapf-sc computes what sapf's code and docs describe. Details in [dev/upstream-sa
 | Sequencing and triggers (11) | `gates`, `cubics`, `tempo`, `beats`, `tr`, `ntr`, `gate`, `pdiv`, `pause`, `tsig`, `krc` |
 | Spectral and utility (6) | `fft`, `ifft`, `kaiser`, `sgram`, `record`, `bench` |
 
-`ugen` reaches any SC UGen by name, so several removed words can be rebuilt by hand, e.g. `[in freq] 'Hilbert 'ar 2 ugen`.
+SC UGens of the same names, with SC's arguments, are in `sc`: `mousex`, `mousey`, `blip`, `klang`, `crackle`, `apf`, `hilbert`, `lag3`, `fft` and `ifft`. `sapf.ugen` reaches any SC UGen by name.
 
-### Added (6)
+### Added to `sapf` (6)
 
 | Word | Stack |
 |-|-|
@@ -125,32 +129,35 @@ sapf-sc computes what sapf's code and docs describe. Details in [dev/upstream-sa
 | `soundin` | `(channel --> sig)` hardware input |
 | `playbuf` | `(filename rate loop --> channels)` |
 
+stac's own words are in the [dictionary](dictionary/).
+
 ## Features
 
-| Feature | sapf | sapf-sc |
+| Feature | sapf | stac |
 |-|-|-|
 | Real-time playback | yes | yes, via scsynth |
 | Export to SuperCollider | no | `.scsyndef`, NRT score |
-| Named synth parameters | no | `ctl` |
-| Arbitrary UGens | no | `ugen`, plus any plugin in `STAC_PLUGINS` |
+| Named synth parameters | no | `synthdef` controls; `ctl` in `sapf` |
+| SC's UGens | no | all 374 public classes of SC 3.14.1 in `sc`; `ugen` for any other, plus any plugin in `STAC_PLUGINS` |
+| Patterns | lazy lists | lazy lists, and `pbind`, clocks, `pdef` and `ndef` as in SC |
 | Audio input | no | `soundin` (`STAC_INPUTS`) |
 | Remote server | no | `STAC_SCSYNTH=host:port` |
 | Sample playback | `sf>` into memory | `sf>`, `playbuf` (looping, rate) from scsynth buffers |
 | MIDI input | CoreMIDI, RtMidi | removed |
 | Mouse input | macOS | removed |
 | Manta controller (`-m`) | yes | removed |
-| Spectrogram, FFT | `sgram`, `fft`, `ifft` | removed |
-| Live patching (`zctl`, `zplug`, `set`) | yes | removed; needs `/n_set` on running synths |
+| Spectrogram, FFT | `sgram`, `fft`, `ifft` | SC's FFT UGens in `sc`; no spectrogram |
+| Live patching (`zctl`, `zplug`, `set`) | yes | `.set` on a node, `ndef`, and late binding; sapf's `zctl` is removed |
 | Record while playing | `record` | removed; use `>sf` |
 | CPU benchmark | `bench` | removed |
 | Sample-level inspection of signals | yes | no; signals are graph nodes |
 | Target hardware | desktop | desktop, and the SSP via `scsy` (`>nrt` scores, `@buf` sidecars) |
 | Platforms | macOS (upstream); macOS, Linux, Windows (fork) | macOS, Linux tested; Windows branches untested |
-| Tests | ctest, gtest | ctest, gtest, pytest conformance against sapf renders |
+| Tests | ctest, gtest | ctest, gtest, pytest conformance against sapf renders, and every documentation example |
 
 ## Compatibility
 
-- `prelude.stac`: 280 of 285 definitions load. The 5 dropped use `hilbert`, `fft` or `kaiser`.
+- sapf's prelude: 280 of 285 definitions load, split between `std.stac` and `sapf.stac`. The 5 dropped use `hilbert`, `fft` or `kaiser`.
 
 - `examples/sapf.stac`: 216 of 312 examples run; 160 play or render. Most failures use `lpcombc`, mouse words, `violet`, `klang`, `pdiv`, `zplug` or `set`.
 

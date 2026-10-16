@@ -99,7 +99,7 @@ void SapfEngine::configureLogFile()
 	if (!vm.log_file) {
 		const char* home_dir = getenv("HOME");
 		static char logfilename[PATH_MAX];
-		snprintf(logfilename, PATH_MAX, "%s/sapf-log.txt", home_dir);
+		snprintf(logfilename, PATH_MAX, "%s/stac-log.txt", home_dir);
 		vm.log_file = logfilename;
 	}
 }

@@ -111,12 +111,12 @@ public:
 	std::vector<std::string> mParams;
 	bool mSent = false;
 
-	virtual const char* TypeName() const override { return "Def"; }
+	virtual const char* TypeName() const override { return "SynthDef"; }
 
 	using Object::print;
 	virtual void print(Thread& th, std::string& out, int depth) override
 	{
-		out += "Def " + mName + " (";
+		out += "SynthDef " + mName + " (";
 		for (size_t i = 0; i < mParams.size(); ++i) out += (i ? " " : "") + mParams[i];
 		out += ")";
 	}

@@ -2799,7 +2799,7 @@ public:
 	{
 		int n = mBlockSize;
 		int framesRemaining = n;
-		Z* out = mOut->fulfillz(n);
+		V* out = mOut->fulfill(n);  // a list of signals, as permz gives
 		for (int i = 0; i < n; ++i) {
 			if (mThereafter) {
 				if (getNext(th)) {
@@ -2810,9 +2810,9 @@ public:
 				mThereafter = true;
 			}
 			const int len = (int)mItems.size();
-			P<List> list = new List(itemTypeV, len);
+			P<List> list = new List(itemTypeZ, len);
 			P<Array> arr = list->mArray;
-			V* outItems = arr->v();
+			Z* outItems = arr->z();
 			
 			for (int j = 0; j < len; ++j) {
 				outItems[j] = mItems[j];
@@ -6540,9 +6540,9 @@ struct MergeEvents : Gen
 
 					V a;
 					bool aok = aa.dot(th, s_dt, a);
-					if (!aok) {
-						setDone();
-						return;
+					if (!aok) {  // ended the list mid-block, which tripped List::end's assertion
+						post("evmerge : an event has no :dt\n");
+						throw errFailed;
 					}
 					Z dta = a.asFloat();
 					Z dt = std::min(dta, nextBTime - nextATime);
@@ -6562,9 +6562,9 @@ struct MergeEvents : Gen
 					}
 					V b;
 					bool bok = bb.dot(th, s_dt, b);
-					if (!bok) {
-						setDone();
-						return;
+					if (!bok) {  // ended the list mid-block, which tripped List::end's assertion
+						post("evmerge : an event has no :dt\n");
+						throw errFailed;
 					}
 					Z dtb = b.asFloat();
 					Z dt = std::min(dtb, nextATime - nextBTime);
@@ -6928,7 +6928,8 @@ static void sort_(Thread& th, Prim* prim)
 
 static void sortf_(Thread& th, Prim* prim)
 {
-	V fun = th.popList("sort : fun");
+	V fun = th.pop();
+	if (!fun.isFunOrPrim()) wrongType("sortf : fun", "Function", fun);
 	V a = th.popList("sort : a");
 	
 	if (!a.isFinite()) 
@@ -7032,7 +7033,8 @@ static void grade_(Thread& th, Prim* prim)
 
 static void gradef_(Thread& th, Prim* prim)
 {
-	V fun = th.popList("grade : fun");
+	V fun = th.pop();
+	if (!fun.isFunOrPrim()) wrongType("gradef : fun", "Function", fun);
 	V a = th.popList("grade : a");
 	
 	if (!a.isFinite()) 
@@ -7176,14 +7178,14 @@ void AddStreamOps()
 	DEFAM(nby, kkk, "(n start step --> series) return a finite arithmetic series.") 
 	DEFAM(grow, kk, "(start step --> series) return an infinite geometric series.") 
 	DEFAM(ngrow, kkk, "(start step --> series) return a finite geometric series.") 
-	DEFAM(to, kk, "(a b --> series) return a finite series from a to b stepping by +1 if a < b, or -1 if a < b.") 
+	DEFAM(to, kk, "(a b --> series) return a finite series from a to b stepping by +1 if a < b, or -1 if a > b.") 
 
 	DEFMCX(everz, 1, "(value --> signal) return an infinite signal of value.")
 	DEFMCX(byz, 2, "(start step --> series) return an infinite arithmetic series as a signal.") 
-	DEFMCX(nbyz, 3, "(start step --> series) return a finite arithmetic series as a signal.") 
+	DEFMCX(nbyz, 3, "(n start step --> series) return a finite arithmetic series as a signal.") 
 	DEFMCX(growz, 2, "(start step --> series) return an infinite geometric series as a signal.") 
-	DEFMCX(ngrowz, 3, "(start step --> series) return a finite geometric series as a signal.") 
-	DEFMCX(toz, 2, "(a b --> series) return a finite signal from a to b stepping by +1 if a < b, or -1 if a < b.") 
+	DEFMCX(ngrowz, 3, "(n start step --> series) return a finite geometric series as a signal.") 
+	DEFMCX(toz, 2, "(a b --> series) return a finite signal from a to b stepping by +1 if a < b, or -1 if a > b.") 
 
 	DEFAM(lindiv, kkk, "(n start end --> series) returns a series of n equal steps from start to end.") 
 	DEFAM(expdiv, kkk, "(n start end --> series) returns a series of n exponentially spaced steps from start to end.") 
@@ -7209,7 +7211,7 @@ void AddStreamOps()
    
 	vm.addBifHelp("\n*** list ordering operations ***");
 	DEF(cyc, 1, 1, "(list --> list) makes a finite list become cyclic.")
-	DEFAM(ncyc, ak, "(n list --> list) concatenates n copies of a finite list.")
+	DEFAM(ncyc, ak, "(list n --> list) concatenates n copies of a finite list.")
 	DEF(rcyc, 1, 1, "(ref --> list) gets a new list from ref each time list is exhausted.")
 
 	vm.defautomap("X", "ak", repeat_, "(value n --> stream) makes a list containing n copies of value. If value is a function, then the results of applying the function with an integer count argument is used as the contents of the output list.");
@@ -7329,11 +7331,11 @@ void AddStreamOps()
 	DEF(muss, 1, 1, "(a --> b) puts a finite sequence into a random order.")
 
 	DEF(at, 2, 1, "(seq index(es) --> value(s)) looks up item(s) in sequence at index(es). out of range indexes return zero.") 
-	DEF(wrapAt, 2, 1, "(seq index(es) --> value(s)) looks up item(s) in sequence at index(es). out of range indexes return the value at the end point.") 
-	DEF(foldAt, 2, 1, "(seq index(es) --> value(s)) looks up item(s) in sequence at index(es). out of range indexes return the items from the cyclic sequence.") 
-	DEF(clipAt, 2, 1, "(seq index(es) --> value(s)) looks up item(s) in sequence at index(es). out of range indexes return items from the cyclic mirrored sequence.") 
-	DEF(degkey, 2, 1, "(degree scale --> converts scale degree(s) to keys, given a scale");
-	DEF(keydeg, 2, 1, "(key scale --> converts key(s) to scale degree(s), given a scale");
+	DEF(wrapAt, 2, 1, "(seq index(es) --> value(s)) looks up item(s) in sequence at index(es). out of range indexes wrap around the sequence.") 
+	DEF(foldAt, 2, 1, "(seq index(es) --> value(s)) looks up item(s) in sequence at index(es). out of range indexes fold back and forth over the sequence.") 
+	DEF(clipAt, 2, 1, "(seq index(es) --> value(s)) looks up item(s) in sequence at index(es). out of range indexes return the item at the nearer end.") 
+	DEF(degkey, 2, 1, "(degree scale --> key) converts scale degree(s) to keys. The scale's last item is the cycle width, e.g. [0 2 4 5 7 9 11 12].");
+	DEF(keydeg, 2, 1, "(key scale --> degree) converts key(s) to the nearest scale degree(s). The scale's last item is the cycle width.");
 
 	
 	DEF(sort, 1, 1, "(in --> out) ascending order sort of the input list.");
@@ -7345,12 +7347,12 @@ void AddStreamOps()
 	DEFN("grade>", 1, 1, grade_gt_, "(in --> out) descending order sorted indices of the input list.");
 
 	vm.addBifHelp("\n*** event list operations ***");
+	SapfWords sapf;  // ola's event lists (:dt), not pbind's; these and the dsp operations below are sapf's
 	DEFAM(evmerge, aak, "(a b t --> c) merges event list 'b' with delay 't' with event list 'a' according to their delta times")
 	DEFAM(evdelay, ak, "(a t --> c) delay an event list by adding a preceeding rest of duration 't'")
-	DEFAM(evrest, aak, "(t --> c) returns a rest event for duration 't'.")
+	DEFAM(evrest, k, "(t --> c) returns a rest event for duration 't'.")
 	
 	vm.addBifHelp("\n*** dsp operations ***");
-	SapfWords sapf;
 	
 	DEFMCX(hanning, 1, "(n --> out) returns a signal filled with a Hanning window.")
 	DEFMCX(hamming, 1, "(n --> out) returns a signal filled with a Hamming window.")

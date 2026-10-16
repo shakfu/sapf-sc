@@ -12,7 +12,7 @@ Errors, each one the compiler also rejects:
     E2 unclosed bracket            E7 '=' without a name
     E3 unexpected closer           E8 extra digit after '@'
     E4 prefix without a name       E9 rebinding a free variable in a lambda
-    E5 '#' not followed by '['     E10 malformed def statement
+    E5 '#' not followed by '['     E10 malformed def, synthdef or const
 Warnings:
     W1 undefined word (bound later, misspelt, or a malformed number like 10ms)
     W2 '=' hides a built-in word
@@ -25,11 +25,11 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import json
 import os
 import re
 import subprocess
 import sys
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -110,6 +110,9 @@ def number_end(s: str, i: int) -> int | None:
         k = _float_end(s, j + 1)
         return k if k is not None and _end_of_word(s, k) else None
     return j if _end_of_word(s, j) else None
+
+
+RESULT_TYPES = {'sig', 'num', 'list', 'fun', 'form', 'str', 'env', 'node', 'bus', 'buffer', 'synthdef', 'clock', 'any'}
 
 
 class Lexer:
@@ -218,36 +221,69 @@ class Lexer:
         if tok.text == '=':
             tok.kind = 'bind'
             self.binding(tok)
-        elif tok.text == 'def':
+        elif tok.text in ('def', 'synthdef', 'const') and self.c() != '.':  # synthdef.new is a word
             tok.kind = 'def'
             self.definition(tok)
 
     def definition(self, kw: Token):
-        """def NAME PARAM* = [ BODY ], PARAM being name or name:LITERAL (Parser.cpp, parseDef)."""
+        """KW NAME PARAM* [--> RESULT*] [HELP] [ BODY ] (Parser.cpp, parseDefHeader): def takes results,
+        synthdef name:LITERAL defaults, const neither."""
+        k = kw.text
         name = self.symbol('defname')
-        if not name or name.text == '=':
-            self.err(kw.start, 'E10', 'expected a name after def')
+        if not name or name.text in ('=', '-->'):
+            self.err(kw.start, 'E10', f'expected a name after {k}')
             return
         while True:
-            param = self.symbol('param')
-            if not param:
-                self.err(kw.start, 'E10', "expected '=' after the parameters of def")
-                return
-            if param.text == '=':
-                param.kind = 'bind'
+            self.trivia()
+            if not self.c() or self.c() in '["':
                 break
+            word = self.symbol('param')
+            if not word:
+                self.err(self.i, 'E10', f"expected a parameter, a help string or '[' in {k}")
+                return
+            if word.text == '=':
+                word.kind = 'bind'
+                self.err(word.start, 'E10', f"{k} has no '='; write {k} NAME PARAMS [BODY]")
+                return
+            if word.text == '-->':
+                word.kind = 'arrow'
+                if k != 'def':
+                    self.err(word.start, 'E10', f"only def declares results; {k} takes no '-->'")
+                while True:
+                    self.trivia()
+                    if not self.c() or self.c() in '["':
+                        break
+                    if self.c() == '.':
+                        j = self.i
+                        while _at(self.s, j) == '.':
+                            j += 1
+                        self.emit('type', j)
+                        continue
+                    t = self.symbol('type')
+                    if not t:
+                        break
+                    if t.text not in RESULT_TYPES:
+                        self.err(t.start, 'E10', f'unknown result type {t.text}')
+                break
+            if k == 'const':
+                self.err(word.start, 'E10', 'const takes no parameters')
             if self.c() == ':':
                 colon = self.emit('prefix', self.i + 1)
+                if k == 'def':
+                    self.err(colon.start, 'E10', 'def takes no defaults; a SynthDef with controls is synthdef')
                 j = number_end(self.s, self.i)
                 if j is None:
-                    self.err(colon.start, 'E10', "expected a number after ':' in def")
+                    self.err(colon.start, 'E10', f"expected a number after ':' in {k}")
                     return
                 self.emit('num', j)
         self.trivia()
+        if self.c() == '"':
+            self.string()
+            self.trivia()
         if self.c() == '[':
             self.open('[', 'lopen')
         else:
-            self.err(kw.start, 'E10', "expected '[' after def's '='")
+            self.err(kw.start, 'E10', f"expected '[' to begin the body of {k}")
 
     def binding(self, eq: Token):
         self.trivia()
@@ -591,21 +627,14 @@ def imported(ns: str, member: str | None, builtins: set[str]) -> set[str]:
 
 
 def builtin_words(sapf: Path) -> set[str]:
-    """Built-in word names, read from `helpall` in a sapf-sc binary without a prelude."""
-    with tempfile.TemporaryDirectory() as tmp:
-        src = Path(tmp) / 'helpall.txt'
-        src.write_text('helpall\n')
-        env = dict(os.environ, STAC_PRELUDE='/dev/null', STAC_LOG=str(Path(tmp) / 'log'))
-        out = subprocess.run([str(sapf), '-q', str(src)], capture_output=True, text=True, env=env, timeout=30).stdout
-    words, binary = set(), False
-    for line in out.splitlines():
-        if line.startswith('***'):
-            binary = line.startswith('*** binary math ops')
-        m = re.match(r' (\S+)(?: @[a-z]*)? \(', line)
-        if m:
-            words.add(m.group(1))
-            if binary:
-                words.update(m.group(1) + v for v in ('/', '\\', '^', '/i', '\\i', '^i'))
+    """Built-in word names, read from `stac --words` without a prelude."""
+    env = dict(os.environ, STAC_PRELUDE=os.devnull, STAC_LOG=os.devnull)
+    out = subprocess.run([str(sapf), '--words'], capture_output=True, text=True, env=env, timeout=30, check=True).stdout
+    words = set()
+    for w in json.loads(out):
+        words.add(w['name'])
+        if w['section'] == 'binary math ops':
+            words.update(w['name'] + v for v in ('/', '\\', '^', '/i', '\\i', '^i'))
     return words
 
 

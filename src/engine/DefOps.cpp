@@ -75,11 +75,11 @@ int kindOf(const std::string& name)
 void synthdef_(Thread& th, Prim* prim)
 {
 	V name = th.pop();
-	if (!name.isString()) wrongType("synthdef : name", "String", name);
+	if (!name.isString()) wrongType("synthdef.new : name", "String", name);
 	V defaults = th.pop();
-	if (!defaults.isForm()) wrongType("synthdef : defaults", "Form", defaults);
+	if (!defaults.isForm()) wrongType("synthdef.new : defaults", "Form", defaults);
 	V fun = th.pop();
-	if (!fun.isFun()) wrongType("synthdef : fun", "Function", fun);
+	if (!fun.isFun()) wrongType("synthdef.new : fun", "Function", fun);
 	FunDef* fd = ((Fun*)fun.o())->mDef();
 
 	DefParts parts;
@@ -92,7 +92,7 @@ void synthdef_(Thread& th, Prim* prim)
 		V value;
 		double d = 0.;
 		if (((Form*)defaults.o())->get(th, V(fd->mArgNames[i]), value)) {
-			if (!value.isReal()) wrongType(("synthdef : " + arg).c_str(), "Real", value);
+			if (!value.isReal()) wrongType(("synthdef.new : " + arg).c_str(), "Real", value);
 			d = value.f;
 		}
 		V p = makeParam(arg.c_str(), d, kindOf(arg), (int)i);
@@ -116,13 +116,17 @@ void synthdef_(Thread& th, Prim* prim)
 		for (Arg r : results) list->add(r);
 		channels = V(list);
 	}
-	// SC's Function.play writes the channels to a control out, default 0.
-	if (!results.empty() && !haveOut) {
+	// SC's Function.play writes the channels to a control out, default 0. A body that leaves only
+	// Roots, such as Out's, writes no channels.
+	std::vector<V> flat;
+	flattenChannels(th, channels, flat);
+	bool writes = !flat.empty();
+	if (writes && !haveOut) {
 		outParam = makeParam("out", 0., paramKR, (int)fd->mArgNames.size());
 		parts.params.push_back(outParam);
 		def->mParams.push_back("out");
 	}
-	if (!results.empty()) parts.outBus = outParam;
+	if (writes) parts.outBus = outParam;
 	def->mBytes = compileDef(th, results.empty() ? V(new List(itemTypeV, 0)) : channels, def->mName, parts);
 	th.push(V(def));
 }
@@ -150,10 +154,14 @@ void AddDefOps();
 void AddDefOps()
 {
 	vm.addBifHelp(std::string("\n*** defs and nodes ***"));
-	vm.def("synthdef", 3, 1, synthdef_,
-		"(fun defaults name --> def) compiles a SynthDef. fun's arguments are its controls; t_, i_ and a_ make "
+	// synthdef is also a statement; synthdef.new, as SC's SynthDef.new, builds one from code.
+	P<Namespace> sd = new Namespace("synthdef");
+	sd->addPrim("new", 3, synthdef_,
+		"(fun defaults name --> synthdef) compiles a SynthDef. fun's arguments are its controls; t_, i_ and a_ make "
 		"trigger, scalar and audio controls. Channels left by fun go to a control out. Call the def with a Form to "
 		"start a synth; .add sends it, .write writes name.scsyndef.");
+	vm.def("synthdef", V(sd));
+	vm.addBifHelp("synthdef", nullptr, "(--> namespace) SynthDefs built from code; the statement synthdef NAME ... [BODY] defines one.");
 
 	// SC's Group.new; the node UGens (Free, Done, Pause...) are in sc.
 	P<Namespace> group = new Namespace("group");

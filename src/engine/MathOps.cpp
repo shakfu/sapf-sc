@@ -1212,7 +1212,7 @@ DEFINE_BINOP_FLOAT(trunc, sc_trunc(a, b))
 	vm.def(#OPNAME "\\", 1, 1, FUNNAME##_scan_, nullptr), \
 	vm.def(#OPNAME "^", 1, 1, FUNNAME##_pairs_, nullptr), \
 	vm.def(#OPNAME "\\i", 2, 1, FUNNAME##_iscan_, nullptr), \
-	vm.def(#OPNAME "^i", 1, 1, FUNNAME##_ipairs_, nullptr));
+	vm.def(#OPNAME "^i", 2, 1, FUNNAME##_ipairs_, nullptr));
 
 #define DEF2(NAME, HELP) 	DEFNa2(NAME, NAME, HELP);
 #define DEFAM(NAME, MASK, HELP) 	vm.defautomap(#NAME, #MASK, NAME##_, HELP);
@@ -1235,7 +1235,7 @@ void AddMathOps()
 	DEF(islower, "return whether an ASCII value is lower case.")
 	DEF(isprint, "return whether an ASCII value is a printable character.")
 	DEF(ispunct, "return whether an ASCII value is a punctuation character.")
-	DEF(isspace, "return whether an ASCII value is a graphic character.")
+	DEF(isspace, "return whether an ASCII value is a space, tab, newline or other white space.")
 	DEF(isupper, "return whether an ASCII value is upper case.")
 	DEF(isxdigit, "return whether an ASCII value is a hexadecimal digit.")
 	DEF(isascii, "return whether a value is ASCII")
@@ -1287,7 +1287,7 @@ void AddMathOps()
 	DEFN(exp, "e^", "e to the x.")
 	DEFN(exp2, "2^", "2 to the x.")
 	DEFN(exp10, "10^", "10 to the x.")
-	DEF(expm1, "computes exp(x-1) accurately even for very small values of x.")
+	DEF(expm1, "computes exp(x) - 1 accurately even for very small values of x.")
 	DEF(log, "base e log of x.")
 	DEF(log2, "base 2 log of x.")
 	DEF(log10, "base 10 log of x.")
@@ -1359,7 +1359,7 @@ void AddMathOps()
 	DEF(degrad, "convert from degrees to radians.")
 	DEF(raddeg, "convert from radians to degrees.")
 
-	DEF(distort, "sigmoid wave distortion function. x/sqrt(1 + x^2)")
+	DEF(distort, "sigmoid wave distortion function. x/(1 + abs(x))")
 	DEF(softclip, "sigmoid wave distortion function. returns x when abs(x) < .5, else returns (abs(x) - .25) / x")
 	DEF(sigm, "sigmoid wave distortion function. x/sqrt(1+x*x).")
 
@@ -1374,7 +1374,7 @@ void AddMathOps()
 	}
 	DEF(scurve, "return 0 when x <= 0, return 3*x*x - 2*x*x*x when 0 < x < 1, return 1 when x > 1.")
 
-	DEF(zapgremlins, "")
+	DEF(zapgremlins, "replaces NaN, infinities and denormals with 0.")
 
 	/////////////////////////////////////////////////////
 
@@ -1383,10 +1383,9 @@ void AddMathOps()
 	vm.addBifHelp("      op/   (list --> z) reducing math operator.");
 	vm.addBifHelp("      op\\   (list --> z) scanning math operator.");
 	vm.addBifHelp("      op^   (list --> z) pairwise math operator.");
-	vm.addBifHelp("      op/i  (list init --> z) reducing math operator with initial value.");
 	vm.addBifHelp("      op\\i  (list init --> z) scanning math operator with initial value.");
 	vm.addBifHelp("      op^i  (list init --> z) pairwise math operator with initial value.");
-	vm.addBifHelp("   For example, + has the following variations: +/  +\\  +^  +/i  +\\i  +^i");
+	vm.addBifHelp("   For example, + has the following variations: +/  +\\  +^  +\\i  +^i");
 	vm.addBifHelp("");
 	
 
@@ -1414,7 +1413,7 @@ void AddMathOps()
 
 	DEF2(pow, "x to the power y.")
 	DEFNa2(pow, ^, "x to the power y.")
-	DEF2(atan2, "arctangent of y/x.")
+	DEF2(atan2, "arctangent of x/y, in radians, as C's atan2(x, y).")
 	
 	DEF2(Jn, "yth Bessel function of the first kind evaluated at x.")
 	DEF2(Yn, "yth Bessel function of the second kind evaluated at x.")

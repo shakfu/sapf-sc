@@ -121,8 +121,6 @@ V expand(Thread& th, int row, std::vector<V> const& in, std::vector<bool> const&
 			if (audio[i]) inputs[i] = audioRate(inputs[i]), raised = true;
 		P<UGenNode> node = new UGenNode(u.cls, u.rate, inputs, numOutputs, u.special, u.pure);
 		if (raised) node->krInputs = in;
-		// A UGen with no outputs, such as Out, is a root of the def whose body made it.
-		if (numOutputs == 0 && gDefRoots) gDefRoots->push_back(node);
 		node->fixedRate = !(u.rates & (1 << rateKR));
 		node->spec = row;
 		return outputsOf(node);

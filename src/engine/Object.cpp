@@ -273,6 +273,7 @@ void Fun::run(Thread& th)
 		post("expected %qd args on stack. Only have %qd\n", (int64_t)NumArgs(), (int64_t)th.stack.size());
 		throw errStackUnderflow;
 	}
+	size_t before = th.stack.size() - NumArgs();
 
 	PushFunContext pfc(th, this);
 
@@ -293,6 +294,38 @@ void Fun::run(Thread& th)
 	th.fun = this;
 	
 	th.run(mDef->mCode->getOps());
+	if (mDef->mCheckResults) mDef->checkResults(th, before);
+}
+
+static bool resultIs(Arg v, std::string const& type)
+{
+	const char* t = v.o() ? v.o()->TypeName() : "";
+	if (type == "any") return true;
+	if (type == "sig") return v.isReal() || v.isList() || !strcmp(t, "Sig");  // channels, as automapping makes them
+	if (type == "num") return v.isReal() || v.isList();  // arithmetic maps over lists
+	if (type == "list") return v.isList();
+	if (type == "fun") return v.isFunOrPrim();
+	if (type == "form") return v.isForm();
+	if (type == "str") return v.isString();
+	if (type == "node") return !strcmp(t, "Node") || !strcmp(t, "Group");
+	static const std::pair<const char*, const char*> objects[] = {
+		{"env", "Env"}, {"bus", "Bus"}, {"buffer", "Buffer"}, {"synthdef", "SynthDef"}, {"clock", "Clock"}};
+	for (auto& [name, typeName] : objects)
+		if (type == name) return !strcmp(t, typeName);
+	return false;
+}
+
+void FunDef::checkResults(Thread& th, size_t before) const
+{
+	std::string name = mName() ? mName->cstr() : "function";
+	size_t n = th.stack.size() - before;
+	if (n != mResults.size()) {
+		post("%s : left %zu values; it declares %zu\n", name.c_str(), n, mResults.size());
+		throw errFailed;
+	}
+	for (size_t i = 0; i < n; ++i)
+		if (!resultIs(th.stack[before + i], mResults[i]))
+			wrongType((name + " : result " + std::to_string(i + 1)).c_str(), mResults[i].c_str(), th.stack[before + i]);
 }
 
 void Fun::apply(Thread& th) 
@@ -457,9 +490,16 @@ GTable* GTable::putPure(Arg inKey, int64_t inKeyHash, Arg inValue)
 	}
 }
 
+// A string literal is not interned, so strings compare by text.
+static bool sameKey(Arg a, Arg b)
+{
+	if (a.Identical(b)) return true;
+	return a.isString() && b.isString() && strcmp(((String*)a.o())->s, ((String*)b.o())->s) == 0;
+}
+
 TreeNode* TreeNode::putPure(Arg inKey, int64_t inKeyHash, Arg inValue)
 {
-	if (inKeyHash == mHash && inKey.Identical(mKey)) {
+	if (inKeyHash == mHash && sameKey(inKey, mKey)) {
 		return new TreeNode(mKey, mHash, inValue, mSerialNumber, mLeft, mRight);
 	} 
     auto left = mLeft.load();
@@ -539,30 +579,18 @@ void GTable::printSomethingIWant(Thread& th, std::string& out, int depth)
 
 bool GTable::get(Thread& th, Arg inKey, V& outValue) const
 {
-	int32_t inKeyHash = inKey.Hash();
-	TreeNode* tree = mTree.load();
-	while (1) {
-		if (tree == nullptr) return false;
-		int32_t treeKeyHash = tree->mKey.Hash();
-		if (inKeyHash == treeKeyHash) {
-			outValue = tree->mValue;
-			return true;
-		} else if (inKeyHash < treeKeyHash) {
-			tree = tree->mLeft.load();
-		} else {
-			tree = tree->mRight.load();
-		}
-	}
+	return getInner(inKey, outValue);
 }
 
 bool GTable::getInner(Arg inKey, V& outValue) const
 {
+	// Equal hashes descend right, as TreeNode::putPure inserts them.
 	int32_t inKeyHash = inKey.Hash();
 	TreeNode* tree = mTree.load();
 	while (1) {
 		if (tree == nullptr) return false;
 		int32_t treeKeyHash = tree->mKey.Hash();
-		if (inKeyHash == treeKeyHash) {
+		if (inKeyHash == treeKeyHash && sameKey(inKey, tree->mKey)) {
 			outValue = tree->mValue;
 			return true;
 		} else if (inKeyHash < treeKeyHash) {
@@ -598,7 +626,7 @@ bool GTable::putImpure(Arg inKey, Arg inValue)
             newNode->release();
 		} else {
 			int32_t treeKeyHash = tree->mKey.Hash();
-			if (treeKeyHash == inKeyHash) {
+			if (treeKeyHash == inKeyHash && sameKey(inKey, tree->mKey)) {
 				return false; // cannot rebind an existing value.
 			} else if (inKeyHash < treeKeyHash) {
 				treeNodePtr = &tree->mLeft;

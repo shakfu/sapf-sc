@@ -1,6 +1,6 @@
 # stac
 
-Status: proposal, 2026-10-15. Nothing here is implemented unless marked "works today".
+Status: design record, 2026-10-16. Phases 1-5 are built, as are the proposals marked built; each section says what is built and what is not.
 
 stac is a concatenative language for live coding SuperCollider. The interpreter plays the part of sclang: values, lists, patterns, scheduling. scsynth does all DSP. The syntax and core come from sapf. UGen names, arguments, units, rates and the server model come from SuperCollider.
 
@@ -12,15 +12,15 @@ stac does not implement sapf. [shakfu/sapf](https://github.com/shakfu/sapf) does
 
 2. **SC's UGens, SC's units.** A UGen's word is its SC class name in lower case. It takes SC's arguments in SC's units: `sinosc`'s phase is in radians.
 
-3. **Short to type.** Everyday words are bare, lower case, and need no shift key. Specialised groups sit in namespaces, which also scope tab completion.
+3. **Short to type.** Everyday words are bare, lower case, and need no shift key. Each word has one canonical namespace, `sc.sinosc`; a prelude imports the ones a session uses unqualified.
 
 4. **Audio rate unless lowered.** A UGen runs at the highest rate its class offers. `.kr` lowers it.
 
 5. **Lazy lists are patterns.** sapf's infinite streams already do what sclang's `Pattern` classes do. stac schedules them.
 
-6. **sapf compatibility is a library.** `sapf.stac` defines sapf's words on top of stac. The core does not carry them.
+6. **sapf compatibility is a library.** sapf's words live in the namespace `sapf`, and `sapf.stac` imports them over the SC UGens. The core's global names do not include them.
 
-7. **Little new syntax.** One keyword, `def`. Everything else uses the sapf parser as it is.
+7. **Little new syntax.** Four statements, `def`, `synthdef`, `const` and `import`. Everything else uses the sapf parser as it is.
 
 ## Core kept from sapf
 
@@ -34,7 +34,7 @@ These are unchanged: the parser, the VM, postfix evaluation, number suffixes (`4
 | `#[...]` | lang | a float array: buffer data, wave tables. Not a signal |
 | `Sig` | graph | one output of a UGen; from sapf-sc |
 | `Env` | lang | levels, times, curves, release and loop nodes; its own type, not a Form |
-| `Def` | lang | a compiled SynthDef; callable, starts a synth |
+| `SynthDef` | lang | a compiled SynthDef; callable, starts a synth |
 | `Node` | lang | a synth or group on the server |
 | `Bus`, `Buffer` | lang | a server resource; as a UGen input, its index |
 | `Clock` | lang | tempo and beat time |
@@ -266,7 +266,7 @@ stac's namespaces are `Namespace` objects. `dot` applies the named word without 
 | Namespace | Holds |
 |-|-|
 | `sc` | SC's 374 generated UGens |
-| `sapf` | sapf's 123 DSP words |
+| `sapf` | sapf's 126 words |
 | `stac` | every core word |
 | `buffer` | `read`, `load`, `alloc` |
 | `group` | `new` |
@@ -350,7 +350,7 @@ The VM has most of the mechanism. The workspace is a chain of tables; `pushWorks
 5. `import` runs when the file compiles. The parser loads the module, or finds a built-in namespace (`sc`, `sapf`, `stac`), before compiling the rest, so a file can import and then use. `loadFile` compiles a whole file before running it (`VM.cpp:507`), which is why `-p` repeats today. Imports go at the top of a file; the linter warns otherwise.
 6. `import std.*` binds the names; `import std.lfo` one; `import std` the namespace alone, for `std.lfo`.
 7. Every definition is exported except names starting with `_`, which a wildcard skips. `std._helper` still works, for tests and debugging; the linter warns when a file uses another module's `_` name. `_` over an `export` list, which names each public word twice and drifts from the definitions. No word, prelude definition or example name starts with `_` today; SC's `t_`, `i_` and `a_` prefixes do not.
-8. Search order: built-in namespaces, the importing file's directory, then `$STAC_PATH`. A file cannot hide `sc`.
+8. Search order: built-in namespaces, the importing file's directory, then `$STAC_PATH`, then the modules already loaded, by name, so `import std.*` works from any directory once the prelude has loaded `std`. A file cannot hide `sc`.
 9. A module loads once and reloads when its file changes; live coding requires it. With late binding, a reload reaches every caller at its next event; synths already playing keep their graph.
 10. An import cycle is an error naming it: `import cycle: a -> b -> a`.
 
@@ -401,15 +401,15 @@ Built:
 
 ## Definitions
 
-A `def` statement defines a SynthDef. It replaces sapf-sc's `ctl` and `>sd`.
+`def` defines a function, `synthdef` a SynthDef and `const` a constant. `synthdef` replaces sapf-sc's `ctl` and `>sd`.
 
 ```
-def beep freq:440 amp:.1 = [freq sinosc amp *]
+synthdef beep freq:440 amp:.1 [freq sinosc amp *]
 ```
 
 ### Proposal: unified definitions
 
-Status: proposed 2026-10-16, not built. It replaces the `def` statement below with three statements of one shape: `def` for functions, `synthdef` for SynthDefs, `const` for constants.
+Status: built 2026-10-16 (`parseDefHeader` in `Parser.cpp`), except the linter warning on a library `def` without `-->`. It replaced the earlier `def NAME PARAM* = [BODY]`, which defined a SynthDef, with three statements of one shape: `def` for functions, `synthdef` for SynthDefs, `const` for constants. Built differences: `num` accepts a list as well as a real, because arithmetic maps over lists; a def without `-->` gets the stack effect `(params --> ?)`. The dictionary review converted `std.stac` to typed `def`s and `const`s; `sapf.stac`'s definitions stay lambdas.
 
 ```
 def lfo freq phase lo hi --> sig
@@ -497,28 +497,23 @@ Where a `def` binds: Namespaces, Proposal: modules, rule 4.
 
 ### Grammar
 
-```
-def NAME PARAM* = [ BODY ]
-PARAM := name | name:LITERAL
-```
+The grammar of `synthdef` is in the proposal above. Its details:
 
-- `def` is reserved. The parser handles it in `parseWord`, as it handles `=` (`src/engine/Parser.cpp:630`). `def` is unused in sapf-sc, its prelude and its examples.
+- `def`, `synthdef` and `const` are reserved; `synthdef.new` is a word. The parser handles them in `parseWord`, as it handles `=`.
 
 - The statement ends at the body's closing `]`. A body may span lines.
 
-- Inside a `def`, `freq:440` reads a name, then a literal after the colon. Elsewhere `:` keeps its meaning as a Form key.
-
-- The `def` parser consumes its own `=`. List destructuring (`= [a b]`) is unaffected.
+- Inside a `synthdef`, `freq:440` reads a name, then a literal after the colon. Elsewhere `:` keeps its meaning as a Form key.
 
 - A default is a literal number: `440`, `.1`, `-3`, `2pi`, `5/4`. A parameter without one defaults to 0. SC stores defaults as constants in the def file.
 
 - The body compiles as a function body. Each parameter is bound to a control output and hides any word of the same name inside the body: a parameter `in` hides the UGen `in`.
 
-### Running a `def`
+### Running a `synthdef`
 
 1. Compiles the SynthDef from the body.
 
-2. Binds `NAME` to a callable `Def`, after the body compiles, so the body cannot call its own name. `{...} NAME` starts a synth with those control values and pushes its `Node`.
+2. Binds `NAME` to a callable `SynthDef`, after the body compiles, so the body cannot call its own name. `{...} NAME` starts a synth with those control values and pushes its `Node`.
 
 3. Sends the def with its first synth: one `/d_recv` whose completion message is the `/s_new`. Sending at the statement would wait on every def for a server that may not run. `.add` sends it at once.
 
@@ -526,7 +521,7 @@ Running the statement again redefines and resends the def. Synths already playin
 
 If the body leaves channels, the def writes them with `Out` to a control `out`, default 0, appended after the parameters, unless the def declares `out` itself. If it leaves none, the body writes its own, as `out sc.out`. Controls take their slot order from parameter order within each kind, ir, tr, ar, kr as in SC, which settles the `scsy` sidecar slot question in TODO.md. Every declared parameter is a control, used or not.
 
-`` `NAME `` pushes the `Def` without calling it. `.add` resends it; `.write` writes `NAME.scsyndef`. The `scsy` sidecar is not written yet; see phase 3 below.
+`` `NAME `` pushes the `SynthDef` without calling it. `.add` resends it; `.write` writes `NAME.scsyndef`. The `scsy` sidecar is not written yet; see phase 3 below.
 
 Dot methods that act, `.set`, `.release`, `.releaseIn`, `.free`, `.add` and `.write`, leave nothing on the stack. The REPL prints the stack after each line, so a returned value would print after every `x.free`.
 
@@ -546,7 +541,7 @@ Parameter prefixes follow SC's `SynthDef`:
 A sustained tone, changed while it plays:
 
 ```python
-def beep freq:440 amp:.1 = [freq sinosc amp *]
+synthdef beep freq:440 amp:.1 [freq sinosc amp *]
 
 {:freq 660} beep = x
 {:freq 880 :amp .2} x.set
@@ -556,7 +551,7 @@ x.free
 A gated note. `release` sets `gate` to 0; `.done` frees the synth when the envelope ends:
 
 ```python
-def pad freq:220 amp:.2 gate:1 = [
+synthdef pad freq:220 amp:.2 gate:1 [
     freq saw 2000 .3 rlpf  .01 .2 .6 1 env.adsr gate envgen.kr.done *  amp * 2 X
 ]
 
@@ -567,7 +562,7 @@ n.release
 A percussive note that frees itself. `i_dur` is read once, at the start:
 
 ```
-def ping freq:880 i_dur:.4 = [freq sinosc .002 i_dur env.perc 1 envgen.kr.done * .3 * 2 X]
+synthdef ping freq:880 i_dur:.4 [freq sinosc .002 i_dur env.perc 1 envgen.kr.done * .3 * 2 X]
 
 {:freq 1320 :i_dur 1} ping
 ```
@@ -575,7 +570,7 @@ def ping freq:880 i_dur:.4 = [freq sinosc .002 i_dur env.perc 1 envgen.kr.done *
 A retriggerable synth. Each `set` of `t_trig` restarts the envelope; the synth stays alive:
 
 ```
-def blip freq:200 t_trig = [freq sinosc .001 .2 env.perc t_trig envgen.kr *]
+synthdef blip freq:200 t_trig [freq sinosc .001 .2 env.perc t_trig envgen.kr *]
 
 {} blip = b
 {:t_trig 1} b.set
@@ -585,13 +580,13 @@ def blip freq:200 t_trig = [freq sinosc .001 .2 env.perc t_trig envgen.kr *]
 A stereo def. A list result writes consecutive channels from `out`:
 
 ```
-def wide freq:110 amp:.1 = [[freq freq 1.003 *] saw amp *]
+synthdef wide freq:110 amp:.1 [[freq freq 1.003 *] saw amp *]
 ```
 
 An effect on a private bus, placed at the tail so it runs after its source:
 
 ```
-def verb bus mix:.4 = [bus 2 in mix .8 .5 freeverb]
+synthdef verb bus mix:.4 [bus 2 in mix .8 .5 freeverb]
 
 2 bus.audio = fx
 {:bus fx :addAction 'tail} verb = v
@@ -602,7 +597,7 @@ def verb bus mix:.4 = [bus 2 in mix .8 .5 freeverb]
 A def written for the SSP:
 
 ```
-def hiss cutoff:1200 res:.3 = [whitenoise .2 * cutoff res rlpf]
+synthdef hiss cutoff:1200 res:.3 [whitenoise .2 * cutoff res rlpf]
 `hiss.write                      ; hiss.scsyndef, hiss.txt
 ```
 
@@ -615,12 +610,12 @@ y.free
 
 ### Defs built by code
 
-The `def` statement takes a literal name and literal defaults. Code that builds defs, e.g. in a loop, uses the function `synthdef`, `(fun defaults name --> Def)`. It returns the `Def` unbound and unsent:
+The `synthdef` statement takes a literal name and literal defaults. Code that builds defs, e.g. in a loop, uses the word `synthdef.new`, `(fun defaults name --> synthdef)`, as SC's `SynthDef.new`. It returns the SynthDef unbound and unsent:
 
 ```
 [['h2 2] ['h3 3] ['h5 5]] @ \p [
     p = [name n]
-    \freq amp [freq n * sinosc amp *] {:freq 220 :amp .1} name synthdef .add
+    \freq amp [freq n * sinosc amp *] {:freq 220 :amp .1} name synthdef.new .add
 ] !
 ```
 
@@ -652,7 +647,7 @@ It has no `synth`, `set` or `release`. `play` starts an unnamed synth; `stop` fr
 
 Add actions go in the Form: `{:freq 660 :target g :addAction 'tail}`. The default is the head of the root node 0. See open question 9.
 
-Built: `/s_new` from a `Def`, `set`, `release`, `releaseIn`, `free`, `bus.audio`, `bus.control` with `v b.set`, `buffer.read`, `buffer.load`, `buffer.alloc`, `{} group.new`, `send`, `b.free` on a bus or buffer. `play` pushes a `Node` since phase 5.
+Built: `/s_new` from a `SynthDef`, `set`, `release`, `releaseIn`, `free`, `bus.audio`, `bus.control` with `v b.set`, `buffer.read`, `buffer.load`, `buffer.alloc`, `{} group.new`, `send`, `b.free` on a bus or buffer. `play` pushes a `Node` since phase 5.
 
 - `group.new` takes the placement Form a def call takes, `{:target g :addAction 'tail}`; `{}` places it at the head of the root. A group is a `Node`, so `set`, `release` and `free` act on all its synths.
 
@@ -875,7 +870,7 @@ The licence stays GPL-3.0, with sapf's copyright notices and a statement of deri
 
 Each phase leaves `make test` passing. Until phase 5, new UGen words appear only in namespaces and `ug`, so they cannot collide with sapf-sc's words of the same name and different units, such as `sinosc`'s phase.
 
-1. **Rename.** Binary, environment variables, files, docs. No change in behaviour. Done: the binary `stac`, its prompt `stac>`, the `STAC_*` variables (also `STAC_LOG`, `STAC_HISTORY`, `STAC_EXAMPLES`, `STAC_README`, `STAC_BIN`), `prelude.stac`, `examples/sapf.stac`. Phase 5 stopped reading the `SAPF_` names. Not renamed: the repository, the C++ identifiers and CMake options (`SapfEngine`, `SAPF_EMBED_SCSYNTH`), and the default `~/sapf-log.txt` and `~/sapf-history.txt`, which would lose a user's history. `SAPF_ORIG` names original sapf and stays.
+1. **Rename.** Binary, environment variables, files, docs. No change in behaviour. Done: the binary `stac`, its prompt `stac>`, the `STAC_*` variables (also `STAC_LOG`, `STAC_HISTORY`, `STAC_EXAMPLES`, `STAC_README`, `STAC_BIN`), `prelude.stac`, `examples/sapf.stac`. Phase 5 stopped reading the `SAPF_` names. Not renamed: the repository, the C++ identifiers and CMake options (`SapfEngine`, `SAPF_EMBED_SCSYNTH`). The defaults `~/stac-log.txt` and `~/stac-history.txt` replaced `~/sapf-*` later; stac reads `~/sapf-history.txt` once if the new history is absent. `SAPF_ORIG` names original sapf and stays.
 
 2. **Spec UGens.** Generate a primitive per class into its namespace and `ug`. Tail parameters, keyword Forms, `Sig` methods, `Namespace`. Test SCgf parity with nanosynth for every class. Done: 374 words, every namespace in the grouping above, and 155 of the 165 bare UGens, which live in `ug` only until phase 5. `.kr`, `.ir`, `.done`, `.poll`. Of the 393 public classes, 19 are not generated.
 
@@ -907,7 +902,7 @@ Each phase leaves `make test` passing. Until phase 5, new UGen words appear only
 
 5. **Split.** Move sapf's words to `sapf`. Bind the 165 bare UGens. Move the core's `ramp` to `sapf.ramp`. Remove the `ZList` signal path, `kr`, `ctl`, `>sd`, `>sf`, `>nrt`, and `N`/`T` on `Sig`. Done. Details and counts: `stac-phase5.md`.
 
-   - `sapf` holds 123 words: sapf's DSP words, among them `kr`, `ctl`, `>sd`, `>sf`, `>sfo` and `>nrt`; `ola`; `ramp`; and versions of `N`, `keep`, `NZ`, `T` and `play` that keep sapf's behaviour. `sapf.stac` binds them and holds the prelude's 48 definitions that use them. `-p` repeats.
+   - `sapf` holds 126 words: sapf's DSP words, among them `kr`, `ctl`, `>sd`, `>sf`, `>sfo` and `>nrt`; `ola` and its event-list words `evmerge`, `evdelay` and `evrest`; `ramp`; and versions of `N`, `keep`, `NZ`, `T` and `play` that keep sapf's behaviour. `sapf.stac` binds them and holds the prelude's 48 definitions that use them. `-p` repeats.
 
    - 153 of the 156 bare UGens are global words. `clip`, `wrap` and `fold` stay the core's: they compute on reals and build `Clip`, `Wrap` and `Fold` on a `Sig`, as sclang's methods do. `iwrap`, `ifold` and `*+` stay too.
 

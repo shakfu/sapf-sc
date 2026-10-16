@@ -53,9 +53,19 @@ V popGraphIn(Thread& th, const char* msg)
 	return v;
 }
 
+void Root::print(Thread& th, std::string& out, int depth)
+{
+	zprintf(out, "<%s>", node->name.c_str());
+}
+
 V outputsOf(P<UGenNode> const& node)
 {
 	int numOutputs = node->numOutputs;
+	if (numOutputs == 0) {
+		// a root of the def whose body made it, even when the body drops the Root
+		if (gDefRoots) gDefRoots->push_back(node);
+		return new Root(node);
+	}
 	if (numOutputs == 1)
 		return new Sig(node, 0);
 	P<List> list = new List(itemTypeV, numOutputs);
@@ -251,16 +261,18 @@ V Sig::binaryOpWithZList(Thread& th, BinaryOp* op, List* _a)
 ////////////////////////////////////////////////////////////////////////////////
 // SCgf compiler
 
-void flattenChannels(Thread& th, Arg v, std::vector<V>& out)
+void flattenChannels(Thread& th, Arg v, std::vector<V>& out, std::vector<P<UGenNode>>* roots)
 {
 	if (v.isReal() || isSig(v)) {
 		out.push_back(v);
+	} else if (isRoot(v)) {
+		if (roots) roots->push_back(((Root*)v.o())->node);
 	} else if (v.isVList()) {
 		if (!v.isFinite()) indefiniteOp(">sd : channels", "");
 		P<List> list = ((List*)v.o())->pack(th);
 		Array* a = list->mArray();
 		for (int64_t i = 0; i < a->size(); ++i)
-			flattenChannels(th, a->at(i), out);
+			flattenChannels(th, a->at(i), out, roots);
 	} else {
 		wrongType(">sd : channels", "UGen, Real or List of them", v);
 	}
@@ -574,30 +586,32 @@ double renderSeconds(Thread& th, Arg channels, double sr)
 	return frames / sr;
 }
 
-std::vector<P<Object>> texturesOf(Thread& th, Arg channels)
+// The UGens the channels and their Roots use.
+static std::vector<UGenNode*> graphNodes(Thread& th, Arg channels)
 {
 	std::vector<V> chans;
-	flattenChannels(th, channels, chans);
+	std::vector<P<UGenNode>> roots;
+	flattenChannels(th, channels, chans, &roots);
 	std::vector<UGenNode*> nodes;
 	std::map<UGenNode*, bool> seen;
 	for (Arg c : chans)
 		if (isSig(c)) collect(((Sig*)c.o())->node(), nodes, seen);
+	for (auto& r : roots) collect(r(), nodes, seen);
+	return nodes;
+}
+
+std::vector<P<Object>> texturesOf(Thread& th, Arg channels)
+{
 	std::vector<P<Object>> out;
-	for (UGenNode* u : nodes)
+	for (UGenNode* u : graphNodes(th, channels))
 		if (u->texture()) out.push_back(u->texture);
 	return out;
 }
 
 static std::vector<UGenNode*> nodesOf(Thread& th, Arg channels, P<Object> UGenNode::*field)
 {
-	std::vector<V> chans;
-	flattenChannels(th, channels, chans);
-	std::vector<UGenNode*> nodes;
-	std::map<UGenNode*, bool> seen;
-	for (Arg c : chans)
-		if (isSig(c)) collect(((Sig*)c.o())->node(), nodes, seen);
 	std::vector<UGenNode*> out;
-	for (UGenNode* u : nodes)
+	for (UGenNode* u : graphNodes(th, channels))
 		if ((u->*field)()) out.push_back(u);
 	return out;
 }
@@ -615,8 +629,13 @@ std::string compileSynthDef(Thread& th, Arg channels, const std::string& name, i
 std::string compileDef(Thread& th, Arg channels, const std::string& name, DefParts const& parts)
 {
 	std::vector<V> original;
-	flattenChannels(th, channels, original);
-	if (original.empty() && parts.roots.empty()) {
+	std::vector<P<UGenNode>> found = parts.roots;
+	flattenChannels(th, channels, original, &found);
+	// a def body's Root is in parts.roots already
+	std::vector<P<UGenNode>> rootNodes;
+	for (auto& r : found)
+		if (std::none_of(rootNodes.begin(), rootNodes.end(), [&](auto& q) { return q() == r(); })) rootNodes.push_back(r);
+	if (original.empty() && rootNodes.empty()) {
 		post(">sd : no channels\n");
 		throw errFailed;
 	}
@@ -624,12 +643,12 @@ std::string compileDef(Thread& th, Arg channels, const std::string& name, DefPar
 	for (Arg c : original) g.markUsed(c);
 	for (Arg p : parts.params) g.markUsed(p);
 	g.markUsed(parts.outBus);
-	for (auto& r : parts.roots)
+	for (auto& r : rootNodes)
 		for (Arg in : r->inputs) g.markUsed(in);
 	std::vector<V> chans;
 	for (Arg c : original) chans.push_back(endChannel(th, g.remap(c)));
 	std::vector<UGenNode*> roots;
-	for (auto& r : parts.roots) roots.push_back(g.copyOf(r(), r->rate, g.work));
+	for (auto& r : rootNodes) roots.push_back(g.copyOf(r(), r->rate, g.work));
 	for (auto& r : g.riders) roots.push_back(g.copyOf(r(), r->rate, g.work));
 	std::vector<V> inferFrom = chans;
 	for (UGenNode* r : roots) inferFrom.push_back(V(new Sig(r, 0)));

@@ -97,7 +97,21 @@ public:
 inline bool isSig(Arg v) { return v.o() && dynamic_cast<Sig*>(v.o()) != nullptr; }
 inline int rateOf(Arg v) { return isSig(v) ? ((Sig*)v.o())->rate() : rateIR; }
 
-// A Sig for one output of `node`, a list of Sigs for several.
+// A UGen with no outputs, such as Out. In a channel list it is a root of the graph, not a channel.
+class Root : public Object
+{
+public:
+	P<UGenNode> node;
+
+	Root(P<UGenNode> const& inNode) : node(inNode) { finite = true; }
+
+	virtual const char* TypeName() const override { return "Root"; }
+	virtual void print(Thread& th, std::string& out, int depth) override;
+};
+
+inline bool isRoot(Arg v) { return v.o() && dynamic_cast<Root*>(v.o()) != nullptr; }
+
+// A Sig for one output of `node`, a list of Sigs for several, a Root for none.
 V outputsOf(P<UGenNode> const& node);
 
 // Pops a UGen input: a real or a Sig.
@@ -133,7 +147,7 @@ struct DefParts {
 	std::vector<P<UGenNode>> roots;
 };
 
-// While set, generated UGens with no outputs are added to it (SpecUGens.cpp).
+// While set, UGens with no outputs are added to it as they are made (outputsOf).
 extern std::vector<P<UGenNode>>* gDefRoots;
 
 // As compileSynthDef, for a def: channels may be empty when parts has roots.
@@ -148,8 +162,9 @@ std::string compileSynthDef(Thread& th, Arg channels, const std::string& name, i
 // Throws, with a message, when no channel ends or an end depends on a signal.
 double renderSeconds(Thread& th, Arg channels, double sr);
 
-// Appends each channel of v, a real, a Sig or a finite list of them, nested lists flattened.
-void flattenChannels(Thread& th, Arg v, std::vector<V>& out);
+// Appends each channel of v, a real, a Sig or a finite list of them, nested lists flattened. Roots
+// in v go to roots, or are skipped when it is null.
+void flattenChannels(Thread& th, Arg v, std::vector<V>& out, std::vector<P<UGenNode>>* roots = nullptr);
 
 // How many channels compileSynthDef writes for `channels`.
 int channelCount(Thread& th, Arg channels);

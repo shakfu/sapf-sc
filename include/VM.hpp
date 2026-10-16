@@ -176,6 +176,9 @@ public:
 	};
 	std::vector<ScopeView> mOtherScopes;
 	std::map<std::string, V> mImported;  // what this thread's imports bound; a module's stay private
+	// The frames an error unwound through, printed only if nothing catches it (flushBacktrace).
+	std::string mBacktrace;
+	void flushBacktrace();
 
 	P<CompileScope> mCompileScope;
 

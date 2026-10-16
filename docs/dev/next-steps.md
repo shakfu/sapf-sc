@@ -1,18 +1,18 @@
 # Next steps
 
-State as of 2026-10-16. Committed up to a0608a9; phases 1-5 of stac.md and the gaps after them are uncommitted. ../ssp's state and tasks are in docs/dev/ssp.md.
-
-Next, in order: the naming stage (stac.md, open questions 5 and 6); a dictionary of every word, each with a definition and an example of how and why to use it, checked against `stac --words`; then the phrasebook.
+State as of 2026-10-16. Committed up to a0608a9; everything since is uncommitted: phases 1-5 of stac.md, the gaps after them, the naming stage (source namespaces and `import`), modules, late binding, `def`/`synthdef`/`const`, the dictionary, the phrasebook and the README rewrite. ../ssp's state and tasks are in docs/dev/ssp.md.
 
 ## State
 
-- `make test` passes on macOS: 271 ctest; 947 pytest passed, 112 skipped. Linux last passed on 2026-10-14, before phase 5.
+- `make test` passes on macOS: 282 ctest; 1017 pytest passed, 112 skipped. Linux last passed on 2026-10-14, before phase 5.
+
+- docs/dictionary/ has an entry for every word, 1330 in all, and docs/phrasebook.md 31 phrases; the tests run every example in both and in the README.
 
 - `build/stac` embeds scsynth (`cmake/EmbeddedScsynth.cmake`): `play` starts it on first use; `STAC_SCSYNTH` selects a UDP server instead. `>sf` and `>sfo` render in-process in NRT mode.
 
 - SuperCollider 3.14.1 and libsndfile 1.2.2 are fetched as pinned tarballs. `cmake/patch-supercollider.sh` makes SC build as a subdirectory and keeps the UGens loaded after an NRT render.
 
-- `examples/sapf.stac` keeps 216 of sapf's 312 examples; 160 play or render. They need `-p prelude.stac -p sapf.stac`. `sapf.stac` holds 48 of the prelude's definitions.
+- `examples/sapf.stac` keeps 216 of sapf's 312 examples; 160 play or render. They need `-p prelude.stac -p sapf.stac`. sapf's prelude is split: `std.stac`, a module, and `sapf.stac`, which holds the 48 definitions over sapf's DSP words.
 
 - Polyphony: `pbind play` in stac; sapf's `ola` voices are synths on private buses from 512 up, below those `bus.audio` takes, scheduled by a thread for `play`, or written into an NRT score by `>nrt`.
 
@@ -20,21 +20,7 @@ Next, in order: the naming stage (stac.md, open questions 5 and 6); a dictionary
 
 ## Open work
 
-4. `>sd` writes `@p` lines for `ctl` controls into the scsy sidecar, as it writes `@buf` lines. Needs decisions: where a control's min, max and curve come from (`ctl` takes only a default and a name), and slot order (`>sd` sorts parameters by name). See TODO.md.
-
-5. `lpcombc` (10 examples): its low pass sits inside the feedback loop. Options: an approximation, or a plugin UGen.
-
-6. Unmapped words by examples blocked: `violet` 5, `klang` 3, `pdiv` 3, `par`, `octenv`, `quadenv`, `vsaw`, `gray`, and about a dozen with one or two uses. The mouse controls are excluded on purpose.
-
-7. Live patching: done in stac with `Node.set` and `ndef`; sapf's `zplug` stays unmapped.
-
-8. `ola` voices start on the 64-frame block holding their time. `OffsetOut` would place them on the frame but crashed the NRT renderer; not investigated.
-
-9. Buffers from sapf lists (`#[...] buf`); samples load only from WAV or AIFF files.
-
-10. Six bugs in original sapf are logged in docs/dev/upstream-sapf-bugs.md; reporting them upstream is undecided.
-
-11. tests/fixtures/ref (3.6 MB of WAV) could be packed into one `.npz`; kept as files for now.
+In TODO.md, in order of priority.
 
 ## Linux check (2026-10-14)
 

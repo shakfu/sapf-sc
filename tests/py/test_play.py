@@ -130,8 +130,8 @@ def control(node, name):
     return reply.contents[2]
 
 
-TONE = "def tone amp:0 freq:440 = [freq sc.sinosc amp *]\n"
-GATED = "def gated amp:0 gate:1 = [300 sc.sinosc .01 .3 env.asr gate sc.envgen.kr.done * amp *]\n"
+TONE = "synthdef tone amp:0 freq:440 [freq sc.sinosc amp *]\n"
+GATED = "synthdef gated amp:0 gate:1 [300 sc.sinosc .01 .3 env.asr gate sc.envgen.kr.done * amp *]\n"
 
 
 def test_def_starts_a_synth_with_controls(server, sapf):
@@ -267,7 +267,7 @@ def test_buffer_read_free_reuses_the_slot(server, sapf, tmp_path):
 
 def test_effect_on_a_bus(server, sapf):
     """P12: the effect reads a private bus at the tail; the source writes to it."""
-    out = sapf(TONE + "def verb bus mix:.4 = [bus 1 sc.in mix *]\n"
+    out = sapf(TONE + "synthdef verb bus mix:.4 [bus 1 sc.in mix *]\n"
                "1 bus.audio = fx  {:bus fx :addAction 'tail} verb = v  {:out fx} tone = t  v pr cr  t pr cr")
     assert "error" not in out, out
     v, t = [int(part.split()[0]) for part in out.split("Node ")[1:3]]

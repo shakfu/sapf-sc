@@ -1,6 +1,6 @@
 # stac phrasebook
 
-Status: working document, 2026-10-15.
+Status: superseded 2026-10-16 by [../phrasebook.md](../phrasebook.md), whose phrases use the current syntax and run in the test suite. This record keeps the design reasoning: the draft syntax, and the candidates C1-C9 the phrases led to.
 
 The things a live coder types most, in sclang and in stac. Each stac line is checked against the design in [stac.md](stac.md). Friction found here decided open questions there; candidates C1-C9 are now part of that design.
 
@@ -110,7 +110,7 @@ SynthDef(\ping, { |freq = 880, amp = 0.2|
 Synth(\ping, [freq: 1320]);
 ```
 ```stac-draft
-def ping freq:880 amp:.2 = [
+synthdef ping freq:880 amp:.2 [
     freq 0 sinosc
     {:envelope .002 .4 env.perc :doneAction 2} envgen.kr *
     amp * 2 X
@@ -118,7 +118,7 @@ def ping freq:880 amp:.2 = [
 {:freq 1320} ping
 ```
 ```stac-fix
-def ping freq:880 amp:.2 = [freq sinosc .002 .4 env.perc 1 envgen.kr.done * amp * 2 X]
+synthdef ping freq:880 amp:.2 [freq sinosc .002 .4 env.perc 1 envgen.kr.done * amp * 2 X]
 {:freq 1320} ping
 ```
 
@@ -135,7 +135,7 @@ x = Synth(\pad);
 x.release;
 ```
 ```stac-draft
-def pad freq:220 amp:.2 gate:1 = [
+synthdef pad freq:220 amp:.2 gate:1 [
     freq saw 2000 .3 rlpf
     {:envelope .01 .2 .6 1 env.adsr :gate gate :doneAction 2} envgen.kr *
     amp * 2 X
@@ -144,7 +144,7 @@ def pad freq:220 amp:.2 gate:1 = [
 x.release
 ```
 ```stac-fix
-def pad freq:220 amp:.2 gate:1 = [
+synthdef pad freq:220 amp:.2 gate:1 [
     freq saw 2000 .3 rlpf  .01 .2 .6 1 env.adsr gate envgen.kr.done *  amp * 2 X
 ]
 {} pad = x
@@ -160,14 +160,14 @@ SynthDef(\hat, { |amp = 0.3|
 }).add;
 ```
 ```stac-draft
-def hat amp:.3 = [
+synthdef hat amp:.3 [
     whitenoise 8000 hpf
     {:envelope .001 .05 env.perc :doneAction 2} envgen.kr *
     amp * 2 X
 ]
 ```
 ```stac-fix
-def hat amp:.3 = [whitenoise 8000 hpf .001 .05 env.perc 1 envgen.kr.done * amp * 2 X]
+synthdef hat amp:.3 [whitenoise 8000 hpf .001 .05 env.perc 1 envgen.kr.done * amp * 2 X]
 ```
 
 ### P10. Kick
@@ -179,14 +179,14 @@ SynthDef(\kick, { |amp = 0.5|
 }).add;
 ```
 ```stac-draft
-def kick amp:.5 = [
+synthdef kick amp:.5 [
     200 50 .1 0 xline.kr 0 sinosc
     {:envelope .001 .3 env.perc :doneAction 2} envgen.kr *
     amp * 2 X
 ]
 ```
 ```stac-fix
-def kick amp:.5 = [200 50 .1 xline.kr sinosc .001 .3 env.perc 1 envgen.kr.done * amp * 2 X]
+synthdef kick amp:.5 [200 50 .1 xline.kr sinosc .001 .3 env.perc 1 envgen.kr.done * amp * 2 X]
 ```
 
 `xline` ends with `doneAction`, which C1 drops.
@@ -217,7 +217,7 @@ v = Synth(\verb, [in: b], addAction: \addToTail);
 Synth(\pad, [out: b]);
 ```
 ```stac-draft
-def verb in mix:.4 = [in 2 io.in mix .8 .5 freeverb]
+synthdef verb in mix:.4 [in 2 io.in mix .8 .5 freeverb]
 2 bus.audio = fx
 {:in fx :addAction 'tail} verb = v
 {:out fx} pad
@@ -412,7 +412,7 @@ Rules, in order of effect:
 7. Promote a kept sound to a `def`. Its numbers become controls:
 
 ```stac-fix
-def clicks rate:2 ring:800 amp:.2 = [
+synthdef clicks rate:2 ring:800 amp:.2 [
     rate dust .01 .2 decay2  ring sinosc *  = s
     s  s echo +  amp *
 ]

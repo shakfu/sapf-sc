@@ -1,5 +1,7 @@
 # sapf UGen words
 
+These are the words of the namespace `sapf`, such as `sapf.sinosc`, which `sapf.stac` imports unqualified. stac's own UGens, with SC's arguments, are in `sc`; see the [dictionary](dictionary/sc.md).
+
 Each word keeps sapf's arguments and units and converts them for the SC UGen. Fidelity is measured by `tests/py/test_conformance.py` against original sapf at 48 kHz:
 
 - **exact**: every sample within 1e-4 (1e-3 for feedback and envelope UGens), apart from the exceptions in Notes.

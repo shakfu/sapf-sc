@@ -104,6 +104,12 @@ Thread::Thread(const Thread& inParent, P<Fun> const& inFun)
 
 Thread::~Thread() {}
 
+void Thread::flushBacktrace()
+{
+	if (!mBacktrace.empty()) post("%s", mBacktrace.c_str());
+	mBacktrace.clear();
+}
+
 V Thread::lookupTop(Fun* f, Arg key)
 {
 	Scope* s = f->mDef->mScope();
@@ -407,7 +413,8 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 	// Initialize replxx
 	replxx = replxx_init();
 
-	// Set up history file path
+	// Set up history file path; legacyHistory is the pre-rename default, read once if the new file is absent
+	char legacyHistory[PATH_MAX] = "";
 	const char* envHistoryFileName = stacEnv("HISTORY");
 	if (envHistoryFileName) {
 		snprintf(historyfilename, PATH_MAX, "%s", envHistoryFileName);
@@ -417,9 +424,10 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 		if (!homeDir) homeDir = getenv("USERPROFILE");
 #endif
 		if (homeDir) {
-			snprintf(historyfilename, PATH_MAX, "%s/sapf-history.txt", homeDir);
+			snprintf(historyfilename, PATH_MAX, "%s/stac-history.txt", homeDir);
+			snprintf(legacyHistory, PATH_MAX, "%s/sapf-history.txt", homeDir);
 		} else {
-			snprintf(historyfilename, PATH_MAX, "sapf-history.txt");
+			snprintf(historyfilename, PATH_MAX, "stac-history.txt");
 		}
 	}
 
@@ -428,7 +436,8 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 	replxx_set_unique_history(replxx, 1);
 	replxx_set_completion_callback(replxx, completeCallback, this);
 	replxx_set_hint_callback(replxx, hintCallback, this);
-	replxx_history_load(replxx, historyfilename);
+	if (replxx_history_load(replxx, historyfilename) != 0 && legacyHistory[0])
+		replxx_history_load(replxx, legacyHistory);
 #endif
 
 	fflush(infile);
@@ -466,10 +475,12 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 				th.publishWorkspace();
 			}
 		} catch (V& v) {
+			flushBacktrace();
             post("error: ");
             v.print(th);
 			post("\n");
 		} catch (int err) {
+			flushBacktrace();
 			if (err == errUserQuit) {
 				post("good bye\n");
 				running = false;
@@ -542,10 +553,12 @@ void loadFile(Thread& th, const char* filename)
 			}
 		}
     } catch (V& v) {
+		th.flushBacktrace();
         post("error: ");
         v.print(th);
         post("\n");
 	} catch (int err) {
+		th.flushBacktrace();
 		if (err <= -1000 && err > -1000 - kNumErrors) {
 			post("error: %s\n", errString[-1000 - err]);
 		} else {
@@ -554,6 +567,7 @@ void loadFile(Thread& th, const char* filename)
 	} catch (std::bad_alloc& xerr) {
 		post("not enough memory\n");
 	} catch (...) {
+		th.flushBacktrace();
 		post("unknown error\n");
 	}
 }

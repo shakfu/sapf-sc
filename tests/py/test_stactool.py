@@ -43,9 +43,15 @@ def test_lex_is_lossless_and_clean(path):
     (r'"a ""q"" \\n"', [('str', r'"a ""q"" \\n"')]),
     ('@ @@ @2 @101', [('each', '@'), ('each', '@@'), ('each', '@2'), ('each', '@101')]),
     ('#[1] ;c', [('open', '#['), ('num', '1'), ('close', ']')]),
-    ('def beep freq:440 t_trig = [freq]', [('def', 'def'), ('defname', 'beep'), ('param', 'freq'), ('prefix', ':'),
-                                           ('num', '440'), ('param', 't_trig'), ('bind', '='), ('lopen', '['),
-                                           ('word', 'freq'), ('close', ']')]),
+    ('synthdef beep freq:440 t_trig [freq]', [('def', 'synthdef'), ('defname', 'beep'), ('param', 'freq'),
+                                              ('prefix', ':'), ('num', '440'), ('param', 't_trig'), ('lopen', '['),
+                                              ('word', 'freq'), ('close', ']')]),
+    ('def f x --> num num "h" [x]', [('def', 'def'), ('defname', 'f'), ('param', 'x'), ('arrow', '-->'),
+                                     ('type', 'num'), ('type', 'num'), ('str', '"h"'), ('lopen', '['),
+                                     ('word', 'x'), ('close', ']')]),
+    ('def f --> ... [1]', [('def', 'def'), ('defname', 'f'), ('arrow', '-->'), ('type', '...'), ('lopen', '['),
+                           ('num', '1'), ('close', ']')]),
+    ('const k [1]', [('def', 'const'), ('defname', 'k'), ('lopen', '['), ('num', '1'), ('close', ']')]),
 ])
 def test_tokens(src, expect):
     assert kinds(src) == expect
@@ -54,7 +60,9 @@ def test_tokens(src, expect):
 @pytest.mark.parametrize('src,code', [
     ('"open', 'E1'), ('[1', 'E2'), ('1]', 'E3'), ('[1)', 'E3'), ("'", 'E4'), ('#x', 'E5'),
     (r'\a 2 [a]', 'E6'), (r'\a', 'E6'), ('1 =', 'E7'), ('= (a b]', 'E7'), ('@12', 'E8'),
-    ('def = [1]', 'E10'), ('def f a:x = [a]', 'E10'), ('def f a', 'E10'), ('def f a = 1', 'E10'),
+    ('def = [1]', 'E10'), ('synthdef f a:x [a]', 'E10'), ('def f a', 'E10'), ('def f a = [a]', 'E10'),
+    ('def f a:1 [a]', 'E10'), ('def f a --> wat [a]', 'E10'), ('synthdef f a --> num [a]', 'E10'),
+    ('const k a [a]', 'E10'),
 ])
 def test_syntax_errors(src, code):
     assert code in [e.code for e in st.lex(src).errors]
@@ -80,8 +88,8 @@ def test_format_lambda_body_on_own_line():
 
 
 def test_format_def_body():
-    src = 'def pad freq:220 = [\nfreq sc.saw\n.2 *\n]\n'
-    assert st.format_source(src) == 'def pad freq:220 = [\n    freq sc.saw\n    .2 *\n]\n'
+    src = 'synthdef pad freq:220 [\nfreq sc.saw\n.2 *\n]\n'
+    assert st.format_source(src) == 'synthdef pad freq:220 [\n    freq sc.saw\n    .2 *\n]\n'
 
 
 def test_format_keeps_inner_spacing_and_strings():
@@ -143,10 +151,10 @@ def test_builtin_words(builtins):
     (r'\a [\b [a] = g  g]', []),
     ('[1 2] = [a b]  a b', []),
     ('x . free', ['W1', 'W4']),
-    ('def beep freq:440 = [freq sc.sinosc]  {} beep', []),
-    ('def beep freq = [beep]', ['W1']),
-    ('def neg x = [x]', ['W2']),
-    ('def f a = [b]', ['W1']),
+    ('synthdef beep freq:440 [freq sc.sinosc]  {} beep', []),
+    ('synthdef beep freq [beep]', ['W1']),
+    ('synthdef neg x [x]', ['W2']),
+    ('synthdef f a [b]', ['W1']),
     ('440 sinosc', ['W1']),
     ('import sc.*\n440 sinosc  1 2 3 clip', []),
     ('import sc.* sapf.*\n440 0 sinosc 1 T', []),

@@ -501,53 +501,185 @@ static bool parseLambda(Thread& th, P<Code>& code)
 	return true;
 }
 
-// stac's def statement (docs/dev/stac.md, Definitions): def NAME PARAM* = [ BODY ], where PARAM is
-// name or name:LITERAL. Compiles to `\PARAMS [BODY] {DEFAULTS} 'NAME synthdef = NAME`.
-static bool parseDef(Thread& th, P<Code>& code)
-{
-	ParsingWhat pw(th, parsingLambda);
-	P<String> name;
-	if (!parseSymbol(th, name) || strcmp(name->cstr(), "=") == 0)
-		syntaxError("expected a name after def");
+// stac's definition statements (docs/dev/stac.md, Definitions):
+//   def      NAME PARAM* [--> RESULT*] [HELP] [ BODY ]   a function
+//   synthdef NAME CONTROL*             [HELP] [ BODY ]   a SynthDef; CONTROL is name or name:LITERAL
+//   const    NAME                      [HELP] [ BODY ]   a constant
+// The stack effect is generated from the header and leads the help.
 
+static const char* const kResultTypes[] = {"sig", "num", "list", "fun", "form", "str", "env", "node", "bus",
+	"buffer", "synthdef", "clock", "any"};
+
+struct DefHeader {
+	P<String> name;
 	std::vector<LambdaArg> params;
 	std::vector<Z> defaults;
-	while (1) {
+	bool declared = false;  // --> given
+	bool variadic = false;  // --> ...
+	std::vector<std::string> results;
+	P<String> help;
+
+	// "(a b --> sig) help", the stack effect first, as the other help lines have it.
+	P<String> helpLine(std::string const& effect) const
+	{
+		std::string line = effect;
+		if (help()) line += std::string(" ") + help->cstr();
+		return getsym(line.c_str());
+	}
+};
+
+static DefHeader parseDefHeader(Thread& th, std::string const& kw)
+{
+	DefHeader h;
+	skipSpace(th);
+	if (!parseSymbol(th, h.name) || !strcmp(h.name->cstr(), "=") || !strcmp(h.name->cstr(), "-->"))
+		syntaxError(("expected a name after " + kw).c_str());
+	for (;;) {
+		skipSpace(th);
+		int c = th.c();
+		if (c == '[' || c == '"' || c == 0) break;
+		P<String> word;
+		if (!parseSymbol(th, word)) syntaxError(("expected a parameter, a help string or '[' in " + kw).c_str());
+		std::string w = word->cstr();
+		if (w == "=") syntaxError((kw + " has no '='; write " + kw + " NAME PARAMS [BODY]").c_str());
+		if (w == "-->") {
+			if (kw != "def") syntaxError(("only def declares results; " + kw + " takes no '-->'").c_str());
+			h.declared = true;
+			for (;;) {
+				skipSpace(th);
+				c = th.c();
+				if (c == '[' || c == '"' || c == 0) break;
+				if (c == '.') {
+					int dots = 0;
+					while (th.c() == '.') th.getc(), ++dots;
+					if (dots != 3 || !h.results.empty()) syntaxError("'...' after '-->' stands alone");
+					h.variadic = true;
+					continue;
+				}
+				P<String> type;
+				if (!parseSymbol(th, type) || h.variadic) syntaxError("expected result types after '-->'");
+				bool known = false;
+				for (const char* t : kResultTypes) known = known || !strcmp(t, type->cstr());
+				if (!known)
+					syntaxError(("unknown result type " + std::string(type->cstr()) +
+						"; one of sig num list fun form str env node bus buffer synthdef clock any").c_str());
+				h.results.push_back(type->cstr());
+			}
+			break;
+		}
+		if (kw == "const") syntaxError("const takes no parameters");
 		LambdaArg param;
-		if (!parseSymbol(th, param.name))
-			syntaxError("expected '=' after the parameters of def");
-		if (strcmp(param.name->cstr(), "=") == 0) break;
+		param.name = word;
 		Z value = 0.;
 		if (th.c() == ':') {
+			if (kw == "def")
+				syntaxError("def takes no defaults; a SynthDef with controls is synthdef NAME CONTROL* [BODY]");
 			th.getc();
-			if (!parseNumber(th, value))
-				syntaxError("expected a number after ':' in def");
+			if (!parseNumber(th, value)) syntaxError("expected a number after ':' in synthdef");
 		}
-		params.push_back(param);
-		defaults.push_back(value);
+		h.params.push_back(param);
+		h.defaults.push_back(value);
 	}
+	skipSpace(th);
+	h.help = parseString(th);
+	skipSpace(th);
+	if (th.c() != '[') syntaxError(("expected '[' to begin the body of " + kw).c_str());
+	return h;
+}
 
-	compileLambda(th, code, params, nullptr);
+static void warnHidden(Thread& th, const char* kw, P<String> const& name)
+{
+	V hidden;
+	if (vm.builtins->get(th, name, hidden))
+		post("warning: %s %s hides the built-in word %s\n", kw, name->cstr(), name->cstr());
+}
 
-	P<TableMap> tmap = new TableMap(params.size());
-	for (size_t i = 0; i < params.size(); ++i) {
-		V key(params[i].name);
+static std::string paramList(DefHeader const& h)
+{
+	std::string out;
+	for (LambdaArg const& a : h.params) out += std::string(a.name->cstr()) + " ";
+	return out;
+}
+
+static bool parseFunDef(Thread& th, P<Code>& code)
+{
+	ParsingWhat pw(th, parsingLambda);
+	DefHeader h = parseDefHeader(th, "def");
+	std::string effect = "(" + paramList(h) + "-->";
+	if (!h.declared) effect += " ?";
+	else if (h.variadic) effect += " ...";
+	for (std::string const& r : h.results) effect += " " + r;
+	compileLambda(th, code, h.params, h.helpLine(effect + ")"));
+	FunDef* def = (FunDef*)code->ops.back().v.o();
+	def->mName = h.name;
+	def->mCheckResults = h.declared && !h.variadic;
+	def->mResults = h.results;
+	warnHidden(th, "def", h.name);
+	bindVar(th, h.name, code);
+	return true;
+}
+
+// Compiles to `\CONTROLS [BODY] {DEFAULTS} 'NAME synthdef.new = NAME`.
+static bool parseSynthDef(Thread& th, P<Code>& code)
+{
+	ParsingWhat pw(th, parsingLambda);
+	DefHeader h = parseDefHeader(th, "synthdef");
+	compileLambda(th, code, h.params, nullptr);
+
+	P<TableMap> tmap = new TableMap(h.params.size());
+	for (size_t i = 0; i < h.params.size(); ++i) {
+		V key(h.params[i].name);
 		tmap->put(i, key, key.Hash());
 	}
 	P<Table> table = new Table(tmap);
-	for (size_t i = 0; i < params.size(); ++i) table->put(i, defaults[i]);
+	for (size_t i = 0; i < h.params.size(); ++i) table->put(i, h.defaults[i]);
 	code->add(opPushImmediate, V(new Form(table)));
-	code->add(opPushImmediate, V(name));
+	code->add(opPushImmediate, V(h.name));
 
-	V synthdef;
-	if (!vm.builtins->get(th, getsym("synthdef"), synthdef))
-		syntaxError("def needs the synthdef word");
-	code->add(opCallImmediate, synthdef);
+	V ns, build;
+	if (!vm.builtins->get(th, getsym("synthdef"), ns) || !ns.o() || !ns.o()->get(th, V(getsym("new")), build))
+		syntaxError("synthdef needs the word synthdef.new");
+	code->add(opCallImmediate, build);
 
-	V hidden;
-	if (vm.builtins->get(th, name, hidden))
-		post("warning: def %s hides the built-in word %s\n", name->cstr(), name->cstr());
-	bindVar(th, name, code);
+	vm.addUdfHelp(h.name->cstr(), nullptr, h.helpLine("(controls --> node)")->cstr());
+	warnHidden(th, "synthdef", h.name);
+	bindVar(th, h.name, code);
+	return true;
+}
+
+// The body runs once and must leave 1 value; = then refuses to rebind the name.
+static void constRun_(Thread& th, Prim* prim)
+{
+	V body = th.pop();
+	size_t before = th.stack.size();
+	body.apply(th);
+	if (th.stack.size() != before + 1) {
+		post("const : the body left %zu values; a constant is 1\n", th.stack.size() - before);
+		throw errFailed;
+	}
+}
+
+static void constMark_(Thread& th, Prim* prim)
+{
+	V name = th.pop();
+	th.mScope->mConsts.insert(((String*)name.o())->s);
+}
+
+static bool parseConst(Thread& th, P<Code>& code)
+{
+	if (!dynamic_cast<TopCompileScope*>(th.mCompileScope()))
+		syntaxError("const is allowed only at the top level");
+	ParsingWhat pw(th, parsingLambda);
+	DefHeader h = parseDefHeader(th, "const");
+	compileLambda(th, code, {}, nullptr);
+	static V run = V(new Prim(constRun_, 0., 1, 1, "const", nullptr));
+	static V mark = V(new Prim(constMark_, 0., 1, 0, "const", nullptr));
+	code->add(opCallImmediate, run);
+	bindVar(th, h.name, code);
+	code->add(opPushImmediate, V(h.name));
+	code->add(opCallImmediate, mark);
+	vm.addUdfHelp(h.name->cstr(), nullptr, h.helpLine("(--> const)")->cstr());
+	warnHidden(th, "const", h.name);
 	return true;
 }
 
@@ -700,6 +832,8 @@ static void importItem(Thread& th, P<String> const& nsName, P<String> const& mem
 	Namespace* ns = v.o() ? dynamic_cast<Namespace*>(v.o()) : nullptr;
 	if (!ns) syntaxError(("import : " + std::string(nsName->cstr()) + " is not a namespace").c_str());
 	auto bind = [&](const char* name, Arg value) {
+		if (th.mScope->isConst(V(getsym(name))))
+			syntaxError(("import : " + std::string(name) + " is a constant").c_str());
 		th.mWorkspace = th.mWorkspace->putPure(V(getsym(name)), value);
 		th.mImported[name] = value;
 	};
@@ -755,7 +889,13 @@ bool parseWord(Thread& th, P<Code>& code)
 	if (!parseSymbol(th, name)) return false;
 
 	if (strcmp(name->cstr(), "def")==0)
-		return parseDef(th, code);
+		return parseFunDef(th, code);
+
+	if (strcmp(name->cstr(), "synthdef")==0 && th.c() != '.')  // synthdef.new is a word
+		return parseSynthDef(th, code);
+
+	if (strcmp(name->cstr(), "const")==0)
+		return parseConst(th, code);
 
 	if (strcmp(name->cstr(), "import")==0)
 		return parseImport(th, code);

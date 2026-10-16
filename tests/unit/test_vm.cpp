@@ -519,8 +519,8 @@ TEST_F(VMTest, AnEditOfSeveralNamesLandsAtOnce) {
     V h = run("`h");
     std::atomic<bool> done{false};
     std::atomic<int64_t> mixed{0}, seen22{0}, calls{0};
+    Thread pt(th);  // copied before the player starts, as play does on the evaluating thread
     std::thread player([&] {
-        Thread pt(th);
         while (!done) {
             pt.refreshWorkspace();
             h.apply(pt);
@@ -530,7 +530,8 @@ TEST_F(VMTest, AnEditOfSeveralNamesLandsAtOnce) {
             ++calls;
         }
     });
-    for (int i = 0; i < 20000; ++i)
+    // at least 20000 edits, and on until the player has taken a new version, if it started late
+    for (int i = 0; i < 20000 || (seen22 == 0 && i < 2000000); ++i)
         run(i % 2 ? "\\[1] = f  \\[10] = g  0" : "\\[2] = f  \\[20] = g  0");
     done = true;
     player.join();
@@ -555,4 +556,65 @@ TEST_F(VMTest, AnEvaluationIsNotSeenUntilItEnds) {
     player.refreshWorkspace();
     player.mWorkspace->mustGet(player, V(getsym("f"))).apply(player);
     EXPECT_DOUBLE_EQ(player.pop().f, 2.0);
+}
+
+TEST_F(VMTest, TryCatchesAndContinues) {
+    // sapf's try applied the handler, then rethrew, as protect does.
+    EXPECT_DOUBLE_EQ(run("\\['oops throw] \\[7] try").f, 7.0);
+    EXPECT_DOUBLE_EQ(run("\\[1 2 3 nip] \\[7] try").f, 3.0);
+}
+
+TEST_F(VMTest, ThrowCarriesItsValue) {
+    P<Fun> fun;
+    ASSERT_TRUE(th.compile("'oops throw", fun, true));
+    try {
+        fun->apply(th);
+        FAIL() << "throw did not throw";
+    } catch (V& v) {
+        ASSERT_TRUE(v.isString());
+        EXPECT_STREQ(((String*)v.o())->s, "oops");
+    }
+}
+
+TEST_F(VMTest, SortfAndGradefTakeAFunction) {
+    // sortf and gradef popped their function as a list, so neither could run.
+    V sorted = run("[3 1 2] \\a b [a b >] sortf");
+    ASSERT_TRUE(sorted.isList());
+    P<List> list = ((List*)sorted.o())->pack(th);
+    EXPECT_DOUBLE_EQ(list->mArray->at(0).f, 3.0);
+    EXPECT_DOUBLE_EQ(list->mArray->at(2).f, 1.0);
+}
+
+TEST_F(VMTest, PermzwrMakesSignals) {
+    // permzwr wrote float output into a list of values and crashed.
+    V perms = run("#[1 1 2] permzwr");
+    P<List> list = ((List*)perms.o())->pack(th);
+    ASSERT_EQ(list->mArray->size(), 3);
+    EXPECT_TRUE(list->mArray->at(0).isZList());
+}
+
+TEST_F(VMTest, EvmergeAndEvrest) {
+    // evmerge crashed on an event without :dt; evrest was declared with three arguments.
+    EXPECT_THROW(run("[{:a 1}] [{:dt 1}] .5 sapf.evmerge 2 take pack"), int);
+    EXPECT_TRUE(run("1 sapf.evrest").isForm());
+}
+
+TEST_F(VMTest, GTableKeysWithEqualHashes) {
+    // Lookups matched a key by hash alone, so colliding names read each other's bindings.
+    P<String> a = new String("a", 7);
+    P<String> b = new String("b", 7);
+    P<GTable> t = new GTable();
+    ASSERT_TRUE(t->putImpure(V(a), V(1.)));
+    ASSERT_TRUE(t->putImpure(V(b), V(2.)));
+    V v;
+    EXPECT_FALSE(t->getInner(V(new String("c", 7)), v));
+    ASSERT_TRUE(t->getInner(V(b), v));
+    EXPECT_EQ(v.f, 2.);
+    ASSERT_TRUE(t->get(th, V(new String("a", 7)), v));  // a second String "a" matches by text
+    EXPECT_EQ(v.f, 1.);
+    P<GTable> u = t->putPure(V(b), 7, V(3.));
+    ASSERT_TRUE(u->getInner(V(b), v));
+    EXPECT_EQ(v.f, 3.);
+    ASSERT_TRUE(u->getInner(V(a), v));
+    EXPECT_EQ(v.f, 1.);
 }

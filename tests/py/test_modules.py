@@ -43,7 +43,7 @@ def test_a_modules_imports_stay_private(sapf_bin, tmp_path):
 
 
 def test_def_binds_into_the_module(sapf_bin, tmp_path):
-    (tmp_path / "defs.stac").write_text("def beep freq:440 = [freq sc.sinosc]\n")
+    (tmp_path / "defs.stac").write_text("synthdef beep freq:440 [freq sc.sinosc]\n")
     out = run_sapf("import defs.*\n`beep.write", tmp_path, lib=[])
     assert (tmp_path / "beep.scsyndef").exists(), out
 
@@ -137,3 +137,14 @@ def test_a_failed_reload_keeps_the_loaded_version(sapf_bin, tmp_path):
     out = repl.finish()
     assert '"nope" is an undefined word' in out
     assert printed(out) == ["11"], out
+
+
+def test_a_loaded_module_is_found_from_any_directory(sapf_bin, tmp_path):
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    (lib / "geo.stac").write_text(GEO)
+    pre = lib / "pre.stac"
+    pre.write_text("import geo.*\n")
+    work = tmp_path / "work"
+    work.mkdir()
+    assert results(run_sapf("import geo\n5 geo.geoexp pr cr", work, lib=["-p", str(pre)]))[0] == "11"

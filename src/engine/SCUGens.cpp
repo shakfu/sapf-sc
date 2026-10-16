@@ -1188,6 +1188,7 @@ void AddStacNamespace()
 	for (P<TreeNode> const& n : vm.builtins->sorted())
 		if (n->mKey.isString()) ns->mWords[((String*)n->mKey.o())->s] = n->mValue;
 	vm.builtins->putImpure(V(getsym("stac")), V(ns));
+	vm.addBifHelp(std::string("\n*** namespaces ***"));
 	vm.addBifHelp("stac", nullptr, "(--> namespace) every core word, so stac.word reaches one a binding hides.");
 }
 

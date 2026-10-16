@@ -17,6 +17,12 @@
 #include "Opcode.hpp"
 #include "clz.hpp"
 
+[[noreturn]] static void constRebound(Arg name)
+{
+	post("= %s : %s is a constant\n", ((String*)name.o())->s, ((String*)name.o())->s);
+	throw errFailed;
+}
+
 const char* opcode_name[kNumOpcodes] = 
 {
 	"BAD OPCODE",
@@ -174,6 +180,7 @@ void Thread::run(Opcode* opc)
 							vm.addUdfHelp(name, mask, help);
 						}
 					}
+					if (th.mScope->isConst(v)) constRebound(v);
 					// a new version; published when the evaluation ends
 					th.mWorkspace = th.mWorkspace->putPure(v, value);
                 } break;
@@ -206,6 +213,7 @@ void Thread::run(Opcode* opc)
 										vm.addUdfHelp(name, mask, help);
 									}
 								}
+								if (th.mScope->isConst(v)) constRebound(v);
 								th.mWorkspace = th.mWorkspace->putPure(v, value);
 							}
 						}
@@ -291,9 +299,9 @@ void Thread::run(Opcode* opc)
 			}
 		}
 	} catch (...) {
-		post("backtrace: %s ", opcode_name[opc->op]);
-		opc->v.printShort(th);
-		post("\n");
+		th.mBacktrace += std::string("backtrace: ") + opcode_name[opc->op] + " ";
+		opc->v.printShort(th, th.mBacktrace);
+		th.mBacktrace += "\n";
 		throw;
 	}
 }

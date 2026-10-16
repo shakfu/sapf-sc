@@ -14,6 +14,14 @@ Policy: sapf-sc computes what sapf's code and documentation describe, not what u
 | `lpf` coefficients | not compiled: `lpf` is SC's `LPF` |
 | `Z` and `V` call every output finite | fixed |
 | `{}` crashes | fixed |
+| `try` rethrows | fixed in `try_` |
+| `throw` drops its value | fixed in `throw_` |
+| `op^i` takes one argument | fixed in `DEFNa2` |
+| `sortf` and `gradef` cannot run | fixed in `sortf_`, `gradef_` |
+| `permzwr` crashes | fixed in `PermsWithRepeatedItemsZ` |
+| `evmerge` crashes on an event without `:dt` | fixed in `MergeEvents` |
+| `evrest` takes three arguments | fixed |
+| Names with equal hashes share a binding | fixed in `GTable` |
 
 ## Signal minus signal is reversed
 
@@ -52,3 +60,42 @@ Probable cause, not verified: `fillWaveTable` interleaves magnitudes and angles,
 ## `{}` crashes
 
 `{} pr cr` segfaults. Braces with no keys evaluate to `vm._ee`, built as `new Form(0, NULL)` (`src/engine/VM.cpp`): a Form with no table. `Form::print` and `Form::get` dereference the table. sapf-sc gives `_ee` an empty table, and `TableMap::getIndex` returns not found for an empty map, whose index array is null. `{}` is the keyword call that takes every default, as in `{} ug.whitenoise`.
+
+## `try` rethrows
+
+`try` applied its handler and then rethrew the exception, as `protect` does, so no error was ever caught. Its help says "if an exception is thrown, function B is applied". `try_` (`src/engine/CoreOps.cpp`) copied `protect_`'s `throw;`. Found writing the dictionary entry.
+
+## `throw` drops its value
+
+`throw`'s help reads `(a -->)`, but it took no argument and threw the integer -1, which prints as `error: -1`. It now throws `a`, which prints as `error: a`.
+
+## `op^i` takes one argument
+
+`+^i` and the other pairwise forms with an initial value pop a list and an initial value, but `DEFNa2` (`src/engine/MathOps.cpp`) registered them as taking one, so `[1 2 3] 10 -^i` underflowed. The help also listed `op/i`, a reducing form with an initial value that sapf never defined; the help line is removed.
+
+## `sortf` and `gradef` cannot run
+
+Both popped their compare function with `popList`, which accepts only a list, so every call failed. Found writing the dictionary.
+
+## `permzwr` crashes
+
+`#[1 1 2] permzwr` ended stac with a segmentation fault. `PermsWithRepeatedItemsZ` declared a list of values but filled it through `fulfillz`, as floats, and built each permutation as a list of values holding floats. It now builds a list of signals, as `permz` does.
+
+## `evmerge` and `evrest`
+
+`evmerge` stopped its list partway through a block when an event had no `:dt`, which failed the assertion in `List::end` and ended stac. It now reports the event. `evrest` was registered with the argument mask `aak`, so `1 evrest` underflowed; it takes one value.
+
+## Names with equal hashes share a binding
+
+`GTable::get`, `getInner` and `putImpure` (`src/engine/Object.cpp`) matched a key by its 32-bit hash alone. Two names with the same hash read each other's bindings, and the second could not be bound. `TreeNode::putPure` compared the key, so the tree held both. Lookups now compare the key, by text for strings, since a string literal is not interned. Found reading the code. stac's 1467 built-in names, with and without their namespace, have no collision.
+
+## Help lines that misstate behaviour
+
+Found writing the dictionary; each help line now says what the word does.
+
+- `wrapAt`, `foldAt` and `clipAt`: the three descriptions were rotated, so `wrapAt` described clipping, `foldAt` wrapping and `clipAt` folding.
+- `irand2`, `irand2s`, `irand2z`, `nirand2s` and `nirand2z` return integers; their help said reals.
+- `atan2` computes the arctangent of x/y, as C's `atan2(x, y)`; its help said y/x.
+- `distort` computes x/(1 + |x|); its help gave `sigm`'s x/sqrt(1 + x^2).
+- `expm1` computes exp(x) - 1; its help said exp(x - 1). `isspace` described graphic characters.
+- `to` and `toz` said they count down "if a < b". `nbyz` and `ngrowz` left `n` out of their stack effects. `degkey` and `keydeg` had no outputs in their stack effects and did not say that a scale's last item is its cycle width.

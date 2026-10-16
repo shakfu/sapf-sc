@@ -24,6 +24,7 @@
 // Forward declarations and basic types
 #include <atomic>
 #include <mutex>
+#include <set>
 #include "Forward.hpp"
 
 // Value type (V) - declaration only, no inline implementations
@@ -197,8 +198,14 @@ public:
 	P<GForm> mWorkspace;
 	P<Scope> mScope;  // the top-level scope it was compiled in; its names are looked up there late
     P<String> mHelp;
+	P<String> mName;                   // a def's name, for its errors
+	bool mCheckResults = false;        // a def that declared --> RESULT*
+	std::vector<std::string> mResults; // their types: sig num list fun form str env node bus buffer synthdef clock any
 
 	FunDef(Thread& th, P<Code> const& inCode, uint16_t inNumArgs, uint16_t inNumLocals, uint16_t inNumVars, P<String> const& inHelp);
+
+	// Throws, naming the def, unless the values above stack index `before` match mResults.
+	void checkResults(Thread& th, size_t before) const;
 
 	virtual const char* TypeName() const override { return "FunDef"; }
 	virtual const char* OneLineHelp() const override { return mHelp() ? mHelp->cstr() : nullptr; }
@@ -458,6 +465,11 @@ public:
 		std::lock_guard<std::mutex> lock(mMutex);
 		if (mVersion > version) ws = mPublished, version = mVersion;
 	}
+
+	// Names bound by const, which = may not rebind. Read and written by the thread evaluating in
+	// the scope only.
+	std::set<std::string> mConsts;
+	bool isConst(Arg key) const { return key.isString() && mConsts.count(((String*)key.o())->s); }
 
 private:
 	std::mutex mMutex;

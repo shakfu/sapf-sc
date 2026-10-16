@@ -19,8 +19,8 @@ from conftest import SAPF, SAPF_LIB, decode_scgf, read_wav_float, run_sapf
 
 SR = 96000  # sapf's default rate; run_sapf passes no -r
 
-PING = "def ping freq:440 amp:.5 gate:1 = [freq sc.sinosc .01 .1 env.asr gate sc.envgen.kr.done * amp *]\n"
-DRUM = "def drum amp:.5 = [.001 .1 env.perc 1 sc.envgen.kr.done sc.whitenoise * amp *]\n"
+PING = "synthdef ping freq:440 amp:.5 gate:1 [freq sc.sinosc .01 .1 env.asr gate sc.envgen.kr.done * amp *]\n"
+DRUM = "synthdef drum amp:.5 [.001 .1 env.perc 1 sc.envgen.kr.done sc.whitenoise * amp *]\n"
 
 
 def unbundle(bundle):

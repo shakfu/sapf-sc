@@ -13,12 +13,17 @@
 
 #include "Namespace.hpp"
 #include <string>
+#include <utility>
+#include <vector>
 
 // The namespace of module `name`, from name.stac in the importing file's directory or a directory
 // of $STAC_PATH. Loads it on its first import, and again when its file, or a module it imports,
 // has changed since. nullptr when no file is found. Throws, keeping the loaded version, when the
 // file fails to compile or run.
 Namespace* importModule(Thread& th, const std::string& name);
+
+// The loaded modules and their namespaces, by name.
+std::vector<std::pair<std::string, Namespace*>> loadedModules();
 
 // While alive, `path` is the file being loaded: its imports search its directory first.
 struct LoadingFile

@@ -14,6 +14,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include "Modules.hpp"
+#include <algorithm>
+#include <map>
+#include <set>
 #include "VM.hpp"
 #include "Environment.hpp"
 #include "Parser.hpp"
@@ -789,14 +793,15 @@ static void try_(Thread& th, Prim* prim)
 	try {
 		tryCode.apply(th);
 	} catch (...) {
+		th.mBacktrace.clear();  // caught: nothing to report
 		catchCode.apply(th);
-		throw;
 	}
 }
 
+// Throws the value, which an uncaught error prints, as "error: value".
 static void throw_(Thread& th, Prim* prim)
 {
-	throw -1;
+	throw th.pop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1149,8 +1154,12 @@ std::string jsonString(std::string const& s)
 	return out + "\"";
 }
 
+struct WordEntry {
+	std::string name, section, effect, help, mask, source;
+};
+
 // Help lines are "name [@mask] [(effect)] help", or "*** section ***" headers.
-void appendWords(std::vector<std::string> const& lines, const char* source, std::string& out)
+void parseWords(std::vector<std::string> const& lines, const char* source, std::vector<WordEntry>& out)
 {
 	std::string section;
 	for (std::string const& raw : lines) {
@@ -1162,7 +1171,7 @@ void appendWords(std::vector<std::string> const& lines, const char* source, std:
 			section = line.substr(4, e == std::string::npos || e < 4 ? std::string::npos : e - 4);
 			continue;
 		}
-		if (section.empty()) continue;  // the automap legend
+		if (section.empty() && !strcmp(source, "builtin")) continue;  // the automap legend
 		size_t sp = line.find(' ');
 		std::string name = line.substr(0, sp), rest = sp == std::string::npos ? "" : line.substr(sp + 1), mask, effect;
 		if (rest.compare(0, 1, "@") == 0) {
@@ -1171,16 +1180,16 @@ void appendWords(std::vector<std::string> const& lines, const char* source, std:
 			rest = e == std::string::npos ? "" : rest.substr(e + 1);
 		}
 		if (rest.compare(0, 1, "(") == 0) {
-			size_t e = rest.find(')');
-			if (e != std::string::npos) {
+			size_t e = 0;  // the matching ')', as in (item(s) list --> set)
+			for (int depth = 0; e < rest.size(); ++e)
+				if (rest[e] == '(') ++depth;
+				else if (rest[e] == ')' && --depth == 0) break;
+			if (e < rest.size()) {
 				effect = rest.substr(0, e + 1);
 				rest = rest.substr(std::min(rest.size(), e + 2));
 			}
 		}
-		out += out.size() > 1 ? ",\n " : "\n ";
-		out += "{\"name\": " + jsonString(name) + ", \"section\": " + jsonString(section) + ", \"effect\": " +
-			jsonString(effect) + ", \"help\": " + jsonString(rest) + ", \"automap\": " + jsonString(mask) +
-			", \"source\": \"" + source + "\"}";
+		out.push_back({name, section, effect, rest, mask, source});
 	}
 }
 
@@ -1188,10 +1197,48 @@ void appendWords(std::vector<std::string> const& lines, const char* source, std:
 
 std::string wordsJson()
 {
-	Locker lock(&gHelpMutex);
+	std::vector<WordEntry> words, defined;
+	{
+		Locker lock(&gHelpMutex);
+		parseWords(vm.bifHelp, "builtin", words);
+		parseWords(vm.udfHelp, "prelude", defined);
+	}
+	// Help prose, such as the lines that explain +/ and +\, is not a word.
+	words.erase(std::remove_if(words.begin(), words.end(), [](WordEntry const& e) {
+		V value;
+		return e.name.find('.') == std::string::npos && !vm.builtins->getInner(V(getsym(e.name.c_str())), value);
+	}), words.end());
+	// A name defined again, at the REPL or by a reload, keeps its last help line.
+	std::map<std::string, size_t> last;
+	for (size_t i = 0; i < defined.size(); ++i) last[defined[i].name] = i;
+	// A module's words take its name, std.linlin, and include those with no help line.
+	std::set<std::string> claimed;
+	std::vector<WordEntry> fromModules;
+	for (auto& [module, ns] : loadedModules())
+		for (auto& [word, value] : ns->mWords) {
+			auto it = last.find(word);
+			// a private word is not listed, nor is its help line left as a prelude word
+			if (word[0] == '_') {
+				if (it != last.end()) claimed.insert(word);
+				continue;
+			}
+			WordEntry e = it != last.end() && !claimed.count(word) ? defined[it->second] : WordEntry{word, "", "", "", "", ""};
+			if (it != last.end()) claimed.insert(word);
+			e.name = module + "." + word;
+			e.source = "module";
+			fromModules.push_back(e);
+		}
+	for (size_t i = 0; i < defined.size(); ++i)
+		if (last[defined[i].name] == i && !claimed.count(defined[i].name)) words.push_back(defined[i]);
+	words.insert(words.end(), fromModules.begin(), fromModules.end());
+
 	std::string out = "[";
-	appendWords(vm.bifHelp, "builtin", out);
-	appendWords(vm.udfHelp, "prelude", out);
+	for (WordEntry const& e : words) {
+		out += out.size() > 1 ? ",\n " : "\n ";
+		out += "{\"name\": " + jsonString(e.name) + ", \"section\": " + jsonString(e.section) + ", \"effect\": " +
+			jsonString(e.effect) + ", \"help\": " + jsonString(e.help) + ", \"automap\": " + jsonString(e.mask) +
+			", \"source\": \"" + e.source + "\"}";
+	}
 	return out + "\n]\n";
 }
 
@@ -1498,7 +1545,7 @@ void AddCoreOps()
 	//DEF2(dip, 1, -1, "(x A --> ..) pops x from stack, applies A, pushes x back on stack.")
 
 	DEFnoeach(try, 2, -1, "(A B --> ..) apply function A. if an exception is thrown, function B is applied.")
-	DEFnoeach(throw, 0, 0, "(a -->) throw an exception.")
+	DEFnoeach(throw, 1, 0, "(a -->) throw an exception carrying a.")
 	DEFnoeach(protect, 2, -1, "(A B --> ..) apply function A. if an exception is thrown, function B is applied and the exception is rethrown. Otherwise function B is applied and control continues as normal.")
 
 	// form ops

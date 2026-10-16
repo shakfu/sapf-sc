@@ -310,7 +310,7 @@ def test_poll_on_a_kr_copy_of_an_audio_node(compile_sapf):
 
 
 def test_poll_in_a_def(sapf_bin, tmp_path):
-    out = run_sapf("def p freq:2 = [freq sc.lfnoise1.kr.poll 0 sinosc]\n`p.write", tmp_path)
+    out = run_sapf("synthdef p freq:2 [freq sc.lfnoise1.kr.poll 0 sinosc]\n`p.write", tmp_path)
     d = decode_scgf((tmp_path / "p.scsyndef").read_bytes())
     assert [u[0] for u in d["ugens"]].count("Poll") == 1, out
 
@@ -327,7 +327,7 @@ def test_ir_errors(sapf_bin, tmp_path, expr, message):
 # bare UGens, without sapf.stac (stac.md, Phases 5)
 
 def core_def(code, tmp_path, name, imports=""):
-    run_sapf(f'{imports}\n\\ [{code}] {{}} "{name}" synthdef .write', tmp_path, lib=[])
+    run_sapf(f'{imports}\n\\ [{code}] {{}} "{name}" synthdef.new .write', tmp_path, lib=[])
     return (tmp_path / f"{name}.scsyndef").read_bytes()
 
 

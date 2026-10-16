@@ -37,7 +37,7 @@ def run_sapf(code: str, workdir: Path, lib: list[str] = SAPF_LIB) -> str:
 @pytest.fixture
 def compile_sapf(sapf_bin, tmp_path):
     def compile_(expr: str, name: str = "t") -> bytes:
-        out = run_sapf(f'\\ [{expr}] {{}} "{name}" synthdef .write', tmp_path)
+        out = run_sapf(f'\\ [{expr}] {{}} "{name}" synthdef.new .write', tmp_path)
         path = tmp_path / f"{name}.scsyndef"
         assert path.exists(), out
         return path.read_bytes()

@@ -560,9 +560,11 @@ void pdef_(Thread& th, Prim* prim) { th.push(V(pdefOn(th, defaultClock()))); }
 
 // SC's ProxySynthDef: the channels times EnvGate, an EnvGen from 0 to 1 and back over fadeTime with
 // a 'sin curve, released by gate and freeing the synth.
-std::string fadeDef(Thread& th, std::vector<V> const& flat, std::string const& name)
+std::string fadeDef(Thread& th, std::vector<V> const& flat, std::string const& name,
+	std::vector<P<UGenNode>> const& roots = {})
 {
 	DefParts parts;
+	parts.roots = roots;
 	V gate = makeParam("gate", 1., paramKR, 0), fade = makeParam("fadeTime", .02, paramKR, 1);
 	parts.params = {gate, fade, makeParam("out", 0., paramKR, 2)};
 	parts.outBus = parts.params[2];
@@ -685,7 +687,8 @@ void ndef_(Thread& th, Prim* prim)
 	V channels = th.pop();
 	if (isEventStream(th, channels)) wrongType("ndef : channels", "channels; pdef plays events", channels);
 	std::vector<V> flat;
-	flattenChannels(th, channels, flat);
+	std::vector<P<UGenNode>> roots;
+	flattenChannels(th, channels, flat, &roots);
 	if (flat.empty()) wrongType("ndef : channels", "at least one channel", channels);
 	P<Ndef>& nd = gNdefs[s];
 	if (!nd) nd = new Ndef(s);
@@ -710,7 +713,7 @@ void ndef_(Thread& th, Prim* prim)
 	auto loaded = std::make_shared<LoadedTables>();
 	std::vector<std::string> packets = loadWavetables(th, channels, *loaded);
 	for (std::string const& m : loadSamples(th, channels, *loaded, true)) packets.push_back(m);
-	packets.push_back(oscMessage("/d_recv", {{OscArg::Blob, 0, fadeDef(th, flat, defName)}}));
+	packets.push_back(oscMessage("/d_recv", {{OscArg::Blob, 0, fadeDef(th, flat, defName, roots)}}));
 	// The new synth starts as the old one is released, so their fades overlap. A first run, or a
 	// run after end or stop, starts the monitor too.
 	int node = newNodeID();

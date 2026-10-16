@@ -1,160 +1,123 @@
-# sapf-sc
+# stac
 
-sapf interpreter for supercollider
+A concatenative language for live coding SuperCollider.
 
-sapf-sc is the [sapf](https://github.com/lfnoise/sapf) interpreter with its macOS-only audio engine replaced by SuperCollider's scsynth, embedded as a library. UGen words build a SuperCollider UGen graph, and `>sd` writes it as a `.scsyndef` file for scsynth.
+stac is postfix: words take their arguments from a stack and leave results on it. Its UGens are SuperCollider's, with SC's arguments, defaults and units; its patterns, `pdef` and `ndef` follow SC's `Pbind`, `Pdef` and `Ndef`. It runs scsynth inside its own process, so it needs no SuperCollider install. stac grew from James McCartney's [sapf](https://github.com/lfnoise/sapf), whose interpreter it keeps; sapf's own words are a library, `sapf.stac`.
 
+```sh
+build/stac -p prelude.stac
 ```
-.4 0 lfsaw 2 * [8 7.23] 0 lfsaw .25 * 5/3 + + ohz 0 sinosc .04 * .2 0 4 combn "bubbles" >sd
-```
-
-This writes `bubbles.scsyndef` to `$STAC_SYNTHDEFS`, or to the current directory when it is unset. The def has one `Out.ar` to bus 0 with one input per channel.
-
-sapf's DSP words, from `sinosc` to `>sd`, are in the namespace `sapf`: `440 0 sapf.sinosc`. SC's UGens are in `sc`: `440 sc.sinosc` is `SinOsc.ar(440)`. A prelude imports names unqualified: `prelude.stac` has `import sc.*`, and `sapf.stac` has `import sapf.*` over it. The examples here assume `-p prelude.stac -p sapf.stac`.
-
-## Listening
-
-`build/stac` runs the embedded scsynth inside its own process. The first `play` starts it on the system's audio device; `stop` frees every synth and ends the scheduling of `ola` voices.
-
-```
-build/stac -p prelude.stac -p sapf.stac
-440 0 sinosc .1 * play
-stop
+```stac
+[440 sinosc .1 *] play = n
+n.free
 ```
 
-Run with a file, `stac` plays what the file plays and exits when it ends; Ctrl-C ends an endless one. A synth ends when its signal ends, as in sapf, and the `ola` voices a synth reads stop with it.
+- [docs/phrasebook.md](docs/phrasebook.md): 31 everyday phrases, sclang beside stac. Start here.
+- [docs/dictionary/](docs/dictionary/): every word, with what it does, when to use it and an example.
+- [examples.txt](examples.txt): lines to paste into the REPL, one at a time.
 
-The embedded server reads these when it starts:
+Every example in both runs in the test suite.
+
+## First sounds
+
+```stac
+[[440 442] sinosc .1 *] play                       ; stereo: a list of frequencies is a list of channels
+stop                                                ; frees every synth and stops every pattern
+
+synthdef ping freq:440 amp:.1 gate:1 [freq sinosc .005 .2 env.asr gate envgen.kr.done * amp * 2 X]
+{:freq 660} ping = x                                ; start a synth, keep its node
+{:freq 880} x.set
+x.release
+
+{:instrument 'ping :degree [0 2 4 5 7] picks :scale 'minor :dur .125} pbind 'mel pdef
+[[55 55.2] saw 800 .3 rlpf .1 *] 'drone ndef        ; run again, edited, to crossfade
+```
+
+## The language
+
+- **Values and the stack.** `440 sinosc` pushes 440, then `sinosc` takes it and pushes a UGen. `[...]` collects what its code leaves into a list; a list of UGens plays as channels. `= name` binds the top value; `\args [body]` is a function.
+- **Definitions.** `def` defines a function, with result types after `-->` that each call checks; `synthdef` a SynthDef, whose parameters are controls; `const` a constant.
+- **Namespaces.** SC's 374 UGens are in `sc`, sapf's words in `sapf`, the core words in `stac`, and server objects in `bus`, `buffer`, `group`, `clock` and `env`. `import sc.*` binds names unqualified.
+- **Preludes and modules.** A prelude chooses the global names a session starts with: `prelude.stac` imports `sc` and `std`, the standard library. A module is a file, `name.stac`; `import name.*` runs it in its own scope, keeps its `_` names private, and reloads it when it has changed.
+- **Live editing.** A top-level name binds late: redefine a word and the patterns that call it use the new one from their next event. A REPL line or a loaded file lands all its changes at once.
+
+The design and its reasoning are in [docs/dev/stac.md](docs/dev/stac.md); [docs/comparison.md](docs/comparison.md) compares stac with sapf.
+
+## Running
+
+```sh
+build/stac [-p prelude] ... [-i] [file]
+```
+
+- With no file, stac starts the REPL. Tab completes names; the hint shows a word's stack effect.
+- With a file, stac runs it, plays what it plays and exits when that ends; `-i` enters the REPL afterwards.
+- `-p` loads a prelude and repeats: sapf programs run with `-p prelude.stac -p sapf.stac`. Without `-p`, stac loads `$STAC_PRELUDE`; with neither, only core words and qualified names such as `sc.sinosc` exist.
+- `--words` prints every word, after the preludes, as JSON, for editors.
 
 | Variable | Meaning | Default |
 |-|-|-|
-| `STAC_DEVICE` | audio device, by name | the system's |
-| `STAC_OUTPUTS`, `STAC_INPUTS` | channels | 2, 0 |
-| `STAC_SR` | sample rate | the device's |
-| `STAC_PLUGINS` | UGen plugin folder | `plugins/` beside the executable |
+| `STAC_PRELUDE` | prelude file when no `-p` is given | none |
+| `STAC_PATH` | directories, `:`-separated, where `import` looks for modules after the importing file's own | none |
+| `STAC_SCSYNTH` | `host:port` of a running scsynth to use over UDP | the embedded server |
+| `STAC_SYNTHDEFS` | where `.write` and `score` write files | the current directory |
+| `STAC_RECORDINGS` | where `render` writes `.wav` files | the temporary directory |
+| `STAC_DEVICE` | audio device of the embedded server, by name | the system's |
+| `STAC_OUTPUTS`, `STAC_INPUTS` | its channels | 2, 0 |
+| `STAC_SR` | its sample rate | the device's |
+| `STAC_PLUGINS` | its UGen plugin folder | `plugins/` beside the executable |
+| `STAC_LOG`, `STAC_HISTORY` | REPL log and history files | `~/stac-log.txt`, `~/stac-history.txt` |
 
-Inputs default to 0. With an input stream, scsynth can hang at boot while another program holds the capture device. Set `STAC_INPUTS` to use `soundin`; without inputs it reads silence.
+Inputs default to 0: with an input stream, scsynth can hang at boot while another program holds the capture device.
 
-`>sf` renders to a file instead, as sapf's does: `channels "name" >sf` writes `name.wav` to `$STAC_RECORDINGS`, or the temp folder, at the interpreter's rate (`-r`), until the first channel ends. A channel ends where `N`, `T`, `line` and the other finite words end it; `>sf` refuses channels that never end, or end when a signal decides, as a finite `seq` does. The embedded scsynth renders the `>nrt` score in NRT mode, so `ola` voices, wave tables and samples come out as `play` would play them. `>sfo` then opens the file.
+Any scsynth works through `STAC_SCSYNTH`, e.g. SuperCollider's (`scsynth -u 57110`) or nanosynth's (`make server`). Over UDP a def larger than about 64 KB does not fit in one packet; write it with `.write` and load it instead.
 
-To use a server of your own, set `STAC_SCSYNTH` to its `host:port`; `play` and `stop` then talk to it over UDP. Any scsynth works, e.g. SuperCollider's own (`scsynth -u 57110`) or nanosynth's (`make server`). Over UDP, `play` waits up to 1 s for scsynth to confirm the def and reports an error otherwise, and a def over about 64 KB does not fit in one packet; write it with `>sd` and load it instead.
+## Tools
 
-## Model
-
-- A UGen word returns a `Sig`, one output of a graph node. A UGen with several outputs, such as `pan2`, returns a list of `Sig`s.
-
-- Math on a `Sig` builds a `BinaryOpUGen` or `UnaryOpUGen`. Math on reals is computed in the interpreter, so constants fold.
-
-- Lists expand to channels, as in sapf. They are lazy, so UGens are created in the order channels are forced.
-
-- Operations on individual samples or on a stream's elements fail on a `Sig`: `reverse`, `at`, `sort`, `skip`, reductions. A SynthDef cannot express them.
-
-- `N`, `NZ` and `T` on a `Sig` end it: an `EnvGen` drops to zero after that many frames or seconds and frees the synth. `line`, `xline` and `fadeout` end the same way. As in sapf, a channel computed from a finite signal is zero from the frame that signal ends.
-
-- `seq`, `iseq`, `steps` and `imps` read their value streams when the def compiles and store them in a `Dseq`. A finite stream ends the signal. An infinite stream keeps its first 1024 values and loops its period, or all 1024 values if none repeats. Random streams therefore repeat after 1024 values.
-
-- Durations convert to frames at the server's sample rate (`SampleRate.ir`), not the interpreter's.
-
-- UGens run at audio rate. `kr` gives a control-rate copy, and an audio-rate UGen that feeds only control-rate sapf UGens becomes control rate too: `.4 0 lfsaw 2 * kr` computes the LFSaw at control rate. A UGen also used at audio rate stays one UGen, read through `A2K`, so a noise source is not split in two. Inputs of a `ugen` node stay audio rate, because a control-rate analysis UGen such as `Amplitude` reads every input sample. A control-rate channel reaches `Out` through `K2A`, one block late.
-
-- Where original sapf has a bug, sapf-sc computes what sapf's code and documentation describe. Signal minus signal, `ratiosemi`, and `Z` or `V` on an infinite stream differ from sapf; see [docs/dev/upstream-sapf-bugs.md](docs/dev/upstream-sapf-bugs.md).
-
-## Polyphony
-
-`ola` (sapf's overlap add) returns `In.ar` on a private bus, so effects after it compile into the main def. Each sound is its own synth writing to that bus:
-
-- `play` starts the main synth, then a thread that starts each voice at its time, .2 s ahead in a timed bundle. The voices stop when sapf exits; run a file with `-i` to keep them going.
-
-- `>nrt` writes an NRT score (scsynth's non-real-time command file) with the main def and every voice up to a time. `scsynth -N name.osc _ out.wav 48000 WAV float` renders it.
-
-- `>sd` rejects `ola`: one SynthDef cannot start synths.
-
-On the SSP, `scsy` plays a `>nrt` score: Load it as a def. Its main def takes `p1`..`p16` and the sidecar; its voices start on schedule and the score loops at its length, so random choices repeat after that. Voices that compile alike share one def; `scsy` holds at most 900. See `scsy`'s README in the SSP repo. Private buses run from 512 to 959, below the 32 buses `scsy` keeps for controls.
-
-scsynth starts a synth at the start of the 64-frame block that holds its time, so a voice can start up to 63 frames early. `OffsetOut` would start it on the exact frame but crashes scsynth's NRT renderer.
-
-## Wave tables
-
-`wavefill`, `sawTbl`, `sqrTbl`, `triTbl` and `parTbl` return sapf data: 30 third-octave tables of 4096 samples in one signal. `osc` plays them with `VOsc` over 30 consecutive scsynth buffers from 512 upward, picking tables by frequency as sapf does. `play` and `>nrt` load the buffers, so a `>nrt` score carries its tables to the SSP; `>sd` rejects `osc`, because a SynthDef cannot load buffers. Original sapf's tables are broken, so these follow the formula its code describes; see [docs/dev/upstream-sapf-bugs.md](docs/dev/upstream-sapf-bugs.md).
-
-## Samples
-
-`sf>` and `playbuf` play a WAV or AIFF file with `PlayBuf` from one of scsynth's buffers 0..63. `sf>` plays it once at rate 1, as sapf's `sf>` reads it: one signal per channel, ending with the file. Neither resamples a file recorded at another rate; sapf did not either.
-
-```
-"loop.wav" 1 1 playbuf 0 at .5 * play       ; looped, first channel
-"hit.wav" sf> play                           ; once
+```sh
+uv run python scripts/stactool.py fmt [--check] FILE...   # re-indent, keeping every token
+uv run python scripts/stactool.py lint FILE...            # undefined words, hidden words, imports
+uv run python scripts/dictionary.py check                 # dictionary entries for every word
 ```
 
-- `play` loads the file into scsynth by its absolute path.
+## sapf programs
 
-- `>nrt` writes the path as given. On the SSP a relative path is relative to the score's folder.
+`sapf.stac` imports sapf's words over the SC UGens and adds the 48 prelude definitions built on them; `examples/sapf.stac` keeps 216 of sapf's 312 examples, 160 of which play or render.
 
-- `>sd` writes `// @buf N path` lines into the sidecar, `name.txt`, and keeps its other lines. `scsy` loads the files before the synth starts; copy them beside the def.
-
-## Words added
-
-| Word | Stack | Effect |
-|-|-|-|
-| `>sd` | `(channels name -->)` | Writes `name.scsyndef`. |
-| `play` | `(channels -->)` | Sends the def to scsynth and starts a synth. Without `sapf.stac`, it pushes the synth's `Node`. |
-| `stop` | `(-->)` | Frees every synth on that scsynth and stops `ola` voices. |
-| `>sf` | `(channels name -->)` | Renders `name.wav` until the first channel ends. |
-| `>sfo` | `(channels name -->)` | As `>sf`, then opens the file. |
-| `>nrt` | `(channels seconds name -->)` | Writes `name.osc`, an NRT score of channels and their `ola` voices. |
-| `sf>` | `(filename --> channels)` | A sound file's channels, once. |
-| `playbuf` | `(filename rate loop --> channels)` | A sound file's channels at `rate`, looped when `loop` is not 0. |
-| `kr` | `(in --> out)` | Control-rate version of `in`. `soundin` and `ugen` keep their rate; `kr` reads them through `A2K`. |
-| `ctl` | `(default name --> sig)` | A control-rate synth parameter. Names must be unique in a def. |
-| `ugen` | `(inputs name rate numOutputs --> out)` | Any SC UGen. `rate` is `'ar`, `'kr` or `'ir`. |
-| `soundin` | `(channel --> sig)` | Hardware input `channel`, from 0. The embedded server needs `STAC_INPUTS`. |
-
+```sh
+build/stac -p prelude.stac -p sapf.stac
 ```
-440 'freq ctl 0 sinosc .1 'amp ctl * "sine" >sd
-[440 0] 'SinOsc 'ar 1 ugen .1 * "sine2" >sd
+```stac
+440 0 sinosc .1 * play                              ; sapf's sinosc: freq and phase
 ```
 
-[docs/ugens.md](docs/ugens.md) maps each sapf UGen word to its SC UGen and states how closely it matches.
+sapf's words keep sapf's argument order and units; the [sapf chapter](docs/dictionary/sapf.md) gives each one's SC equivalent, and [docs/ugens.md](docs/ugens.md) how closely each matches SC. Where original sapf has a bug, stac computes what sapf's code and documentation describe; see [docs/dev/upstream-sapf-bugs.md](docs/dev/upstream-sapf-bugs.md).
+
+How the sapf words map onto scsynth:
+
+- **Graphs.** A sapf UGen word builds an SC UGen. `kr` gives a control-rate copy, and an audio-rate UGen that feeds only control-rate sapf UGens becomes control rate too. `N`, `NZ` and `T` end a UGen with an `EnvGen` that frees the synth; `line`, `xline` and `fadeout` end the same way.
+- **Sequences in a graph.** `seq`, `iseq`, `steps` and `imps` read their value streams when the def compiles and store them in a `Dseq`. An infinite stream keeps its first 1024 values and loops its period.
+- **Polyphony.** `ola` returns `In.ar` on a private bus; each sound is its own synth writing to it. `play` starts the voices on schedule, .2 s ahead in timed bundles, and they stop with their main synth. A voice starts on the 64-frame block that holds its time.
+- **Files.** `>sd` writes a `.scsyndef`, `>sf` renders a `.wav` until the first channel ends, `>sfo` then opens it, and `>nrt` writes an NRT score with every `ola` voice. The SSP's `scsy` plays a `>nrt` score: its voices start on schedule and the score loops at its length.
+- **Wave tables.** `wavefill`, `sawTbl` and the other table words make 30 third-octave tables; `osc` plays them with `VOsc` over buffers 512 upward. `play` and `>nrt` load the buffers.
+- **Samples.** `sf>` and `playbuf` play a WAV or AIFF file with `PlayBuf` from buffers 0..63. `>sd` names the files in the def's sidecar, `name.txt`, for `scsy`.
 
 ## Build and test
 
-```
+```sh
 make build                       # build/stac and build/plugins
 make test                        # ctest, then pytest (needs uv)
 make reference SAPF_ORIG=...     # regenerates tests/fixtures/ref with original sapf
 ```
 
-The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; see `cmake/EmbeddedScsynth.cmake`, which also says how to build offline. Tested on macOS and Linux. Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for writing defs or a server over UDP only.
+The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; `cmake/EmbeddedScsynth.cmake` says how to build offline. Tested on macOS and Linux; Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for a server over UDP only.
 
-pytest runs ten suites:
+`make test` runs the C++ unit tests (interpreter, parser, completion) and 23 pytest suites. Among them:
 
-- `test_scgf_parity.py`: sapf's SCgf bytes equal [nanosynth](../nanosynth)'s for the same graph.
-
-- `test_conformance.py`: scsynth renders each def, or each `>nrt` score for `ola`, in NRT mode (non-real-time, via nanosynth). The output is compared with original sapf's render of the same expression, stored in `tests/fixtures/ref`.
-
-- `test_errors.py`: operations a SynthDef cannot express fail and write no file.
-
-- `test_rates.py`: the rates compilation assigns under `kr`.
-
-- `test_wavetables.py`: `osc` against wave tables computed in numpy.
-
-- `test_sf.py`: `>sf` renders against original sapf's, and its length rule.
-
-- `test_samples.py`: `sf>` and `playbuf` against the sound file, and the sidecar `>sd` writes.
-
-- `test_play.py`: `play` and `stop` against `scripts/server.py` over UDP, with silent synths. Skipped without an audio device.
-
-- `test_play_embedded.py`: `play` with the embedded server. A separate module, because `scripts/server.py` holds the raw ALSA devices while it runs.
-
-- `test_kr_smoke.py`: every mapped word under `kr` runs in scsynth without errors and gives finite, non-silent output. It does not compare with sapf.
-
-## Prelude
-
-`std.stac` and `sapf.stac` hold sapf's prelude without the 5 of its 285 definitions that use words sapf-sc does not map: `hilbert`, `fft` and `kaiser`, or definitions built on them. `sapf.stac` holds the 48 definitions that use sapf's DSP words; `std.stac`, a module, holds the rest. `prelude.stac` imports SC's UGens and `std`. Load it with `-p prelude.stac` or `$STAC_PRELUDE`. `-p` repeats and replaces `$STAC_PRELUDE`; `sapf.stac` replaces the prelude's UGens, so it comes second.
-
-A module is a file, `name.stac`, that `import name.*` runs in its own scope. stac looks for it beside the importing file, then in each directory of `$STAC_PATH`. Its names starting with `_` stay private. Running the import again after editing the file reloads it.
-
-`examples/sapf.stac` runs with `-p prelude.stac -p sapf.stac`. It keeps the 216 of sapf's 312 examples that run; 160 of them play or render. The rest use words with no SC mapping, most often `lpcombc`, the mouse controls, `violet`, `klang` and `pdiv`, or sapf's live-patching `zplug` and `set`.
+- `test_scgf_parity.py` and `test_ugen_sweep.py`: stac's SynthDef bytes equal [nanosynth](../nanosynth)'s for the same graph.
+- `test_conformance.py`: scsynth renders sapf expressions offline, compared with original sapf's renders in `tests/fixtures/ref`.
+- `test_defs.py`, `test_modules.py`, `test_patterns.py`: statements, modules, patterns, clocks, `pdef` and `ndef`, partly against a recording stand-in for scsynth.
+- `test_play.py` and `test_play_embedded.py`: synths, buses and buffers on a real scsynth, silently. Skipped without an audio device.
+- `test_dictionary.py` and `test_phrasebook.py`: every example in the documentation.
 
 ## License
 
