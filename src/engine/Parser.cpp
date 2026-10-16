@@ -17,6 +17,7 @@
 #include "Parser.hpp"
 #include "Opcode.hpp"
 #include "Completion.hpp"
+#include "Modules.hpp"
 #include <ctype.h>
 #include <cmath>
 #include <cstdarg>
@@ -684,6 +685,68 @@ static void bindVarFromList(Thread& th, P<String> const& name, P<Code>& code)
 	}
 }
 
+// One item of an import: NS.* binds NS's words, except core words and _ names; NS.name binds one,
+// even over a core word; NS alone binds the namespace. A later binding replaces an earlier one.
+// NS is a built-in namespace, else a module file, else a namespace the scope has bound.
+static void importItem(Thread& th, P<String> const& nsName, P<String> const& member)
+{
+	V v;
+	if (vm.builtins->get(th, V(nsName), v)) {
+	} else if (Namespace* module = importModule(th, nsName->cstr())) {
+		v = V(module);
+	} else if (!th.mWorkspace->get(th, V(nsName), v)) {
+		syntaxError(("import : no namespace or module named " + std::string(nsName->cstr())).c_str());
+	}
+	Namespace* ns = v.o() ? dynamic_cast<Namespace*>(v.o()) : nullptr;
+	if (!ns) syntaxError(("import : " + std::string(nsName->cstr()) + " is not a namespace").c_str());
+	auto bind = [&](const char* name, Arg value) {
+		th.mWorkspace = th.mWorkspace->putPure(V(getsym(name)), value);
+		th.mImported[name] = value;
+	};
+	if (!member()) {
+		bind(nsName->cstr(), v);
+	} else if (!strcmp(member->cstr(), "*")) {
+		V core;
+		for (auto& [name, value] : ns->mWords)
+			if (name[0] != '_' && !vm.builtins->getInner(V(getsym(name.c_str())), core)) bind(name.c_str(), value);
+	} else {
+		auto it = ns->mWords.find(member->cstr());
+		if (it == ns->mWords.end())
+			syntaxError(("import : " + std::string(nsName->cstr()) + " has no word " + member->cstr()).c_str());
+		bind(member->cstr(), it->second);
+	}
+}
+
+// stac's import statement (docs/dev/stac.md, Proposal: canonical namespaces and import): items to the
+// end of the line. It binds while the file compiles, so the rest of the file can use the names; an
+// import after other statements would bind before them, so it is an error.
+static bool parseImport(Thread& th, P<Code>& code)
+{
+	if (!dynamic_cast<TopCompileScope*>(th.mCompileScope()))
+		syntaxError("import is allowed only at the top level");
+	if (code->size())
+		syntaxError("import must come before the other statements of a file or line");
+	int items = 0;
+	for (;;) {
+		int c = th.c();
+		while (c == ' ' || c == '\t') {
+			th.getc();
+			c = th.c();
+		}
+		if (c == 0 || c == '\n' || c == '\r' || c == ';') break;
+		P<String> ns, member;
+		if (!parseSymbol(th, ns)) syntaxError("expected a namespace after import");
+		if (th.c() == '.') {
+			th.getc();
+			if (!parseSymbol(th, member)) syntaxError("expected a word or * after '.' in import");
+		}
+		importItem(th, ns, member);
+		++items;
+	}
+	if (!items) syntaxError("expected a namespace after import");
+	return true;
+}
+
 bool parseWord(Thread& th, P<Code>& code)
 {
 	//ScopeLog sl("parseWord");
@@ -693,6 +756,9 @@ bool parseWord(Thread& th, P<Code>& code)
 
 	if (strcmp(name->cstr(), "def")==0)
 		return parseDef(th, code);
+
+	if (strcmp(name->cstr(), "import")==0)
+		return parseImport(th, code);
 
 	if (strcmp(name->cstr(), "=")==0) {
 

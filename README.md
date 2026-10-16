@@ -10,7 +10,7 @@ sapf-sc is the [sapf](https://github.com/lfnoise/sapf) interpreter with its macO
 
 This writes `bubbles.scsyndef` to `$STAC_SYNTHDEFS`, or to the current directory when it is unset. The def has one `Out.ar` to bus 0 with one input per channel.
 
-sapf's DSP words, from `sinosc` to `>sd`, are in the namespace `sapf`: `440 0 sapf.sinosc`. Without it, `sinosc` is SC's `SinOsc`: `440 sinosc`. `sapf.stac` binds the sapf words unqualified. The examples here assume `-p prelude.stac -p sapf.stac`.
+sapf's DSP words, from `sinosc` to `>sd`, are in the namespace `sapf`: `440 0 sapf.sinosc`. SC's UGens are in `sc`: `440 sc.sinosc` is `SinOsc.ar(440)`. A prelude imports names unqualified: `prelude.stac` has `import sc.*`, and `sapf.stac` has `import sapf.*` over it. The examples here assume `-p prelude.stac -p sapf.stac`.
 
 ## Listening
 
@@ -150,7 +150,9 @@ pytest runs ten suites:
 
 ## Prelude
 
-`prelude.stac` and `sapf.stac` hold sapf's prelude without the 5 of its 285 definitions that use words sapf-sc does not map: `hilbert`, `fft` and `kaiser`, or definitions built on them. `sapf.stac` holds the 58 definitions that use sapf's DSP words; `prelude.stac` holds the rest. Load `prelude.stac` with `-p prelude.stac` or `$STAC_PRELUDE`. `-p` repeats and replaces `$STAC_PRELUDE`; `sapf.stac` uses the prelude's words, so it comes second.
+`std.stac` and `sapf.stac` hold sapf's prelude without the 5 of its 285 definitions that use words sapf-sc does not map: `hilbert`, `fft` and `kaiser`, or definitions built on them. `sapf.stac` holds the 48 definitions that use sapf's DSP words; `std.stac`, a module, holds the rest. `prelude.stac` imports SC's UGens and `std`. Load it with `-p prelude.stac` or `$STAC_PRELUDE`. `-p` repeats and replaces `$STAC_PRELUDE`; `sapf.stac` replaces the prelude's UGens, so it comes second.
+
+A module is a file, `name.stac`, that `import name.*` runs in its own scope. stac looks for it beside the importing file, then in each directory of `$STAC_PATH`. Its names starting with `_` stay private. Running the import again after editing the file reloads it.
 
 `examples/sapf.stac` runs with `-p prelude.stac -p sapf.stac`. It keeps the 216 of sapf's 312 examples that run; 160 of them play or render. The rest use words with no SC mapping, most often `lpcombc`, the mouse controls, `violet`, `klang` and `pdiv`, or sapf's live-patching `zplug` and `set`.
 

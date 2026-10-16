@@ -23,6 +23,7 @@ set(ENGINE_SOURCES
 	DefOps.cpp
 	ResourceOps.cpp
 	PatternOps.cpp
+	Modules.cpp
 	Completion.cpp
 	Scsynth.cpp
 	Texture.cpp

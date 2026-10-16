@@ -7,7 +7,7 @@
 
 // stac's generated UGen words (docs/dev/stac.md, phase 2). Each word takes SC's arguments in SC's
 // order and units, positionally or as a keyword Form, and builds the class named in its row of
-// SpecUGens.inc. Words live in namespaces and in the ug index, not at top level.
+// SpecUGens.inc. Words live in the namespace sc; `import sc.*` makes them global.
 
 #include "Graph.hpp"
 #include "Env.hpp"
@@ -16,7 +16,6 @@
 #include "symbol.hpp"
 #include <cmath>
 #include <map>
-#include <set>
 #include <string>
 
 namespace {
@@ -64,15 +63,11 @@ struct SpecUGen {
 
 const int kNumSpecUGens = (int)(sizeof(kSpecUGens) / sizeof(kSpecUGens[0]));
 
-// The word as typed: ns.word, or ug.word for a bare word, which has no namespace until phase 5.
-// Bare UGens bound as global words (AddSpecUGenOps).
-std::set<std::string> gBoundBare;
 
 // NS.word, or the plain word for a bare UGen bound globally.
 std::string wordName(const SpecUGen& u)
 {
-	if (!*u.ns && gBoundBare.count(u.word)) return u.word;
-	return std::string(*u.ns ? u.ns : "ug") + "." + u.word;
+	return std::string("sc.") + u.word;
 }
 
 std::string argName(const SpecUGen& u, int i)
@@ -307,13 +302,6 @@ public:
 
 } // namespace
 
-static std::map<std::string, P<Namespace>> gSpaces;
-
-Namespace* generatedNamespace(const std::string& name)
-{
-	auto it = gSpaces.find(name);
-	return it == gSpaces.end() ? nullptr : it->second();
-}
 
 bool Sig::dot(Thread& th, Arg key, V& ioValue)
 {
@@ -376,39 +364,19 @@ bool Sig::dot(Thread& th, Arg key, V& ioValue)
 void AddSpecUGenOps();
 void AddSpecUGenOps()
 {
-	std::map<std::string, P<Namespace>>& spaces = gSpaces;
-	P<Namespace> ug = new Namespace("ug");
-	for (int row = 0; row < kNumSpecUGens; ++row) {
-		const SpecUGen& u = kSpecUGens[row];
-		V prim = new UGenPrim(row);
-		ug->mWords[u.word] = prim;
-		if (*u.ns) {
-			P<Namespace>& ns = spaces[u.ns];
-			if (!ns) ns = new Namespace(u.ns);
-			ns->mWords[u.word] = prim;
-		}
-	}
-	// A UGen in no category namespace is also a global word. clip, wrap and fold stay the core's:
-	// they compute on reals and build the same UGen on a Sig.
-	for (int row = 0; row < kNumSpecUGens; ++row) {
-		const SpecUGen& u = kSpecUGens[row];
-		V existing;
-		if (*u.ns || vm.builtins->getInner(V(getsym(u.word)), existing)) continue;
-		vm.def(u.word, ug->mWords[u.word]);
-		gBoundBare.insert(u.word);
-	}
-	// Help; the generator emits rows grouped by namespace, bare words under ug.
+	// SC has one flat class namespace; its help categories are data, kept as help sections.
+	P<Namespace> sc = new Namespace("sc");
+	for (int row = 0; row < kNumSpecUGens; ++row)
+		sc->mWords[kSpecUGens[row].word] = new UGenPrim(row);
+	// Help; the generator emits rows grouped by category, uncategorised ones first.
 	for (int row = 0; row < kNumSpecUGens; ++row) {
 		const SpecUGen& u = kSpecUGens[row];
 		if (row == 0 || strcmp(u.ns, kSpecUGens[row - 1].ns))
-			vm.addBifHelp(std::string("\n*** ") + (*u.ns ? u.ns : "ug") + " ***");
+			vm.addBifHelp(std::string("\n*** sc") + (*u.ns ? std::string(": ") + u.ns : "") + " ***");
 		vm.addBifHelp(wordName(u).c_str(), nullptr, u.help);
 	}
 	vm.addBifHelp(std::string("\n*** namespaces ***"));
-	for (auto& [name, ns] : spaces) {
-		vm.def(name.c_str(), V(ns));
-		vm.addBifHelp(name.c_str(), nullptr, "(--> namespace) generated UGen words; name.word calls one.");
-	}
-	vm.def("ug", V(ug));
-	vm.addBifHelp("ug", nullptr, "(--> namespace) every generated UGen word under its plain name.");
+	vm.def("sc", V(sc));
+	vm.addBifHelp("sc", nullptr,
+		"(--> namespace) SuperCollider 3.14.1's UGens, each its class name in lower case. import sc.* binds them.");
 }

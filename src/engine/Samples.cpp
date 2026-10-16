@@ -43,6 +43,11 @@ int bufferFor(const std::string& absolute)
 	std::lock_guard<std::mutex> lock(gMutex);
 	for (size_t i = 0; i < gBufs.size(); ++i)
 		if (gBufs[i] == absolute) return (int)i;
+	for (size_t i = 0; i < gBufs.size(); ++i)
+		if (gBufs[i].empty()) {
+			gBufs[i] = absolute;
+			return (int)i;
+		}
 	if ((int)gBufs.size() == kSampleBufs) {
 		post("sf> : more than %d sound files\n", kSampleBufs);
 		throw errOutOfRange;
@@ -128,6 +133,12 @@ V endEach(Thread& th, Arg channels, Arg frames)
 }
 
 } // namespace
+
+void releaseSampleBuffer(int buf)
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	if (buf >= 0 && buf < (int)gBufs.size()) gBufs[buf].clear();
+}
 
 SampleInfo sampleBuffer(Thread& th, Arg path, const char* msg)
 {

@@ -14,6 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include "Modules.hpp"
 #include "VM.hpp"
 #include "Environment.hpp"
 #include "Opcode.hpp"
@@ -56,6 +57,7 @@ uint64_t timeseed()
 Thread::Thread()
     :rate(vm.ar), stackBase(0), localBase(0),
 	mWorkspace(new GForm()),
+    mScope(new Scope(mWorkspace)),
     parsingWhat(parsingWords),
     fromString(false),
 #if USE_REPLXX
@@ -70,6 +72,8 @@ Thread::Thread()
 Thread::Thread(const Thread& inParent)
     :rate(inParent.rate), stackBase(0), localBase(0),
     mWorkspace(inParent.mWorkspace),
+    mScope(inParent.mScope),
+    mScopeVersion(inParent.mScopeVersion),
     parsingWhat(parsingWords),
     fromString(false),
 #if USE_REPLXX
@@ -85,6 +89,8 @@ Thread::Thread(const Thread& inParent, P<Fun> const& inFun)
     :rate(vm.ar), stackBase(0), localBase(0),
     fun(inFun),
     mWorkspace(inParent.mWorkspace),
+    mScope(inParent.mScope),
+    mScopeVersion(inParent.mScopeVersion),
     parsingWhat(parsingWords),
     fromString(false),
 #if USE_REPLXX
@@ -97,6 +103,19 @@ Thread::Thread(const Thread& inParent, P<Fun> const& inFun)
 }
 
 Thread::~Thread() {}
+
+V Thread::lookupTop(Fun* f, Arg key)
+{
+	Scope* s = f->mDef->mScope();
+	if (!s || s == mScope()) return mWorkspace->mustGet(*this, key);
+	for (ScopeView& v : mOtherScopes)
+		if (v.scope() == s) {
+			if (v.version != s->version()) v.ws = s->current(), v.version = s->version();
+			return v.ws->mustGet(*this, key);
+		}
+	mOtherScopes.push_back({s, s->current(), s->version()});
+	return mOtherScopes.back().ws->mustGet(*this, key);
+}
 
 //////////////////////
 
@@ -444,6 +463,7 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 				// EVAL
 					compiledFun->runREPL(th);
 				}
+				th.publishWorkspace();
 			}
 		} catch (V& v) {
             post("error: ");
@@ -495,6 +515,7 @@ public:
 void loadFile(Thread& th, const char* filename)
 {
     post("loading file '%s'\n", filename);
+	LoadingFile loading(filename);
 	FILE* f = fopen(filename, "r");
 	if (!f) {
 		post("could not open '%s'\n", filename);
@@ -516,6 +537,7 @@ void loadFile(Thread& th, const char* filename)
 			if (th.compile(p, compiledFun, true)) {
 				post("compiled OK.\n");
 				compiledFun->run(th);
+				th.publishWorkspace();
 				post("done loading file\n");
 			}
 		}

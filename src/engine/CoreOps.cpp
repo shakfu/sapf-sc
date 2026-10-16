@@ -1131,6 +1131,70 @@ static void helpall_(Thread& th, Prim* prim)
 }
 
 
+namespace {
+
+std::string jsonString(std::string const& s)
+{
+	std::string out = "\"";
+	for (unsigned char c : s) {
+		if (c == '"' || c == '\\') out += '\\', out += (char)c;
+		else if (c == '\n') out += "\\n";
+		else if (c == '\t') out += "\\t";
+		else if (c < 0x20) {
+			char hex[8];
+			snprintf(hex, sizeof(hex), "\\u%04x", c);
+			out += hex;
+		} else out += (char)c;
+	}
+	return out + "\"";
+}
+
+// Help lines are "name [@mask] [(effect)] help", or "*** section ***" headers.
+void appendWords(std::vector<std::string> const& lines, const char* source, std::string& out)
+{
+	std::string section;
+	for (std::string const& raw : lines) {
+		size_t b = raw.find_first_not_of(" \n");
+		if (b == std::string::npos) continue;
+		std::string line = raw.substr(b);
+		if (line.compare(0, 4, "*** ") == 0) {
+			size_t e = line.rfind(" ***");
+			section = line.substr(4, e == std::string::npos || e < 4 ? std::string::npos : e - 4);
+			continue;
+		}
+		if (section.empty()) continue;  // the automap legend
+		size_t sp = line.find(' ');
+		std::string name = line.substr(0, sp), rest = sp == std::string::npos ? "" : line.substr(sp + 1), mask, effect;
+		if (rest.compare(0, 1, "@") == 0) {
+			size_t e = rest.find(' ');
+			mask = rest.substr(1, e == std::string::npos ? std::string::npos : e - 1);
+			rest = e == std::string::npos ? "" : rest.substr(e + 1);
+		}
+		if (rest.compare(0, 1, "(") == 0) {
+			size_t e = rest.find(')');
+			if (e != std::string::npos) {
+				effect = rest.substr(0, e + 1);
+				rest = rest.substr(std::min(rest.size(), e + 2));
+			}
+		}
+		out += out.size() > 1 ? ",\n " : "\n ";
+		out += "{\"name\": " + jsonString(name) + ", \"section\": " + jsonString(section) + ", \"effect\": " +
+			jsonString(effect) + ", \"help\": " + jsonString(rest) + ", \"automap\": " + jsonString(mask) +
+			", \"source\": \"" + source + "\"}";
+	}
+}
+
+} // namespace
+
+std::string wordsJson()
+{
+	Locker lock(&gHelpMutex);
+	std::string out = "[";
+	appendWords(vm.bifHelp, "builtin", out);
+	appendWords(vm.udfHelp, "prelude", out);
+	return out + "\n]\n";
+}
+
 static void prelude_(Thread& th, Prim* prim)
 {
     static const size_t cmdMaxLen = 2048;

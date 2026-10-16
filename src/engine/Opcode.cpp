@@ -125,7 +125,7 @@ void Thread::run(Opcode* opc)
 					break;
 					
 				case opPushWorkspaceVar :
-					push(fun->Workspace()->mustGet(th, v));
+					push(th.lookupTop(fun(), v));
 					break;
 					
 				case opPushFun : {
@@ -145,7 +145,7 @@ void Thread::run(Opcode* opc)
 					break;
 					
 				case opCallWorkspaceVar :
-					fun->Workspace()->mustGet(th, v).apply(th);
+					th.lookupTop(fun(), v).apply(th);
 					break;
 
 				case opDot : {
@@ -174,8 +174,8 @@ void Thread::run(Opcode* opc)
 							vm.addUdfHelp(name, mask, help);
 						}
 					}
-					fun->Workspace() = fun->Workspace()->putImpure(v, value); // workspace mutation
-					th.mWorkspace = th.mWorkspace->putImpure(v, value); // workspace mutation
+					// a new version; published when the evaluation ends
+					th.mWorkspace = th.mWorkspace->putPure(v, value);
                 } break;
                 
 				case opBindLocalFromList :
@@ -206,8 +206,7 @@ void Thread::run(Opcode* opc)
 										vm.addUdfHelp(name, mask, help);
 									}
 								}
-								fun->Workspace() = fun->Workspace()->putImpure(v, value); // workspace mutation
-								th.mWorkspace = th.mWorkspace->putImpure(v, value); // workspace mutation
+								th.mWorkspace = th.mWorkspace->putPure(v, value);
 							}
 						}
 						++opc;

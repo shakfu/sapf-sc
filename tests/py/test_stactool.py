@@ -10,7 +10,7 @@ from conftest import ROOT, run_sapf
 sys.path.insert(0, str(ROOT / 'scripts'))
 import stactool as st  # noqa: E402
 
-SOURCES = sorted([ROOT / 'prelude.stac', ROOT / 'sapf.stac', ROOT / 'examples' / 'sapf.stac', ROOT / 'sapf-bif-examples.txt',
+SOURCES = sorted([ROOT / 'prelude.stac', ROOT / 'std.stac', ROOT / 'sapf.stac', ROOT / 'examples' / 'sapf.stac', ROOT / 'sapf-bif-examples.txt',
                   ROOT / 'unit-tests.txt', *ROOT.glob('tests/test_*.txt')])
 
 
@@ -80,8 +80,8 @@ def test_format_lambda_body_on_own_line():
 
 
 def test_format_def_body():
-    src = 'def pad freq:220 = [\nfreq ug.saw\n.2 *\n]\n'
-    assert st.format_source(src) == 'def pad freq:220 = [\n    freq ug.saw\n    .2 *\n]\n'
+    src = 'def pad freq:220 = [\nfreq sc.saw\n.2 *\n]\n'
+    assert st.format_source(src) == 'def pad freq:220 = [\n    freq sc.saw\n    .2 *\n]\n'
 
 
 def test_format_keeps_inner_spacing_and_strings():
@@ -125,8 +125,8 @@ def codes(src, builtins, known=frozenset()):
 
 
 def test_builtin_words(builtins):
-    assert {'sinosc', 'sapf.sinosc', '+', '+/', '*\\', 'nyq', 'sapf.>sd', 'ug.clip'} <= builtins
-    assert 'white' not in builtins
+    assert {'sc.sinosc', 'sapf.sinosc', '+', '+/', '*\\', 'nyq', 'sapf.>sd', 'sc.clip'} <= builtins
+    assert 'white' not in builtins and 'sinosc' not in builtins
     assert len(builtins) > 900
 
 
@@ -143,17 +143,24 @@ def test_builtin_words(builtins):
     (r'\a [\b [a] = g  g]', []),
     ('[1 2] = [a b]  a b', []),
     ('x . free', ['W1', 'W4']),
-    ('def beep freq:440 = [freq ug.sinosc]  {} beep', []),
+    ('def beep freq:440 = [freq sc.sinosc]  {} beep', []),
     ('def beep freq = [beep]', ['W1']),
     ('def neg x = [x]', ['W2']),
     ('def f a = [b]', ['W1']),
+    ('440 sinosc', ['W1']),
+    ('import sc.*\n440 sinosc  1 2 3 clip', []),
+    ('import sc.* sapf.*\n440 0 sinosc 1 T', []),
+    ('import sc.clip\n1 2 3 clip', []),
+    ('import sc.nope\n1', ['W1']),
+    ('import sc\n440 sc.sinosc', []),
+    ('1 2 3 stac.clip', []),
 ])
 def test_lint(src, expect, builtins):
     assert codes(src, builtins) == expect
 
 
 @pytest.mark.parametrize('src,hint', [
-    ('1 pv_magfreeze', "'pv_magfreeze' is undefined; fft.pv_magfreeze?"),
+    ('1 pv_magfreeze', "'pv_magfreeze' is undefined; sc.pv_magfreeze?"),
     ('1 white', "'white' is undefined; sapf.white?"),
 ])
 def test_lint_names_the_namespace(src, hint, builtins, tmp_path):
@@ -164,7 +171,7 @@ def test_lint_names_the_namespace(src, hint, builtins, tmp_path):
 
 
 def test_lint_prelude_names(builtins):
-    _, prelude = st.analyze((ROOT / 'prelude.stac').read_text(), builtins)
+    _, prelude = st.analyze((ROOT / 'prelude.stac').read_text(), builtins, path=ROOT / 'prelude.stac')
     assert 'prall' in prelude
     assert codes('[1 2] prall', builtins) == ['W1']
     assert codes('[1 2] prall', builtins, prelude) == []
@@ -179,7 +186,22 @@ def test_lint_errors_match_sapf(src, builtins, tmp_path):
 
 @pytest.mark.parametrize('path', SOURCES, ids=lambda p: p.name)
 def test_lint_repo_sources_have_no_errors(path, builtins):
-    _, prelude = st.analyze((ROOT / 'prelude.stac').read_text(), builtins)
-    _, sapf = st.analyze((ROOT / 'sapf.stac').read_text(), builtins, prelude)
-    diags, _ = st.analyze(path.read_text(), builtins, prelude | sapf)
+    _, prelude = st.analyze((ROOT / 'prelude.stac').read_text(), builtins, path=ROOT / 'prelude.stac')
+    _, sapf = st.analyze((ROOT / 'sapf.stac').read_text(), builtins, prelude, ROOT / 'sapf.stac')
+    diags, _ = st.analyze(path.read_text(), builtins, prelude | sapf, path)
     assert [d for d in diags if d.code.startswith('E')] == []
+
+
+def test_lint_follows_module_imports(builtins, tmp_path):
+    (tmp_path / 'geo.stac').write_text('import sc.*\n\\x [x 2 *] = _double\n\\x [x _double 1 +] = geoexp\n')
+    main = tmp_path / 'main.stac'
+
+    def lint(src):
+        return [(d.code, d.msg) for d in st.analyze(src, builtins, path=main)[0]]
+
+    assert lint('import geo.*\n5 geoexp') == []
+    assert lint('import geo.*\n440 sinosc') == [('W1', "'sinosc' is undefined; sc.sinosc?")]  # its imports stay private
+    assert lint('import geo.*\n5 _double')[0][0] == 'W1'                 # a wildcard skips _ names
+    assert lint('import geo._double\n5 _double') == [('W5', "'_double' is private to geo")]
+    assert lint('import geo\n5 geo._double') == [('W5', "'_double' is private to geo")]
+    assert lint('import nomod.*') == [('W1', "'import nomod.*': no namespace or module named nomod")]

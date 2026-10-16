@@ -162,6 +162,7 @@ struct Events {
 	Thread& th;
 	VIn events;
 	double beat = 0.; // where the next event starts
+	double tempo = 0.; // the last event's :tempo, or 0
 	std::vector<Def*> defs; // each def the events have used, in order
 	// Messages to send before the next event's: the wavetables, sound files and defs of function
 	// instruments. absolute: sound file paths as live scsynth reads them, not as a score's.
@@ -204,6 +205,12 @@ struct Events {
 		double dur = has("dur") ? real(f["dur"], "dur") : 1.;
 		double start = beat;
 		beat += dur;
+		// SC's ~tempo sets the clock's tempo from this event on, a rest's too.
+		tempo = has("tempo") ? real(f["tempo"], "tempo") : 0.;
+		if (has("tempo") && !(tempo > 0. && std::isfinite(tempo))) {
+			post("event : tempo : above 0\n");
+			throw errOutOfRange;
+		}
 		for (auto& [k, v] : f)
 			if (const char* s = symbolOf(v); s && !strcmp(s, "rest")) return true;
 		if (!has("instrument")) {
@@ -337,11 +344,12 @@ struct ClockState {
 		std::lock_guard<std::mutex> lock(mutex);
 		return beats0 + (seconds - seconds0) * tempo;
 	}
-	void setTempo(double t)
+	void setTempo(double t) { setTempoAt(beatsAt(scsynthNow()), t); }
+	void setTempoAt(double b, double t)
 	{
-		double now = scsynthNow(), b = beatsAt(now);
 		std::lock_guard<std::mutex> lock(mutex);
-		beats0 = b, seconds0 = now, tempo = t;
+		seconds0 += (b - beats0) / tempo;
+		beats0 = b, tempo = t;
 	}
 };
 
@@ -368,6 +376,7 @@ const double kLookahead = .2; // as ola's scheduler
 
 // What a running stream checks between events: .stop, and the beat pdef replaces it at.
 struct PlayState {
+	std::weak_ptr<ClockState> clock;
 	int generation = gGeneration;
 	std::atomic<bool> stopped{false};
 	std::atomic<double> stopBeat{std::numeric_limits<double>::infinity()};
@@ -379,16 +388,34 @@ class Player : public Object
 {
 public:
 	std::shared_ptr<PlayState> mState;
+	bool mPdef = false;
+	double mQuant = 1.; // a pdef's: SC's Pdef default
 
 	explicit Player(std::shared_ptr<PlayState> state) : mState(std::move(state)) {}
 
 	virtual const char* TypeName() const override { return "Player"; }
 
+	// stop ends the stream; a pdef's {:quant q} p.set sets the beat multiple its next replacement waits for.
 	virtual bool dot(Thread& th, Arg key, V& ioValue) override
 	{
 		const char* name = symbolOf(key);
-		if (!name || strcmp(name, "stop")) return false;
-		mState->stopped = true;
+		if (!name) return false;
+		if (!strcmp(name, "stop")) {
+			mState->stopped = true;
+		} else if (!strcmp(name, "set") && mPdef) {
+			V form = th.pop();
+			if (!form.isForm()) wrongType("set : fields", "Form", form);
+			for (auto& [k, v] : formPairs(th, (Form*)form.o())) {
+				if (k != "quant") {
+					post("set : a pdef has no field %s\n", k.c_str());
+					throw errNotFound;
+				}
+				if (!v.isReal() || !(v.f >= 0.) || !std::isfinite(v.f)) wrongType("set : quant", "Real of 0 or more", v);
+				mQuant = v.f;
+			}
+		} else {
+			return false;
+		}
 		ioValue = noValue();
 		return true;
 	}
@@ -401,8 +428,10 @@ void run(std::shared_ptr<Thread> th, V stream, std::shared_ptr<ClockState> clock
 		Events events(*th, stream, true);
 		std::vector<Timed> msgs;
 		size_t sentDefs = 0;
-		for (double beat = startBeat; state->live() && beat < state->stopBeat && events.next(msgs);
+		// each event sees the bindings published before it, one version throughout
+		for (double beat = startBeat; state->live() && beat < state->stopBeat && (th->refreshWorkspace(), events.next(msgs));
 			 beat = startBeat + events.beat) {
+			if (events.tempo > 0.) clock->setTempoAt(beat, events.tempo);
 			for (; sentDefs < events.defs.size(); ++sentDefs) {
 				Def* d = events.defs[sentDefs];
 				if (!d->mSent) checkServer(scsynthSendSync({d->recv()}), d->mName.c_str());
@@ -428,6 +457,7 @@ P<Player> start(Thread& th, Arg stream, std::shared_ptr<ClockState> clock, doubl
 {
 	if (std::isnan(startBeat)) startBeat = clock->beatsAt(scsynthNow() + kLookahead);
 	auto state = std::make_shared<PlayState>();
+	state->clock = clock;
 	std::thread(run, std::make_shared<Thread>(th), V(stream), clock, startBeat, state).detach();
 	return new Player(state);
 }
@@ -438,6 +468,8 @@ V popEvents(Thread& th, const char* msg)
 	if (!isEventStream(th, stream)) wrongType(msg, "event stream", stream);
 	return stream;
 }
+
+P<Player> pdefOn(Thread& th, std::shared_ptr<ClockState> clock);
 
 class Clock : public Object
 {
@@ -455,7 +487,7 @@ public:
 		out += s;
 	}
 
-	// play starts an event stream on this clock; set changes its tempo.
+	// play starts an event stream on this clock, pdef a named one; set changes its tempo.
 	virtual bool dot(Thread& th, Arg key, V& ioValue) override
 	{
 		const char* name = symbolOf(key);
@@ -463,6 +495,10 @@ public:
 		if (!strcmp(name, "play")) {
 			V stream = popEvents(th, "play : events");
 			ioValue = V(start(th, stream, mState, NAN));
+			return true;
+		}
+		if (!strcmp(name, "pdef")) {
+			ioValue = V(pdefOn(th, mState));
 			return true;
 		}
 		if (strcmp(name, "set")) return false;
@@ -491,82 +527,40 @@ void new_(Thread& th, Prim* prim)
 // pdef's players by name. A name's Player is kept; each pdef points it at the new stream.
 std::map<std::string, P<Player>> gPdefs;
 
-void pdef_(Thread& th, Prim* prim)
+// SC's Pdef: the old stream stops and the new one starts on the next multiple of quant beats of
+// `clock`, or as soon as the lookahead allows when quant is 0. The old stream stops at the new
+// stream's start time, on whichever clock it ran.
+P<Player> pdefOn(Thread& th, std::shared_ptr<ClockState> clock)
 {
 	V name = th.pop();
 	const char* s = symbolOf(name);
 	if (!s) wrongType("pdef : name", "Symbol", name);
 	V stream = popEvents(th, "pdef : events");
-	auto clock = defaultClock();
-	// SC's Pdef quant of 1: the old stream stops and the new one starts on the next whole beat.
-	double next = std::ceil(clock->beatsAt(scsynthNow() + kLookahead));
 	P<Player>& player = gPdefs[s];
-	if (player) player->mState->stopBeat = next;
+	double quant = player ? player->mQuant : 1.;
+	double soonest = clock->beatsAt(scsynthNow() + kLookahead);
+	double next = quant > 0. ? std::ceil(soonest / quant) * quant : soonest;
+	if (player) {
+		auto old = player->mState->clock.lock();
+		player->mState->stopBeat = old ? old->beatsAt(clock->secondsAt(next)) : next;
+	}
 	P<Player> started = start(th, stream, clock, next);
-	if (player) player->mState = started->mState;
-	else player = started;
-	th.push(V(player));
+	if (player) {
+		player->mState = started->mState;
+	} else {
+		player = started;
+		player->mPdef = true;
+	}
+	return player;
 }
+
+void pdef_(Thread& th, Prim* prim) { th.push(V(pdefOn(th, defaultClock()))); }
 
 //////////////////////////////////////////////////////////////////////////////// ndef
 
-// A named sound. Each ndef starts a synth that fades in and releases the one before it.
-class Ndef : public Object
-{
-public:
-	std::string mName;
-	int mNode = -1; // the current synth, or -1
-	int mDefs = 0;
-	double mFadeTime = .02; // SC's NodeProxy default
-
-	explicit Ndef(std::string name) : mName(std::move(name)) {}
-
-	virtual const char* TypeName() const override { return "Ndef"; }
-
-	using Object::print;
-	virtual void print(Thread& th, std::string& out, int depth) override
-	{
-		out += "Ndef " + mName + (mNode < 0 ? " (stopped)" : " (node " + std::to_string(mNode) + ")");
-	}
-
-	// stop fades the sound out; {:fadeTime t} nd.set sets the fade of this synth and later ones.
-	virtual bool dot(Thread& th, Arg key, V& ioValue) override
-	{
-		const char* name = symbolOf(key);
-		if (!name) return false;
-		if (!strcmp(name, "stop")) {
-			// a plain send: scsynth answers /fail when the synth has already ended
-			if (mNode >= 0)
-				scsynthSend(oscMessage("/n_set", {{OscArg::Int, mNode, ""}, {OscArg::String, 0, "gate"},
-					{OscArg::Float, 0, "", 0.f}}));
-			mNode = -1;
-		} else if (!strcmp(name, "set")) {
-			V form = th.pop();
-			if (!form.isForm()) wrongType("set : fields", "Form", form);
-			for (auto& [k, v] : formPairs(th, (Form*)form.o())) {
-				if (k != "fadeTime") {
-					post("set : an ndef has no field %s\n", k.c_str());
-					throw errNotFound;
-				}
-				if (!v.isReal() || v.f < 0.) wrongType("set : fadeTime", "Real of 0 or more", v);
-				mFadeTime = v.f;
-				if (mNode >= 0)
-					scsynthSend(oscMessage("/n_set", {{OscArg::Int, mNode, ""}, {OscArg::String, 0, "fadeTime"},
-						{OscArg::Float, 0, "", (float)mFadeTime}}));
-			}
-		} else {
-			return false;
-		}
-		ioValue = noValue();
-		return true;
-	}
-};
-
-std::map<std::string, P<Ndef>> gNdefs;
-
 // SC's ProxySynthDef: the channels times EnvGate, an EnvGen from 0 to 1 and back over fadeTime with
 // a 'sin curve, released by gate and freeing the synth.
-std::string fadeDef(Thread& th, Arg channels, std::string const& name)
+std::string fadeDef(Thread& th, std::vector<V> const& flat, std::string const& name)
 {
 	DefParts parts;
 	V gate = makeParam("gate", 1., paramKR, 0), fade = makeParam("fadeTime", .02, paramKR, 1);
@@ -580,12 +574,108 @@ std::string fadeDef(Thread& th, Arg channels, std::string const& name)
 	std::vector<V> inputs = {gate, 1., 0., fade, 2.};
 	for (Arg x : env->envGenArray("ndef")) inputs.push_back(x);
 	V envGate = makeUGen("EnvGen", rateKR, inputs, 1, 0, true, true);
-	std::vector<V> flat;
-	flattenChannels(th, channels, flat);
 	P<List> faded = new List(itemTypeV, (int64_t)flat.size());
 	for (Arg c : flat) faded->add(graphBinary(th, opMul, c, envGate));
 	return compileDef(th, V(faded), name, parts);
 }
+
+std::string sendFade(int node, double fadeTime, std::string const& def, int addAction, int bus)
+{
+	return oscMessage("/s_new", {{OscArg::String, 0, def}, {OscArg::Int, node, ""}, {OscArg::Int, addAction, ""},
+		{OscArg::Int, 0, ""}, {OscArg::String, 0, "fadeTime"}, {OscArg::Float, 0, "", (float)fadeTime},
+		{OscArg::String, 0, "out"}, {OscArg::Float, 0, "", (float)bus}});
+}
+
+std::string releaseFade(int node)
+{
+	return oscMessage("/n_set", {{OscArg::Int, node, ""}, {OscArg::String, 0, "gate"}, {OscArg::Float, 0, "", 0.f}});
+}
+
+// A named sound, as SC's Ndef: its synth writes a private bus, and a monitor synth at the tail of
+// the root copies that bus to bus 0. Each ndef starts a synth that fades in and releases the one before it.
+class Ndef : public Object
+{
+public:
+	std::string mName;
+	int mBus = -1, mChannels = 0;  // taken on the first run and kept
+	int mNode = -1;                // the current synth, or -1
+	int mMonitor = -1;             // the monitor synth, or -1
+	int mDefs = 0;
+	double mFadeTime = .02; // SC's NodeProxy default
+
+	explicit Ndef(std::string name) : mName(std::move(name)) {}
+
+	virtual const char* TypeName() const override { return "Ndef"; }
+
+	using Object::print;
+	virtual void print(Thread& th, std::string& out, int depth) override
+	{
+		out += "Ndef " + mName + (mNode < 0 ? " (stopped" : " (node " + std::to_string(mNode));
+		if (mBus >= 0) out += ", bus " + std::to_string(mBus);
+		out += mNode >= 0 && mMonitor < 0 ? ", not monitored)" : ")";
+	}
+
+	// SC's monitor: InFeedback, so it reads the bus wherever the synth writing it sits.
+	std::string monitorMsgs(Thread& th, std::vector<std::string>& sync)
+	{
+		std::string def = "sapf-ndef-" + mName + "-monitor";
+		V in = makeUGen("InFeedback", rateAR, {(double)mBus}, mChannels, 0, false, true);
+		std::vector<V> flat;
+		flattenChannels(th, in, flat);
+		sync.push_back(oscMessage("/d_recv", {{OscArg::Blob, 0, fadeDef(th, flat, def)}}));
+		mMonitor = newNodeID();
+		return sendFade(mMonitor, mFadeTime, def, 1, 0);
+	}
+
+	// ar reads the bus; play and stop start and fade out the monitor, as SC's; end fades out the
+	// synth and the monitor; {:fadeTime t} nd.set sets the fade of this synth and later ones.
+	virtual bool dot(Thread& th, Arg key, V& ioValue) override
+	{
+		const char* name = symbolOf(key);
+		if (!name) return false;
+		if (!strcmp(name, "ar")) {
+			ioValue = makeUGen("InFeedback", rateAR, {(double)mBus}, mChannels, 0, false, true);
+			return true;
+		}
+		if (!strcmp(name, "play")) {
+			if (mNode >= 0 && mMonitor < 0) {
+				std::vector<std::string> sync;
+				std::string start = monitorMsgs(th, sync);
+				checkServer(scsynthSendSync(sync), "play");
+				scsynthSend(oscBundle(scsynthNow() + kLookahead, {start}, true));
+			}
+		} else if (!strcmp(name, "stop") || !strcmp(name, "end")) {
+			// plain sends: scsynth answers /fail when the synth has already ended
+			if (mMonitor >= 0) scsynthSend(releaseFade(mMonitor));
+			mMonitor = -1;
+			if (!strcmp(name, "end")) {
+				if (mNode >= 0) scsynthSend(releaseFade(mNode));
+				mNode = -1;
+			}
+		} else if (!strcmp(name, "set")) {
+			V form = th.pop();
+			if (!form.isForm()) wrongType("set : fields", "Form", form);
+			for (auto& [k, v] : formPairs(th, (Form*)form.o())) {
+				if (k != "fadeTime") {
+					post("set : an ndef has no field %s\n", k.c_str());
+					throw errNotFound;
+				}
+				if (!v.isReal() || v.f < 0.) wrongType("set : fadeTime", "Real of 0 or more", v);
+				mFadeTime = v.f;
+				for (int node : {mNode, mMonitor})
+					if (node >= 0)
+						scsynthSend(oscMessage("/n_set", {{OscArg::Int, node, ""}, {OscArg::String, 0, "fadeTime"},
+							{OscArg::Float, 0, "", (float)mFadeTime}}));
+			}
+		} else {
+			return false;
+		}
+		ioValue = noValue();
+		return true;
+	}
+};
+
+std::map<std::string, P<Ndef>> gNdefs;
 
 void ndef_(Thread& th, Prim* prim)
 {
@@ -594,24 +684,41 @@ void ndef_(Thread& th, Prim* prim)
 	if (!s) wrongType("ndef : name", "Symbol", name);
 	V channels = th.pop();
 	if (isEventStream(th, channels)) wrongType("ndef : channels", "channels; pdef plays events", channels);
+	std::vector<V> flat;
+	flattenChannels(th, channels, flat);
+	if (flat.empty()) wrongType("ndef : channels", "at least one channel", channels);
 	P<Ndef>& nd = gNdefs[s];
 	if (!nd) nd = new Ndef(s);
+	if (nd->mBus < 0) {
+		nd->mBus = takeAudioBuses((int)flat.size(), "ndef");
+		nd->mChannels = (int)flat.size();
+	}
+	// SC's NumChannels: more channels than the bus mix down in consecutive groups.
+	int n = nd->mChannels;
+	if ((int)flat.size() > n) {
+		post("ndef %s : mixed %d channels down to %d\n", s, (int)flat.size(), n);
+		size_t group = (flat.size() + n - 1) / n;
+		std::vector<V> mixed;
+		for (size_t i = 0; i < flat.size(); i += group) {
+			V sum = flat[i];
+			for (size_t j = i + 1; j < std::min(i + group, flat.size()); ++j) sum = graphBinary(th, opAdd, sum, flat[j]);
+			mixed.push_back(sum);
+		}
+		flat = mixed;
+	}
 	std::string defName = "sapf-ndef-" + nd->mName + "-" + std::to_string(++nd->mDefs);
-	std::string def = fadeDef(th, channels, defName);
 	auto loaded = std::make_shared<LoadedTables>();
 	std::vector<std::string> packets = loadWavetables(th, channels, *loaded);
 	for (std::string const& m : loadSamples(th, channels, *loaded, true)) packets.push_back(m);
-	packets.push_back(oscMessage("/d_recv", {{OscArg::Blob, 0, def}}));
-	checkServer(scsynthSendSync(packets), "ndef");
-	// The new synth starts as the old one is released, so their fades overlap.
+	packets.push_back(oscMessage("/d_recv", {{OscArg::Blob, 0, fadeDef(th, flat, defName)}}));
+	// The new synth starts as the old one is released, so their fades overlap. A first run, or a
+	// run after end or stop, starts the monitor too.
 	int node = newNodeID();
+	std::vector<std::string> msgs = {sendFade(node, nd->mFadeTime, defName, 0, nd->mBus)};
+	if (nd->mNode >= 0) msgs.push_back(releaseFade(nd->mNode));
+	else if (nd->mMonitor < 0) msgs.push_back(nd->monitorMsgs(th, packets));
+	checkServer(scsynthSendSync(packets), "ndef");
 	double at = scsynthNow() + kLookahead;
-	std::vector<std::string> msgs = {oscMessage("/s_new", {{OscArg::String, 0, defName}, {OscArg::Int, node, ""},
-		{OscArg::Int, 0, ""}, {OscArg::Int, 0, ""}, {OscArg::String, 0, "fadeTime"},
-		{OscArg::Float, 0, "", (float)nd->mFadeTime}})};
-	if (nd->mNode >= 0)
-		msgs.push_back(oscMessage("/n_set", {{OscArg::Int, nd->mNode, ""}, {OscArg::String, 0, "gate"},
-			{OscArg::Float, 0, "", 0.f}}));
 	scsynthSend(oscBundle(at, msgs, true));
 	nd->mNode = node;
 	playTextures(th, channels, at, loaded, node);
@@ -620,7 +727,23 @@ void ndef_(Thread& th, Prim* prim)
 
 //////////////////////////////////////////////////////////////////////////////// score
 
-// The NRT command file for an event stream's first seconds, at 1 beat per second.
+// Seconds from beats, from 1 beat per second, with the tempo changes of events in beat order.
+struct TempoMap {
+	struct Segment {
+		double beat, seconds, tempo;
+	};
+	std::vector<Segment> segments = {{0., 0., 1.}};
+
+	double secondsAt(double b) const
+	{
+		auto s = segments.rbegin();
+		while (s->beat > b && s + 1 != segments.rend()) ++s;
+		return s->seconds + (b - s->beat) / s->tempo;
+	}
+	void set(double b, double t) { segments.push_back({b, secondsAt(b), t}); }
+};
+
+// The NRT command file for an event stream's first seconds, from 1 beat per second.
 std::string eventScore(Thread& th, Arg stream, double seconds)
 {
 	std::string score;
@@ -631,7 +754,11 @@ std::string eventScore(Thread& th, Arg stream, double seconds)
 	};
 	Events events(th, stream, false);
 	std::vector<Timed> msgs;
-	for (int64_t count = 0; events.beat < seconds && events.next(msgs); ++count) {
+	TempoMap tempos;
+	for (int64_t count = 0; tempos.secondsAt(events.beat) < seconds; ++count) {
+		double start = events.beat;
+		if (!events.next(msgs)) break;
+		if (events.tempo > 0.) tempos.set(start, events.tempo);
 		if (count > 1000000) {
 			post("score : more than a million events before %g seconds\n", seconds);
 			throw errOutOfRange;
@@ -642,7 +769,7 @@ std::string eventScore(Thread& th, Arg stream, double seconds)
 	add(oscBundle(0., recvs, false));
 	std::stable_sort(msgs.begin(), msgs.end(), [](Timed const& a, Timed const& b) { return a.beats < b.beats; });
 	for (Timed const& m : msgs)
-		if (m.beats < seconds) add(oscBundle(m.beats, {m.msg}, false));
+		if (double t = tempos.secondsAt(m.beats); t < seconds) add(oscBundle(t, {m.msg}, false));
 	add(oscBundle(seconds, {oscMessage("/c_set", {{OscArg::Int, 0, ""}, {OscArg::Int, 0, ""}})}, false));
 	return score;
 }
@@ -709,7 +836,7 @@ void playEventStream(Thread& th, Arg stream) { th.push(V(start(th, stream, defau
 void stopEventStreams()
 {
 	++gGeneration;
-	for (auto& [name, nd] : gNdefs) nd->mNode = -1;
+	for (auto& [name, nd] : gNdefs) nd->mNode = nd->mMonitor = -1;
 }
 
 void AddPatternOps();
@@ -718,27 +845,30 @@ void AddPatternOps()
 	vm.addBifHelp(std::string("\n*** patterns ***"));
 	vm.def("pbind", 1, 1, pbind_,
 		"(fields --> events) a lazy list of events, one Form per event: each list field's next value, other "
-		"fields and :scale repeating. Ends with the shortest finite field. play starts one synth per event.");
+		"fields and :scale repeating. Ends with the shortest finite field. play starts one synth per event; an "
+		"event's :tempo sets its clock's tempo.");
 	vm.def("score", 3, 0, score_,
 		"(item seconds name -->) writes name.osc, an NRT command file of item's first seconds. item is an event "
-		"stream, or channels as >nrt takes. Events are timed at 1 beat per second.");
+		"stream, or channels as >nrt takes. Events start at 1 beat per second; an event's :tempo changes it.");
 	vm.def("render", 3, 0, render_,
 		"(item seconds name -->) renders item's first seconds to name.wav in $STAC_RECORDINGS with the embedded "
-		"scsynth. Channels keep their count; events render to 2 channels at 1 beat per second.");
+		"scsynth. Channels keep their count; events render to 2 channels, from 1 beat per second.");
 	vm.def("pdef", 2, 1, pdef_,
 		"(events name --> player) plays events on the default clock from the next beat. Run again with the same "
-		"name, it replaces the stream at the next beat and pushes the same player.");
+		"name, it replaces the stream at the next beat and pushes the same player. events name clk.pdef plays on clk; "
+		"{:quant q} p.set waits for the next multiple of q beats, 0 for none.");
 
 	vm.def("ndef", 2, 1, ndef_,
-		"(channels name --> ndef) plays channels, fading in over fadeTime (.02 s). Run again with the same name, "
-		"it fades the new sound in and the old one out, and pushes the same ndef. nd.stop fades it out; "
+		"(channels name --> ndef) plays channels on a private bus, fading in over fadeTime (.02 s), and monitors "
+		"the bus on bus 0. Run again with the same name, it fades the new sound in and the old one out, and pushes "
+		"the same ndef. nd.ar reads its bus; nd.stop and nd.play fade the monitor out and in; nd.end fades out both; "
 		"{:fadeTime t} nd.set sets the fade.");
 
 	vm.addBifHelp(std::string("\n*** clock ***"));
 	P<Namespace> clock = new Namespace("clock");
 	clock->addPrim("new", 1, new_,
-		"(tempo --> clock) a clock at tempo beats per second. events clk.play plays on it; {:tempo t} clk.set "
-		"changes its tempo.");
+		"(tempo --> clock) a clock at tempo beats per second. events clk.play plays on it, events name clk.pdef "
+		"a pdef; {:tempo t} clk.set changes its tempo.");
 	vm.def("clock", V(clock));
 	vm.addBifHelp("clock", nullptr, "(--> namespace) clocks. The default clock runs at 1 beat per second.");
 }

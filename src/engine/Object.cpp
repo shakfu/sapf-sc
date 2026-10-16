@@ -341,6 +341,7 @@ Fun::Fun(Thread& th, FunDef* def)
 FunDef::FunDef(Thread& th, P<Code> const& inCode, uint16_t inNumArgs, uint16_t inNumLocals, uint16_t inNumVars, P<String> const& inHelp) 
 	: mCode(inCode), mNumArgs(inNumArgs), mNumLocals(inNumLocals),  mNumVars(inNumVars), 
     mWorkspace(th.mWorkspace),
+    mScope(th.mScope),
     mHelp(inHelp)
 {
 }

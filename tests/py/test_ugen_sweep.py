@@ -52,7 +52,7 @@ def cases():
 def test_parity(compile_sapf, group, u):
     values = [1.25 + i for i in range(len(u["args"]))]
     form = " ".join(f":{name} {v}" for (name, _, _), v in zip(u["args"], values))
-    word = f"{group or 'ug'}.{u['word']}"
+    word = f"sc.{u['word']}"
     sapf = compile_sapf(f"{{{form}}} {word}")
 
     method = METHOD[u["rates"][0]]

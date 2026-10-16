@@ -131,16 +131,16 @@ void synthdef_(Thread& th, Prim* prim)
 void group_(Thread& th, Prim* prim)
 {
 	V form = th.pop();
-	if (!form.isForm()) wrongType("node.group : placement", "Form", form);
+	if (!form.isForm()) wrongType("group.new : placement", "Form", form);
 	int target = 0, addAction = 0;
 	for (auto& [k, v] : formPairs(th, (Form*)form.o()))
-		if (!placement("node.group", k, v, target, addAction)) {
-			post("node.group : no field %s; it takes :target and :addAction\n", k.c_str());
+		if (!placement("group.new", k, v, target, addAction)) {
+			post("group.new : no field %s; it takes :target and :addAction\n", k.c_str());
 			throw errNotFound;
 		}
 	int id = newNodeID();
 	checkServer(scsynthSendSync({oscMessage("/g_new", {{OscArg::Int, id, ""}, {OscArg::Int, addAction, ""},
-		{OscArg::Int, target, ""}})}), "node.group");
+		{OscArg::Int, target, ""}})}), "group.new");
 	th.push(V(new Node(id, true)));
 }
 
@@ -155,13 +155,11 @@ void AddDefOps()
 		"trigger, scalar and audio controls. Channels left by fun go to a control out. Call the def with a Form to "
 		"start a synth; .add sends it, .write writes name.scsyndef.");
 
-	// node's UGen words are generated (SpecUGens.cpp); group joins them.
-	Namespace* node = generatedNamespace("node");
-	if (!node) {
-		post("AddDefOps : no node namespace\n");
-		throw errFailed;
-	}
-	node->addPrim("group", 1, group_,
+	// SC's Group.new; the node UGens (Free, Done, Pause...) are in sc.
+	P<Namespace> group = new Namespace("group");
+	group->addPrim("new", 1, group_,
 		"(placement --> group) a new group; placement is a Form taking :target and :addAction, {} for the head of "
 		"the root. A group is a target, and set, release and free act on every synth in it.");
+	vm.def("group", V(group));
+	vm.addBifHelp("group", nullptr, "(--> namespace) server groups.");
 }

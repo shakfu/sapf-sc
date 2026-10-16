@@ -1,5 +1,6 @@
 #include "sapf/Engine.hpp"
 #include "Environment.hpp"
+#include "Namespace.hpp"
 #include "sapf/platform/Platform.hpp"
 
 #include <limits.h>
@@ -86,6 +87,7 @@ void SapfEngine::registerBuiltins()
 	AddWavetableOps();
 	AddSampleOps();
 	AddSetOps();
+	AddStacNamespace();
 }
 
 void SapfEngine::configureLogFile()

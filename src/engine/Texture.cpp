@@ -125,7 +125,7 @@ void schedule(std::shared_ptr<Thread> th, P<Texture> tx, double startTime, int g
 	try {
 		double seconds;
 		V out;
-		while (generation == gGeneration && voices.next(*th, seconds, out)) {
+		while (generation == gGeneration && (th->refreshWorkspace(), voices.next(*th, seconds, out))) {
 			std::string name = voiceName(), def = voices.compile(*th, out, name);
 			// on the server's clock, which may not keep the wall clock's pace; stop ends the wait
 			const double wake = startTime + seconds - kLookahead;

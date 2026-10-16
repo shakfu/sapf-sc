@@ -13,24 +13,63 @@
 #include "Scsynth.hpp"
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 namespace {
 
-// Private audio buses from the top of ola's range down: 959, 958, ...
+// Runs of consecutive indices in [lo, hi), taken and freed as sclang's ContiguousBlockAllocator
+// does. A top-down allocator takes the highest free run that fits; a bottom-up one the lowest.
+class Blocks
+{
+public:
+	Blocks(int lo, int hi, bool down) : mLo(lo), mHi(hi), mDown(down) {}
+
+	// The first index of n free ones, or -1.
+	int take(int n)
+	{
+		int at = -1;
+		if (mDown) {
+			int end = mHi;
+			for (auto it = mUsed.rbegin(); it != mUsed.rend() && at < 0; end = it->first, ++it)
+				if (end - (it->first + it->second) >= n) at = end - n;
+			if (at < 0 && end - mLo >= n) at = end - n;
+		} else {
+			int start = mLo;
+			for (auto it = mUsed.begin(); it != mUsed.end() && at < 0; start = it->first + it->second, ++it)
+				if (it->first - start >= n) at = start;
+			if (at < 0 && mHi - start >= n) at = start;
+		}
+		if (at >= 0) mUsed[at] = n;
+		return at;
+	}
+
+	void give(int at) { mUsed.erase(at); }
+
+	// The lowest index taken, or hi.
+	int floor() const { return mUsed.empty() ? mHi : mUsed.begin()->first; }
+
+private:
+	int mLo, mHi;
+	bool mDown;
+	std::map<int, int> mUsed;  // first index: count
+};
+
+// Private audio buses from 959 down; ola rotates through 512 and up, and keeps 64 below them.
 const int kFirstPrivateBus = 512, kEndPrivateBus = 960;
-int gBusFloor = kEndPrivateBus;
+Blocks gAudioBuses(kFirstPrivateBus + 64, kEndPrivateBus, true);
 // Control buses from the top of scsynth's default 16384 down, clear of the low ones sclang takes.
 const int kEndControlBus = 16384, kControlBuses = 4096;
-int gControlFloor = kEndControlBus;
+Blocks gControlBuses(kEndControlBus - kControlBuses, kEndControlBus, true);
 // Buffers for loaded and allocated data, between the sound files' 0..63 and the wave tables' 512..
 const int kFirstDataBuf = 64, kEndDataBuf = 512;
-int gNextBuf = kFirstDataBuf;
+Blocks gDataBufs(kFirstDataBuf, kEndDataBuf, false);
 
 class Bus : public ServerResource
 {
 public:
 	int mChannels;
 	bool mControl;
+	bool mFreed = false;
 
 	Bus(int index, int channels, bool control = false) : ServerResource(index), mChannels(channels), mControl(control) {}
 	virtual const char* TypeName() const override { return "Bus"; }
@@ -44,6 +83,17 @@ public:
 	virtual bool dot(Thread& th, Arg key, V& ioValue) override
 	{
 		const char* name = symbolOf(key);
+		if (name && !strcmp(name, "free")) {
+			// SC's Bus.free: the buses return to the allocator; synths still reading them are not told.
+			if (mFreed) {
+				post("free : bus %d is already free\n", mIndex);
+				throw errFailed;
+			}
+			(mControl ? gControlBuses : gAudioBuses).give(mIndex);
+			mFreed = true;
+			ioValue = noValue();
+			return true;
+		}
 		if (!name || strcmp(name, "set")) return false;
 		if (!mControl) {
 			post("set : bus %d is an audio bus; only a control bus holds a value\n", mIndex);
@@ -77,14 +127,34 @@ class Buffer : public ServerResource
 public:
 	int mChannels;
 	int64_t mFrames;
+	bool mFile;  // a sound file's buffer, 0..63, from buffer.read
+	bool mFreed = false;
 
-	Buffer(int index, int channels, int64_t frames) : ServerResource(index), mChannels(channels), mFrames(frames) {}
+	Buffer(int index, int channels, int64_t frames, bool file = false)
+		: ServerResource(index), mChannels(channels), mFrames(frames), mFile(file) {}
 	virtual const char* TypeName() const override { return "Buffer"; }
 	using Object::print;
 	virtual void print(Thread& th, std::string& out, int depth) override
 	{
 		out += "Buffer " + std::to_string(mIndex) + " (" + std::to_string(mChannels) + " x " + std::to_string(mFrames) +
 			")";
+	}
+
+	// SC's Buffer.free: /b_free, and the index returns to its allocator.
+	virtual bool dot(Thread& th, Arg key, V& ioValue) override
+	{
+		const char* name = symbolOf(key);
+		if (!name || strcmp(name, "free")) return false;
+		if (mFreed) {
+			post("free : buffer %d is already free\n", mIndex);
+			throw errFailed;
+		}
+		checkServer(scsynthSendSync({oscMessage("/b_free", {{OscArg::Int, mIndex, ""}})}), "free");
+		if (mFile) releaseSampleBuffer(mIndex);
+		else gDataBufs.give(mIndex);
+		mFreed = true;
+		ioValue = noValue();
+		return true;
 	}
 };
 
@@ -101,33 +171,29 @@ int64_t popCount(Thread& th, const char* msg, int64_t max)
 
 int takeBuffer(const char* word)
 {
-	if (gNextBuf == kEndDataBuf) {
+	int buf = gDataBufs.take(1);
+	if (buf < 0) {
 		post("%s : all %d data buffers are in use\n", word, kEndDataBuf - kFirstDataBuf);
 		throw errOutOfRange;
 	}
-	return gNextBuf++;
+	return buf;
 }
 
 void audio_(Thread& th, Prim* prim)
 {
 	int64_t n = popCount(th, "bus.audio : channels", 64);
-	if (gBusFloor - n < kFirstPrivateBus + 64) {
-		post("bus.audio : the private buses are in use\n");
-		throw errOutOfRange;
-	}
-	gBusFloor -= (int)n;
-	th.push(V(new Bus(gBusFloor, (int)n)));
+	th.push(V(new Bus(takeAudioBuses((int)n, "bus.audio"), (int)n)));
 }
 
 void control_(Thread& th, Prim* prim)
 {
 	int64_t n = popCount(th, "bus.control : channels", 64);
-	if (gControlFloor - n < kEndControlBus - kControlBuses) {
-		post("bus.control : all %d control buses are in use\n", kControlBuses);
+	int bus = gControlBuses.take((int)n);
+	if (bus < 0) {
+		post("bus.control : no %d free control buses of %d\n", (int)n, kControlBuses);
 		throw errOutOfRange;
 	}
-	gControlFloor -= (int)n;
-	th.push(V(new Bus(gControlFloor, (int)n, true)));
+	th.push(V(new Bus(bus, (int)n, true)));
 }
 
 // [address args...] send: SC's sendMsg. Whole reals go as ints, others as floats, as sclang's
@@ -163,7 +229,7 @@ void read_(Thread& th, Prim* prim)
 	SampleInfo s = sampleBuffer(th, th.pop(), "buffer.read");
 	checkServer(scsynthSendSync({oscMessage("/b_allocRead", {{OscArg::Int, s.buf, ""}, {OscArg::String, 0, s.absolute}})}),
 		"buffer.read");
-	th.push(V(new Buffer(s.buf, s.channels, s.frames)));
+	th.push(V(new Buffer(s.buf, s.channels, s.frames, true)));
 }
 
 void load_(Thread& th, Prim* prim)
@@ -208,30 +274,38 @@ void alloc_(Thread& th, Prim* prim)
 
 } // namespace
 
-int audioBusFloor() { return gBusFloor; }
+int audioBusFloor() { return gAudioBuses.floor(); }
+
+int takeAudioBuses(int n, const char* word)
+{
+	int bus = gAudioBuses.take(n);
+	if (bus < 0) {
+		post("%s : no %d free private buses\n", word, n);
+		throw errOutOfRange;
+	}
+	return bus;
+}
 
 void AddResourceOps();
 void AddResourceOps()
 {
 	vm.addBifHelp(std::string("\n*** bus ***"));
 	P<Namespace> bus = new Namespace("bus");
-	bus->addPrim("audio", 1, audio_, "(channels --> bus) consecutive private audio buses, from 959 down.");
+	bus->addPrim("audio", 1, audio_, "(channels --> bus) consecutive private audio buses, from 959 down. bus.free returns them.");
 	bus->addPrim("control", 1, control_,
-		"(channels --> bus) consecutive control buses, from 16383 down. v bus.set sets them.");
+		"(channels --> bus) consecutive control buses, from 16383 down. v bus.set sets them; bus.free returns them.");
 	vm.def("bus", V(bus));
 	vm.addBifHelp("bus", nullptr, "(--> namespace) server buses.");
 	vm.def("send", 1, 0, send_,
 		"(message -->) sends [address args...] to scsynth, as SC's sendMsg: whole reals as ints, others as floats, "
 		"strings as strings, a Bus, Buffer or Node as its index.");
 
-	// buffer's UGen words are generated (SpecUGens.cpp); these join them.
-	Namespace* ns = generatedNamespace("buffer");
-	if (!ns) {
-		post("AddResourceOps : no buffer namespace\n");
-		throw errFailed;
-	}
-	vm.addBifHelp(std::string("\n*** buffer: interpreter words ***"));
-	ns->addPrim("read", 1, read_, "(path --> buffer) reads a WAV or AIFF file into one of the sound-file buffers 0..63.");
+	// SC's Buffer class methods; the buffer UGens are in sc.
+	vm.addBifHelp(std::string("\n*** buffer ***"));
+	P<Namespace> ns = new Namespace("buffer");
+	ns->addPrim("read", 1, read_, "(path --> buffer) reads a WAV or AIFF file into one of the sound-file buffers 0..63. buffer.free frees it.");
 	ns->addPrim("load", 1, load_, "(list --> buffer) a one-channel buffer holding the list's values.");
 	ns->addPrim("alloc", 2, alloc_, "(frames channels --> buffer) an empty buffer.");
+	vm.def("buffer", V(ns));
+	vm.addBifHelp("buffer", nullptr, "(--> namespace) server buffers.");
 }

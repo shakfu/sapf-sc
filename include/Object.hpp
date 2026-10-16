@@ -22,6 +22,8 @@
 //==============================================================================
 
 // Forward declarations and basic types
+#include <atomic>
+#include <mutex>
 #include "Forward.hpp"
 
 // Value type (V) - declaration only, no inline implementations
@@ -193,6 +195,7 @@ public:
 	uint16_t mNumVars;
  	uint16_t mLeaves;
 	P<GForm> mWorkspace;
+	P<Scope> mScope;  // the top-level scope it was compiled in; its names are looked up there late
     P<String> mHelp;
 
 	FunDef(Thread& th, P<Code> const& inCode, uint16_t inNumArgs, uint16_t inNumLocals, uint16_t inNumVars, P<String> const& inHelp);
@@ -420,6 +423,46 @@ public:
 
 	using Object::print;
 	virtual void print(Thread& th, std::string& out, int depth) override;
+};
+
+//==============================================================================
+// Scope - the published bindings of one top-level scope
+//==============================================================================
+
+// The global workspace, or a module's. The thread evaluating in a scope binds into its own copy
+// and publishes it when an evaluation ends, so an edit of several names lands at once. Other
+// threads take the published version once per event, so an event sees one version throughout.
+class Scope : public Object
+{
+public:
+	explicit Scope(P<GForm> const& inWorkspace) : mPublished(inWorkspace) {}
+
+	virtual const char* TypeName() const override { return "Scope"; }
+
+	// Publishes ws; returns its version.
+	int64_t publish(P<GForm> const& ws)
+	{
+		std::lock_guard<std::mutex> lock(mMutex);
+		mPublished = ws;
+		return ++mVersion;
+	}
+	int64_t version() const { return mVersion.load(); }
+	P<GForm> current()
+	{
+		std::lock_guard<std::mutex> lock(mMutex);
+		return mPublished;
+	}
+	// Sets ws and version to the published ones when they are newer than version.
+	void refresh(P<GForm>& ws, int64_t& version)
+	{
+		std::lock_guard<std::mutex> lock(mMutex);
+		if (mVersion > version) ws = mPublished, version = mVersion;
+	}
+
+private:
+	std::mutex mMutex;
+	P<GForm> mPublished;
+	std::atomic<int64_t> mVersion{0};
 };
 
 //==============================================================================

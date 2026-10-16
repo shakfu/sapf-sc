@@ -23,7 +23,7 @@ protected:
 };
 
 TEST_F(CompletionTest, ContextIsTheNameAtTheEnd) {
-    EXPECT_EQ(completionContext("440 ug.sino"), "ug.sino");
+    EXPECT_EQ(completionContext("440 sc.sino"), "sc.sino");
     EXPECT_EQ(completionContext("[1 2] sinosc.k"), "sinosc.k");
     EXPECT_EQ(completionContext("(a b"), "b");
     EXPECT_EQ(completionContext("{:freq 300} 'pin"), "pin");
@@ -34,15 +34,15 @@ TEST_F(CompletionTest, ContextIsTheNameAtTheEnd) {
 
 TEST_F(CompletionTest, NamespaceWords) {
     EXPECT_EQ(completions(th, "env.p"), (Strings{"env.perc"}));
-    EXPECT_TRUE(offers("ug.sinos", "ug.sinosc"));
-    EXPECT_TRUE(offers("fft.pv_mag", "fft.pv_magfreeze"));
+    EXPECT_TRUE(offers("sc.sinos", "sc.sinosc"));
+    EXPECT_TRUE(offers("sc.pv_mag", "sc.pv_magfreeze"));
 }
 
 TEST_F(CompletionTest, PlainPrefixOffersNamespacedWordsByCategory) {
     // fft holds it, so ug's index entry is not offered too
-    EXPECT_EQ(completions(th, "pv_magf"), (Strings{"fft.pv_magfreeze"}));
+    EXPECT_EQ(completions(th, "pv_magf"), (Strings{"sc.pv_magfreeze"}));
     EXPECT_TRUE(offers("pbin", "pbind"));
-    EXPECT_TRUE(offers("dse", "demand.dseq"));
+    EXPECT_TRUE(offers("dse", "sc.dseq"));
 }
 
 TEST_F(CompletionTest, MethodsAfterAValue) {
@@ -60,15 +60,15 @@ TEST_F(CompletionTest, UserBindings) {
 
 TEST_F(CompletionTest, StackEffect) {
     EXPECT_EQ(stackEffect(th, "+"), "(x y --> z)");
-    EXPECT_EQ(stackEffect(th, "ug.sinosc"), "(freq --> out)");
+    EXPECT_EQ(stackEffect(th, "sc.sinosc"), "(freq --> out)");
     EXPECT_EQ(stackEffect(th, "env.perc"), "(attackTime releaseTime --> env)");
     EXPECT_EQ(stackEffect(th, "nosuchword"), "");
     EXPECT_EQ(stackEffect(th, "nosuchns.word"), "");
 }
 
 TEST_F(CompletionTest, NamespacedWords) {
-    EXPECT_EQ(namespacedWords(th, "dseq"), (Strings{"demand.dseq"}));
-    EXPECT_EQ(namespacedWords(th, "sinosc"), (Strings{"ug.sinosc"}));
+    EXPECT_EQ(namespacedWords(th, "dseq"), (Strings{"sc.dseq"}));
+    EXPECT_EQ(namespacedWords(th, "sinosc"), (Strings{"sc.sinosc"}));
     EXPECT_EQ(namespacedWords(th, "white"), (Strings{"sapf.white"}));
     EXPECT_EQ(namespacedWords(th, "nosuchword"), Strings{});
 }

@@ -27,6 +27,9 @@ inline ServerResource* asResource(Arg v) { return v.o() ? dynamic_cast<ServerRes
 // The lowest private audio bus bus.audio has taken; ola's buses stay below it (Texture.cpp).
 int audioBusFloor();
 
+// The first of n consecutive private audio buses, as bus.audio takes them. Throws when none are free.
+int takeAudioBuses(int n, const char* word);
+
 // The sound-file buffer for `path`, as sf> and playbuf use, and the file's channels and frames
 // (Samples.cpp). Throws when the file is not a WAV or AIFF file, or 64 files are in use.
 struct SampleInfo {
@@ -36,5 +39,7 @@ struct SampleInfo {
 	std::string absolute;
 };
 SampleInfo sampleBuffer(Thread& th, Arg path, const char* msg);
+// Frees the sound-file buffer `buf` for another file (Samples.cpp).
+void releaseSampleBuffer(int buf);
 
 #endif

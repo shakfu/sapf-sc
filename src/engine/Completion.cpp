@@ -18,7 +18,7 @@ namespace {
 bool endsName(char c) { return isspace((unsigned char)c) || strchr(";()[]{}`,:\"", c); }
 
 // The methods of Sig, Def, Node, Bus, Player, Clock and Ndef.
-const char* const kMethods[] = {"add", "done", "free", "ir", "kr", "play", "poll", "release", "releaseIn", "set", "stop", "write"};
+const char* const kMethods[] = {"add", "ar", "done", "end", "free", "ir", "kr", "pdef", "play", "poll", "release", "releaseIn", "set", "stop", "write"};
 
 bool startsWith(const std::string& s, const std::string& prefix) { return s.compare(0, prefix.size(), prefix) == 0; }
 
@@ -47,16 +47,15 @@ std::vector<std::pair<std::string, Namespace*>> namespaces()
 std::vector<std::string> namespaced(std::vector<std::pair<std::string, Namespace*>> const& all, const std::string& word)
 {
 	std::vector<std::string> out;
-	bool inUg = false, inSapf = false;
+	bool inSc = false, inSapf = false;
 	for (auto& [name, ns] : all)
 		if (ns->mWords.count(word)) {
-			if (ns->mName == "ug") inUg = true;
+			if (ns->mName == "sc") inSc = true;
 			else if (ns->mName == "sapf") inSapf = true;
-			else out.push_back(name + "." + word);
+			else if (ns->mName != "stac") out.push_back(name + "." + word);  // stac holds every core word
 		}
-	// ug indexes every UGen; it names one only when no category namespace holds it.
-	// sapf's words are the compatibility library; they come last.
-	if (out.empty() && inUg) out.push_back("ug." + word);
+	// SC's UGens after interpreter words; sapf's words are the compatibility library and come last.
+	if (out.empty() && inSc) out.push_back("sc." + word);
 	if (out.empty() && inSapf) out.push_back("sapf." + word);
 	return out;
 }

@@ -18,6 +18,7 @@ Warnings:
     W2 '=' hides a built-in word
     W3 a lambda binds a name and never uses it
     W4 space between a prefix and its name, as in '. free'
+    W5 a name private to another module, as in 'import std._x'
 """
 
 from __future__ import annotations
@@ -415,15 +416,40 @@ def _looks_numeric(name: str) -> bool:
     return bool(re.match(r'[+-]?\.?\d', name))
 
 
-def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tuple[list[Diag], set[str]]:
+def find_module(name: str, from_dir: Path) -> Path | None:
+    """name.stac in from_dir, then in each directory of $STAC_PATH, as Modules.cpp searches."""
+    dirs = [from_dir] + [Path(d) for d in os.environ.get('STAC_PATH', '').split(':') if d]
+    return next((d / f'{name}.stac' for d in dirs if (d / f'{name}.stac').is_file()), None)
+
+
+def module_exports(path: Path, builtins: set[str], seen: frozenset = frozenset()) -> set[str]:
+    """The names a module defines, which its namespace holds: not those its imports bind."""
+    if path in seen:
+        return set()
+    _, workspace, imported = _analyze(path.read_text(), builtins, frozenset(), path, seen | {path})
+    return workspace - imported
+
+
+def analyze(src: str, builtins: set[str], known: set[str] = frozenset(),
+            path: Path | None = None) -> tuple[list[Diag], set[str]]:
     """Lints src in source order, as the compiler resolves names.
 
-    builtins are VM words; known are names bound before src runs (a prelude).
+    builtins are VM words; known are names bound before src runs (a prelude); path is src's file,
+    whose directory module imports search first.
     Returns diagnostics and the workspace names src binds.
     """
+    diags, workspace, _ = _analyze(src, builtins, known, path, frozenset())
+    return diags, workspace
+
+
+def _analyze(src: str, builtins: set[str], known, path: Path | None, seen: frozenset):
+    """analyze, also returning the names only imports bound."""
     lx = lex(src)
     diags = list(lx.errors)
     workspace: set[str] = set()
+    from_imports: set[str] = set()  # bound by an import and not rebound since
+    modules: set[str] = set()       # module names bound by 'import NS'
+    here = path.parent if path else Path.cwd()
     frames: list[Frame] = []
     brackets: list[str] = []
     params: list[str] = []
@@ -442,7 +468,8 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
                 for inner in frames[depth + 1:]:
                     inner.free.add(name)
                 return True
-        return name in workspace or name in known or name in builtins
+        # stac.word reaches any core word, as the stac namespace holds them all
+        return name in workspace or name in known or name in builtins or name.removeprefix('stac.') in builtins
 
     def bind(tok: Token):
         name = tok.text
@@ -450,6 +477,7 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
             warn(tok, 'W2', f"'= {name}' hides a built-in word")
         if not frames:
             workspace.add(name)
+            from_imports.discard(name)
             return
         f = frames[-1]
         if name in f.free:
@@ -457,8 +485,46 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
             return
         f.locals.setdefault(name, [tok, 0, True])
 
+    skip = 0  # tokens of an import line, already read
     for n, t in enumerate(toks):
         k = t.kind
+        if skip:
+            skip -= 1
+            continue
+        if k == 'word' and t.text == 'import' and not frames:
+            # import NS.* | NS.name | NS ... to the end of the line
+            i = n + 1
+            while i < len(toks) and toks[i].kind not in ('nl', 'comment'):
+                if toks[i].kind == 'word':
+                    ns, member = toks[i].text, None
+                    if i + 2 < len(toks) and toks[i + 1].kind == 'prefix' and toks[i + 1].text == '.':
+                        member, i = toks[i + 2].text, i + 2
+                    item = f"'import {ns}{'.' + member if member else ''}'"
+                    if any(b.startswith(ns + '.') for b in builtins):
+                        names = imported(ns, member, builtins)
+                        if not names or (member and member != '*' and f'{ns}.{member}' not in builtins):
+                            warn(toks[i], 'W1', f'{item} names nothing')
+                    elif (mpath := find_module(ns, here)) is None:
+                        names = set()
+                        warn(toks[i], 'W1', f'{item}: no namespace or module named {ns}')
+                    else:
+                        exports = module_exports(mpath, builtins, seen)
+                        if member is None:
+                            names = {ns}
+                            modules.add(ns)
+                        elif member == '*':
+                            names = {w for w in exports if not w.startswith('_') and w not in builtins}
+                        else:
+                            names = {member} & exports
+                            if not names:
+                                warn(toks[i], 'W1', f'{item} names nothing')
+                            elif member.startswith('_'):
+                                warn(toks[i], 'W5', f"'{member}' is private to {ns}")
+                    workspace.update(names)
+                    from_imports.update(names)
+                i += 1
+            skip = i - n - 1
+            continue
         if k == 'lambda':
             params, pending_def = [], None
         elif k == 'def':
@@ -487,6 +553,7 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
                         frames[-1].locals.setdefault(defname.text, [defname, 0, True])
                     else:
                         workspace.add(defname.text)
+                        from_imports.discard(defname.text)
         elif k == 'name':
             bind(t)
         elif k == 'word' or (k == 'sym' and toks[n - 1].kind == 'prefix' and toks[n - 1].text == '`'):
@@ -496,16 +563,31 @@ def analyze(src: str, builtins: set[str], known: set[str] = frozenset()) -> tupl
                 warn(t, 'W1', f"'{t.text}' is undefined{hint}")
         elif k == 'prefix' and n + 1 < len(toks) and toks[n + 1].kind in TRIVIA:
             warn(t, 'W4', f"space after '{t.text}'; write '{t.text}name'")
+        elif (k == 'sym' and t.text.startswith('_') and n >= 2 and toks[n - 1].kind == 'prefix'
+              and toks[n - 1].text in '.,' and toks[n - 2].kind == 'word' and toks[n - 2].text in modules):
+            warn(t, 'W5', f"'{t.text}' is private to {toks[n - 2].text}")
     diags.sort(key=lambda d: (d.line, d.col))
-    return diags, workspace
+    return diags, workspace, from_imports
 
 
 def namespaced(word: str, builtins: set[str]) -> list[str]:
-    """NS.word for each namespace holding word; ug, the index of every UGen, only when no other does,
-    and sapf, the compatibility library, only when neither does."""
-    found = sorted(b for b in builtins if b.endswith('.' + word))
-    return ([b for b in found if not b.startswith(('ug.', 'sapf.'))] or [b for b in found if b.startswith('ug.')]
+    """NS.word for each namespace holding word; sc, SC's UGens, only when no other does, and sapf, the
+    compatibility library, only when neither does. stac, which holds every core word, never."""
+    found = sorted(b for b in builtins if b.endswith('.' + word) and not b.startswith('stac.'))
+    return ([b for b in found if not b.startswith(('sc.', 'sapf.'))] or [b for b in found if b.startswith('sc.')]
             or found)
+
+
+def imported(ns: str, member: str | None, builtins: set[str]) -> set[str]:
+    """The names `import ns.member` binds, as Parser.cpp's importItem does: ns.* every word of ns except
+    core words and _ names; ns.name that one; ns alone the namespace."""
+    if member is None:
+        return {ns}
+    if member != '*':
+        return {member}
+    core = {b for b in builtins if '.' not in b}
+    return {w for b in builtins if b.startswith(ns + '.') and (w := b[len(ns) + 1:])
+            and not w.startswith('_') and w not in core}
 
 
 def builtin_words(sapf: Path) -> set[str]:
@@ -559,11 +641,11 @@ def _cmd_lint(args) -> int:
     builtins = builtin_words(args.stac)
     known: set[str] = set()
     for prelude in args.prelude or []:
-        _, names = analyze(prelude.read_text(), builtins, known)
+        _, names = analyze(prelude.read_text(), builtins, known, prelude)
         known |= names
     status = 0
     for path in args.files:
-        diags, _ = analyze(path.read_text(), builtins, known)
+        diags, _ = analyze(path.read_text(), builtins, known, path)
         for d in diags:
             print(f'{path}:{d}')
         if diags:

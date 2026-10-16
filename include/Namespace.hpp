@@ -68,7 +68,7 @@ public:
 	}
 };
 
-// sapf's DSP words (docs/dev/stac.md, Phases 5), bound globally as `sapf`. sapf.stac binds them unqualified.
+// sapf's DSP words (docs/dev/stac.md, Phases 5), bound globally as `sapf`. sapf.stac imports them.
 Namespace* sapfNamespace();
 
 // While alive, vm.def puts words in sapfNamespace() in place of builtins.
@@ -78,8 +78,8 @@ struct SapfWords
 	~SapfWords() { vm.defNamespace = nullptr; }
 };
 
-// A namespace of generated UGen words, by name, so interpreter words can join it (SpecUGens.cpp).
-// nullptr if there is none.
-Namespace* generatedNamespace(const std::string& name);
+// Binds `stac`, a namespace of every core word, so a word hidden by a binding or an import stays
+// reachable as stac.word. Call after every core word is defined.
+void AddStacNamespace();
 
 #endif

@@ -130,8 +130,8 @@ def control(node, name):
     return reply.contents[2]
 
 
-TONE = "def tone amp:0 freq:440 = [freq ug.sinosc amp *]\n"
-GATED = "def gated amp:0 gate:1 = [300 ug.sinosc .01 .3 env.asr gate ug.envgen.kr.done * amp *]\n"
+TONE = "def tone amp:0 freq:440 = [freq sc.sinosc amp *]\n"
+GATED = "def gated amp:0 gate:1 = [300 sc.sinosc .01 .3 env.asr gate sc.envgen.kr.done * amp *]\n"
 
 
 def test_def_starts_a_synth_with_controls(server, sapf):
@@ -241,9 +241,33 @@ def test_buffer_alloc(server, sapf):
     assert tuple(query("/b_query", buffer_of(out))[1:3]) == (100, 2)
 
 
+def test_buffer_free(server, sapf, tmp_path):
+    """/b_free empties the buffer; the next buffer.load takes its index again."""
+    out = sapf("[.5 .25] buffer.load = a  [1] buffer.load = b  a pr cr  a.free  [.75] buffer.load pr cr")
+    assert "error" not in out, out
+    a, again = [int(part.split()[0]) for part in out.split("Buffer ")[1:3]]
+    assert a == again
+    assert query("/b_getn", a, 0, 1)[3:] == pytest.approx([0.75])
+    out = sapf("[1] buffer.load = a  a.free  a pr cr")
+    assert query("/b_query", buffer_of(out))[1] == 0
+    out = sapf("[1] buffer.load = a  a.free  a.free")
+    assert "is already free" in out and "error" in out, out
+
+
+def test_buffer_read_free_reuses_the_slot(server, sapf, tmp_path):
+    import numpy as np
+    from test_samples import write_wav
+    for name in ("x", "y"):
+        write_wav(tmp_path / f"{name}.wav", np.zeros((10, 1)))
+    out = sapf(f'"{tmp_path}/x.wav" buffer.read = x  x pr cr  x.free  "{tmp_path}/y.wav" buffer.read pr cr')
+    assert "error" not in out, out
+    x, y = [int(part.split()[0]) for part in out.split("Buffer ")[1:3]]
+    assert x == y
+
+
 def test_effect_on_a_bus(server, sapf):
     """P12: the effect reads a private bus at the tail; the source writes to it."""
-    out = sapf(TONE + "def verb bus mix:.4 = [bus 1 ug.in mix *]\n"
+    out = sapf(TONE + "def verb bus mix:.4 = [bus 1 sc.in mix *]\n"
                "1 bus.audio = fx  {:bus fx :addAction 'tail} verb = v  {:out fx} tone = t  v pr cr  t pr cr")
     assert "error" not in out, out
     v, t = [int(part.split()[0]) for part in out.split("Node ")[1:3]]
@@ -256,7 +280,7 @@ def group_of(out):
 
 
 def test_group_holds_synths_and_send_frees_it(server, sapf):
-    out = sapf(TONE + "{} node.group = g  {:target g} tone = a  {:target g :addAction 'tail} tone = b  "
+    out = sapf(TONE + "{} group.new = g  {:target g} tone = a  {:target g :addAction 'tail} tone = b  "
                "{:freq 300} g.set  g pr cr a pr cr b pr cr")
     assert "error" not in out, out
     g = group_of(out)
@@ -324,25 +348,29 @@ def test_events_release_their_gate(server, sapf, tmp_path):
 
 
 def test_ndef_crossfades_and_stops(server, sapf, tmp_path):
-    """The old synth frees itself after its fade; nd.stop fades the last one out; after stop, ndef starts anew."""
+    """A synth and its monitor. The old synth frees itself after its fade; nd.end fades out both;
+    after stop, ndef starts anew."""
     proc = interactive("300 0 sinosc 0 * 'drone ndef = d\n", tmp_path)
     send = lambda line: (proc.stdin.write(line + "\n"), proc.stdin.flush())
     try:
         time.sleep(.5)
-        assert synths(server) == 1
+        assert synths(server) == 2
         send("{:fadeTime 1} d.set  400 0 sinosc 0 * 'drone ndef")
         time.sleep(.6)
-        assert synths(server) == 2
+        assert synths(server) == 3
         time.sleep(1)
-        assert synths(server) == 1
+        assert synths(server) == 2
         send("d.stop")
+        time.sleep(1.5)
+        assert synths(server) == 1  # the monitor faded out; the synth runs
+        send("d.end")
         time.sleep(.5)
         assert synths(server) == 1  # fading out over 1 s
         time.sleep(1)
         assert synths(server) == 0
         send("500 0 sinosc 0 * 'drone ndef  stop  600 0 sinosc 0 * 'drone ndef")
         time.sleep(.5)
-        assert synths(server) == 1
+        assert synths(server) == 2
         send("stop")
         time.sleep(.3)
         assert synths(server) == 0

@@ -13,6 +13,7 @@ int main(int argc, const char * argv[])
 	std::string inputFile;
 	bool interactive = false;
 	bool quiet = false;
+	bool words = false;
 
 	CLI::App app{"stac - a concatenative language for live coding SuperCollider"};
 	app.add_option("-r,--rate", config.sampleRate, "Sample rate for list timing ops such as T (1000-768000)")
@@ -22,6 +23,7 @@ int main(int argc, const char * argv[])
 		->allow_extra_args(false);
 	app.add_flag("-i,--interactive", interactive, "Interactive mode (enter REPL after running file)");
 	app.add_flag("-q,--quiet", quiet, "Quiet mode (suppress banner)");
+	app.add_flag("--words", words, "Print every word, after the preludes, as JSON, and exit");
 	app.add_option("file", inputFile, "Input file to load and execute");
 
 	CLI11_PARSE(app, argc, argv);
@@ -30,7 +32,10 @@ int main(int argc, const char * argv[])
 	registerEmbeddedScsynth();
 #endif
 
-	if (!quiet) {
+	// stdout carries only the JSON; the preludes' messages go to stderr
+	if (words) setPostHandler([](const char* s) { fputs(s, stderr); });
+
+	if (!quiet && !words) {
 		post("------------------------------------------------\n");
 		post("A tool for the expression of sound as pure form.\n");
 		post("------------------------------------------------\n");
@@ -43,6 +48,10 @@ int main(int argc, const char * argv[])
 
 	Thread th;
 	engine.loadPrelude(th);
+	if (words) {
+		fputs(wordsJson().c_str(), stdout);
+		return 0;
+	}
 
 	if (!inputFile.empty()) {
 		loadFile(th, inputFile.c_str());

@@ -19,8 +19,8 @@ from conftest import SAPF, SAPF_LIB, decode_scgf, read_wav_float, run_sapf
 
 SR = 96000  # sapf's default rate; run_sapf passes no -r
 
-PING = "def ping freq:440 amp:.5 gate:1 = [freq ug.sinosc .01 .1 env.asr gate ug.envgen.kr.done * amp *]\n"
-DRUM = "def drum amp:.5 = [.001 .1 env.perc 1 ug.envgen.kr.done ug.whitenoise * amp *]\n"
+PING = "def ping freq:440 amp:.5 gate:1 = [freq sc.sinosc .01 .1 env.asr gate sc.envgen.kr.done * amp *]\n"
+DRUM = "def drum amp:.5 = [.001 .1 env.perc 1 sc.envgen.kr.done sc.whitenoise * amp *]\n"
 
 
 def unbundle(bundle):
@@ -180,6 +180,20 @@ def test_play_function_instrument_loads_its_defs_first(sapf_bin, tmp_path, recor
     assert len(recorder.defs) == 2
     assert len(news) >= 4
     assert gaps([t for _, t, _ in news]) == pytest.approx([.25] * (len(news) - 1), abs=1e-3)
+
+
+def test_score_tempo(sapf_bin, tmp_path):
+    """SC's ~tempo: from the event that sets it, beats last 1/tempo s; releases follow it too."""
+    msgs = score(PING + "{:instrument 'ping :dur 1 :tempo [1 1 4 4 4] cyc} pbind", tmp_path, 2.6)
+    assert [t for t, _ in news(msgs)] == pytest.approx([0, 1, 2, 2.25, 2.5])
+    sets = [t for t, a, _ in msgs if a == "/n_set"]
+    assert sets[:3] == pytest.approx([.8, 1.8, 2.2])
+
+
+def test_score_tempo_on_a_rest(sapf_bin, tmp_path):
+    msgs = score(PING + "{:instrument 'ping :dur 1 :midinote [60 'rest 60 60] cyc :tempo [1 2 2 2] cyc} pbind",
+                 tmp_path, 2.1)
+    assert [t for t, _ in news(msgs)] == pytest.approx([0, 1.5, 2])
 
 
 def test_score_of_channels_is_nrt(sapf_bin, tmp_path):
@@ -349,6 +363,40 @@ def test_pdef_replaces_at_the_next_beat(sapf_bin, tmp_path, recorder):
     assert gaps(high) == pytest.approx([.5] * (len(high) - 1), abs=1e-3)
 
 
+def test_pdef_on_a_clock_with_quant(sapf_bin, tmp_path, recorder):
+    """clk.pdef replaces on that clock's beats; {:quant 4} waits for a multiple of 4 beats, .5 s at tempo 8."""
+    code = PING + "8 clock.new = c\n{:instrument 'ping :midinote 60 :dur 1} pbind 'mel c.pdef = p\n{:quant 4} p.set\n"
+    news = live(recorder, tmp_path, code, .7, "{:instrument 'ping :midinote 64 :dur 1} pbind 'mel c.pdef", .7,
+                "{:instrument 'ping :midinote 67 :dur 1} pbind 'mel c.pdef", .7)
+    times = {f: [t for _, t, c in news if round(c["freq"]) == f] for f in (262, 330, 392)}
+    for f in (262, 330):  # a beat apart on c, until the next stream replaces it
+        assert len(times[f]) >= 2 and gaps(times[f]) == pytest.approx([.125] * (len(times[f]) - 1), abs=1e-3)
+    apart = times[392][0] - times[330][0]
+    assert apart > 0 and apart == pytest.approx(round(apart / .5) * .5, abs=1e-3)
+    assert max(times[330]) < times[392][0]
+
+
+def test_pdef_quant_zero_replaces_at_once(sapf_bin, tmp_path, recorder):
+    code = PING + "{:instrument 'ping :midinote 60 :dur 1} pbind 'mel pdef = p\n{:quant 0} p.set\n"
+    news = live(recorder, tmp_path, code, 1.5, "{:instrument 'ping :midinote 72 :dur 1} pbind 'mel pdef", .1)
+    (arrived, t, _) = [n for n in news if n[2]["freq"] > 300][0]
+    assert t - arrived < .3  # sent with the lookahead, not held for the next beat
+
+
+def test_event_tempo_sets_the_clock(sapf_bin, tmp_path, recorder):
+    news = live(recorder, tmp_path, PING + "{:instrument 'ping :dur 1 :tempo [1 4] cyc} pbind play\n", 2.7)
+    assert gaps([t for _, t, _ in news])[:3] == pytest.approx([1, .25, 1], abs=1e-3)
+
+
+def test_redefined_def_reaches_a_playing_stream(sapf_bin, tmp_path, recorder):
+    """Late binding: the player looks 'ping up per event, so a new def ping reaches it."""
+    news = live(recorder, tmp_path, PING + "{:instrument 'ping :dur .25} pbind play\n", .8,
+                PING.replace("amp:.5", "amp:.25").strip(), .8)
+    amps = {round(decode_scgf(b)["defaults"][1], 2) for b in recorder.defs}
+    assert amps == {.5, .25}, amps
+    assert len(news) >= 4
+
+
 def test_pdef_player_stops_the_current_stream(sapf_bin, tmp_path, recorder):
     code = PING + "{:instrument 'ping :dur .25} pbind 'mel pdef = p\n"
     news = live(recorder, tmp_path, code, 1.2, "{:instrument 'ping :dur .25} pbind 'mel pdef", 1.2, "p.stop", .3)
@@ -361,10 +409,9 @@ def test_ndef_def_is_sc_proxy_fade(sapf_bin, tmp_path, recorder, monkeypatch):
     """SC's ProxySynthDef: channels times EnvGate(i_level: 0, curve: 'sin'), released by gate."""
     monkeypatch.setenv("STAC_SCSYNTH", f"127.0.0.1:{recorder.port}")
     out = run_sapf("[300 400] 0 sinosc .1 * 'drone ndef pr cr", tmp_path)
-    assert "error" not in out and "Ndef drone (node" in out, out
+    assert "error" not in out and "Ndef drone (node" in out and ", bus 958)" in out, out
     time.sleep(.1)
-    (blob,) = recorder.defs
-    d = decode_scgf(blob)
+    d = decode_scgf(recorder.defs[0])
     assert d["name"] == "sapf-ndef-drone-1"
     assert d["params"] == {"gate": 0, "fadeTime": 1, "out": 2}
     assert d["defaults"] == pytest.approx([1, .02, 0])
@@ -378,19 +425,66 @@ def test_ndef_def_is_sc_proxy_fade(sapf_bin, tmp_path, recorder, monkeypatch):
         assert d["ugens"][src][0] == "BinaryOpUGen" and (names.index("EnvGen"), 0) in d["ugens"][src][3]
 
 
+def test_ndef_monitor_is_sc_system_link(sapf_bin, tmp_path, recorder, monkeypatch):
+    """SC's system_link_audio: InFeedback of the ndef's bus, faded, to bus 0, at the tail of the root."""
+    monkeypatch.setenv("STAC_SCSYNTH", f"127.0.0.1:{recorder.port}")
+    out = run_sapf("[300 400] 0 sinosc .1 * 'drone ndef", tmp_path)
+    assert "error" not in out, out
+    time.sleep(.3)
+    d = decode_scgf(recorder.defs[1])
+    assert d["name"] == "sapf-ndef-drone-monitor"
+    (fb,) = [u for u in d["ugens"] if u[0] == "InFeedback"]
+    assert fb[3] == [("c", 958.0)] and len(fb[4]) == 2
+    source, monitor = [c for _, _, a, c in recorder.bundles if a == "/s_new"]
+    assert source[2:4] == [0, 0] and source[6:] == ["out", 958]   # head of the root, writing the bus
+    assert monitor[0] == "sapf-ndef-drone-monitor" and monitor[2:4] == [1, 0] and monitor[6:] == ["out", 0]
+
+
+def test_ndef_ar_reads_another(sapf_bin, tmp_path, recorder, monkeypatch):
+    """nd.ar is SC's Ndef(\\x).ar: InFeedback of the bus, so the reader may sit before the writer."""
+    monkeypatch.setenv("STAC_SCSYNTH", f"127.0.0.1:{recorder.port}")
+    out = run_sapf("2 0 sinosc 'lfo ndef = l  l.stop  [l.ar 300 * 400 + 0 sinosc .1 *] 'tone ndef pr cr", tmp_path)
+    assert "error" not in out, out
+    time.sleep(.3)
+    tone = decode_scgf(next(b for b in recorder.defs if decode_scgf(b)["name"] == "sapf-ndef-tone-1"))
+    (fb,) = [u for u in tone["ugens"] if u[0] == "InFeedback"]
+    assert fb[3] == [("c", 959.0)]
+    assert "Ndef tone (node" in out and ", bus 958)" in out
+
+
+def test_ndef_mixes_extra_channels_down(sapf_bin, tmp_path, recorder, monkeypatch):
+    """SC's NumChannels: 3 channels into a 2-channel ndef are [a + b, c]."""
+    monkeypatch.setenv("STAC_SCSYNTH", f"127.0.0.1:{recorder.port}")
+    out = run_sapf("[300 400] 0 sinosc 'x ndef  [300 400 500] 0 sinosc 'x ndef", tmp_path)
+    assert "ndef x : mixed 3 channels down to 2" in out and "error" not in out, out
+    time.sleep(.3)
+    d = decode_scgf(next(b for b in recorder.defs if decode_scgf(b)["name"] == "sapf-ndef-x-2"))
+    (out,) = [u for u in d["ugens"] if u[0] == "Out"]
+    assert len(out[3]) == 3
+
+
 def test_ndef_replaces_with_a_crossfade(sapf_bin, tmp_path, recorder):
-    """The new synth starts in the bundle that releases the old one; set changes the fade of both."""
+    """The new synth starts in the bundle that releases the old one; set changes the fade of both.
+    stop fades out the monitor only; end fades out the synth too."""
     live(recorder, tmp_path, "300 0 sinosc .1 * 'drone ndef = d\n", .3,
-         "{:fadeTime 2} d.set", "400 0 sinosc .1 * 'drone ndef", .3, "d.stop", .2)
+         "{:fadeTime 2} d.set", "400 0 sinosc .1 * 'drone ndef", .3, "d.stop", .2, "d.end", .2)
     starts = [(t, c) for _, t, a, c in recorder.bundles if a == "/s_new"]
-    assert [c[0] for _, c in starts] == ["sapf-ndef-drone-1", "sapf-ndef-drone-2"]
-    first, second = starts[0][1][1], starts[1][1][1]
-    assert starts[0][1][4:] == ["fadeTime", pytest.approx(.02)]
-    assert starts[1][1][4:] == ["fadeTime", pytest.approx(2)]
+    assert [c[0] for _, c in starts] == ["sapf-ndef-drone-1", "sapf-ndef-drone-monitor", "sapf-ndef-drone-2"]
+    first, monitor, second = [c[1] for _, c in starts]
+    assert starts[0][1][4:6] == ["fadeTime", pytest.approx(.02)]
+    assert starts[2][1][4:6] == ["fadeTime", pytest.approx(2)]
     (released,) = [(t, c) for _, t, a, c in recorder.bundles if a == "/n_set"]
-    assert released == (starts[1][0], [first, "gate", 0])
-    assert (("/n_set", [first, "fadeTime", pytest.approx(2)]) in recorder.plain)
-    assert ("/n_set", [second, "gate", 0]) in recorder.plain
+    assert released == (starts[2][0], [first, "gate", 0])
+    assert ("/n_set", [first, "fadeTime", pytest.approx(2)]) in recorder.plain
+    assert ("/n_set", [monitor, "fadeTime", pytest.approx(2)]) in recorder.plain
+    gates = [c[0] for a, c in recorder.plain if a == "/n_set" and c[1:] == ["gate", 0]]
+    assert gates == [monitor, second]
+
+
+def test_ndef_play_restarts_the_monitor(sapf_bin, tmp_path, recorder):
+    live(recorder, tmp_path, "300 0 sinosc .1 * 'drone ndef = d\n", .3, "d.stop", "d.play", .3)
+    names = [c[0] for _, _, a, c in recorder.bundles if a == "/s_new"]
+    assert names == ["sapf-ndef-drone-1", "sapf-ndef-drone-monitor", "sapf-ndef-drone-monitor"]
 
 
 @pytest.mark.parametrize("code,message", [
@@ -399,6 +493,10 @@ def test_ndef_replaces_with_a_crossfade(sapf_bin, tmp_path, recorder):
     ("1 clock.new = c 440 0 sinosc c.play", "play : events"),
     ("440 0 sinosc 'x pdef", "pdef : events"),
     ("{:dur 1} pbind 'x ndef", "ndef : channels"),
+    ("{:dur 1} pbind 'x pdef = p  {:quant -1} p.set", "set : quant"),
+    ("{:instrument \\[0] :tempo 0} pbind 1 \"s\" score", "event : tempo : above 0"),
+    ("{:dur 1} pbind 'x pdef = p  {:tempo 2} p.set", "set : a pdef has no field tempo"),
+    ("{:dur 1} pbind play = p  {:quant 2} p.set", "set"),
 ])
 def test_clock_errors(sapf_bin, tmp_path, code, message):
     out = run_sapf(code, tmp_path)
@@ -408,8 +506,8 @@ def test_clock_errors(sapf_bin, tmp_path, code, message):
 def test_play_pushes_a_node(sapf_bin, tmp_path, recorder, monkeypatch):
     """The core's play leaves the synth's Node; sapf.play leaves nothing."""
     monkeypatch.setenv("STAC_SCSYNTH", f"127.0.0.1:{recorder.port}")
-    out = run_sapf("440 sinosc .1 * play = n  n pr cr  n.free  440 sinosc .1 * sapf.play  stackDepth pr cr", tmp_path,
-                   lib=[])
+    out = run_sapf("440 sc.sinosc .1 * play = n  n pr cr  n.free  440 sc.sinosc .1 * sapf.play  stackDepth pr cr",
+                   tmp_path, lib=[])
     assert "error" not in out, out
     node = int(re.search(r"Node (\d+)", out).group(1))
     assert out.split(f"Node {node}\n")[1].startswith("0\n")

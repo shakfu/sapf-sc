@@ -1182,11 +1182,20 @@ Namespace* sapfNamespace()
 	return ns();
 }
 
+void AddStacNamespace()
+{
+	P<Namespace> ns = new Namespace("stac");
+	for (P<TreeNode> const& n : vm.builtins->sorted())
+		if (n->mKey.isString()) ns->mWords[((String*)n->mKey.o())->s] = n->mValue;
+	vm.builtins->putImpure(V(getsym("stac")), V(ns));
+	vm.addBifHelp("stac", nullptr, "(--> namespace) every core word, so stac.word reaches one a binding hides.");
+}
+
 void AddSCUGenOps();
 void AddSCUGenOps()
 {
 	vm.addBifHelp("\n*** SuperCollider UGens ***");
-	vm.addBifHelp("sapf", nullptr, "(--> namespace) sapf's DSP words, in sapf's argument order and units. sapf.stac binds them unqualified.");
+	vm.addBifHelp("sapf", nullptr, "(--> namespace) sapf's DSP words, in sapf's argument order and units. sapf.stac imports them.");
 	{
 	SapfWords sapf;
 	DEFMCX(sinosc, 2, "(freq phase --> out) sine wave oscillator. SinOsc.")

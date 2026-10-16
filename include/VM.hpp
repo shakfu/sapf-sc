@@ -20,6 +20,7 @@
 #include "Object.hpp"
 #include "symbol.hpp"
 #include "rgen.hpp"
+#include <map>
 #include <vector>
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -164,7 +165,17 @@ public:
 	std::vector<V> stack;
 	std::vector<V> local;	
 	P<Fun> fun;
-	P<GForm> mWorkspace;
+	P<GForm> mWorkspace;     // this thread's view of mScope: its own bindings while it evaluates there
+	P<Scope> mScope;         // the top-level scope this thread evaluates in
+	int64_t mScopeVersion = 0;  // the published version mWorkspace derives from
+	// Other scopes' published versions, such as modules', so a lookup takes no lock unless one changed.
+	struct ScopeView {
+		P<Scope> scope;
+		P<GForm> ws;
+		int64_t version;
+	};
+	std::vector<ScopeView> mOtherScopes;
+	std::map<std::string, V> mImported;  // what this thread's imports bound; a module's stay private
 
 	P<CompileScope> mCompileScope;
 
@@ -194,6 +205,14 @@ public:
 	
 	Thread();
 	Thread(const Thread& parent);
+
+	// Ends an evaluation: other threads see this thread's bindings from their next event.
+	void publishWorkspace() { mScopeVersion = mScope->publish(mWorkspace); }
+	// Starts an event on a player's thread: takes bindings published since the last one.
+	void refreshWorkspace() { mScope->refresh(mWorkspace, mScopeVersion); }
+	// A top-level name in f, looked up when it runs: in this thread's view for its own scope,
+	// in the published version for another, such as a module's.
+	V lookupTop(Fun* f, Arg key);
 	Thread(const Thread& parent, P<Fun> const& fun);
 	~Thread();
 	
@@ -431,6 +450,10 @@ public:
 };
 
 extern VM vm;
+
+// Every word in the help, built-in and from the preludes, as a JSON array for editors and docs:
+// name, section, stack effect, help, automap mask, source ("builtin" or "prelude").
+std::string wordsJson();
 
 struct WorkspaceDef
 {

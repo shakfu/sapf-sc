@@ -1,18 +1,20 @@
 # Next steps
 
-State as of 2026-10-14. sapf-sc is committed up to dd66917. ../ssp's state and tasks are in docs/dev/ssp.md.
+State as of 2026-10-16. Committed up to a0608a9; phases 1-5 of stac.md and the gaps after them are uncommitted. ../ssp's state and tasks are in docs/dev/ssp.md.
+
+Next, in order: the naming stage (stac.md, open questions 5 and 6); a dictionary of every word, each with a definition and an example of how and why to use it, checked against `stac --words`; then the phrasebook.
 
 ## State
 
-- `make test` passes on Linux: 262 ctest, 340 pytest. macOS passed before the `op1_log*` references and the `>sfo` tests changed, and has not been rerun since.
+- `make test` passes on macOS: 271 ctest; 947 pytest passed, 112 skipped. Linux last passed on 2026-10-14, before phase 5.
 
 - `build/stac` embeds scsynth (`cmake/EmbeddedScsynth.cmake`): `play` starts it on first use; `STAC_SCSYNTH` selects a UDP server instead. `>sf` and `>sfo` render in-process in NRT mode.
 
 - SuperCollider 3.14.1 and libsndfile 1.2.2 are fetched as pinned tarballs. `cmake/patch-supercollider.sh` makes SC build as a subdirectory and keeps the UGens loaded after an NRT render.
 
-- `examples/sapf.stac` keeps 216 of sapf's 312 examples; 160 play or render. `prelude.stac` keeps 280 of 285 definitions.
+- `examples/sapf.stac` keeps 216 of sapf's 312 examples; 160 play or render. They need `-p prelude.stac -p sapf.stac`. `sapf.stac` holds 48 of the prelude's definitions.
 
-- Polyphony: `ola` voices are synths on private buses 512..959, scheduled by a thread for `play`, or written into an NRT score by `>nrt`.
+- Polyphony: `pbind play` in stac; sapf's `ola` voices are synths on private buses from 512 up, below those `bus.audio` takes, scheduled by a thread for `play`, or written into an NRT score by `>nrt`.
 
 - Wave tables (`wavefill`, `osc`, `sawTbl`...) use buffers 512..1023; samples (`sf>`, `playbuf`) use buffers 0..63.
 
@@ -24,7 +26,7 @@ State as of 2026-10-14. sapf-sc is committed up to dd66917. ../ssp's state and t
 
 6. Unmapped words by examples blocked: `violet` 5, `klang` 3, `pdiv` 3, `par`, `octenv`, `quadenv`, `vsaw`, `gray`, and about a dozen with one or two uses. The mouse controls are excluded on purpose.
 
-7. Live patching (`zplug`, `set`): needs `/n_set` on running synths.
+7. Live patching: done in stac with `Node.set` and `ndef`; sapf's `zplug` stays unmapped.
 
 8. `ola` voices start on the 64-frame block holding their time. `OffsetOut` would place them on the frame but crashed the NRT renderer; not investigated.
 

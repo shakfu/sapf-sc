@@ -11,7 +11,9 @@
 #include "VM.hpp"
 #include "Opcode.hpp"
 #include "ErrorCodes.hpp"
+#include <atomic>
 #include <cmath>
+#include <thread>
 
 // Test fixture for VM tests
 class VMTest : public SapfTestBase {
@@ -26,13 +28,14 @@ protected:
         th.clearStack();
     }
 
-    // Helper to compile and execute code
+    // Helper to compile and execute code; publishes its bindings, as a REPL line does
     V run(const char* code) {
         P<Fun> fun;
         if (!th.compile(code, fun, true)) {
             throw errSyntax;
         }
         fun->apply(th);
+        th.publishWorkspace();
         return th.pop();
     }
 };
@@ -453,3 +456,103 @@ TEST_F(VMTest, ListSize) {
     EXPECT_DOUBLE_EQ(result.f, 3.0);
 }
 
+
+//==============================================================================
+// Workspace layers: what modules rely on (docs/dev/stac.md, Proposal: modules)
+//==============================================================================
+
+// Compiles and runs code in a fresh, empty scope, as a module loads, and publishes it; restores
+// the caller's scope.
+static V runInFreshWorkspace(Thread& th, const char* code)
+{
+    P<GForm> saved = th.mWorkspace;
+    P<Scope> savedScope = th.mScope;
+    int64_t savedVersion = th.mScopeVersion;
+    auto restore = [&] { th.mWorkspace = saved, th.mScope = savedScope, th.mScopeVersion = savedVersion; };
+    th.mWorkspace = new GForm();
+    th.mScope = new Scope(th.mWorkspace);
+    th.mScopeVersion = 0;
+    try {
+        P<Fun> fun;
+        if (!th.compile(code, fun, true)) throw errSyntax;
+        fun->apply(th);
+        th.publishWorkspace();
+    } catch (...) {
+        restore();
+        throw;
+    }
+    restore();
+    return th.pop();
+}
+
+TEST_F(VMTest, FreshWorkspaceHidesGlobalsButNotBuiltins) {
+    run("3 = g  0");
+    EXPECT_ANY_THROW(runInFreshWorkspace(th, "g"));
+    EXPECT_DOUBLE_EQ(runInFreshWorkspace(th, "2 3 +").f, 5.0);
+}
+
+TEST_F(VMTest, FunctionKeepsTheWorkspaceItWasCompiledIn) {
+    V pub = runInFreshWorkspace(th, "\\x [x 1 +] = _inc  \\x [x _inc 10 *] = pub  `pub");
+    th.push(5.0);
+    pub.apply(th);
+    EXPECT_DOUBLE_EQ(th.pop().f, 60.0);  // finds _inc after its workspace is gone
+    EXPECT_ANY_THROW(run("5 _inc"));     // _inc never reached the caller's workspace
+}
+
+TEST_F(VMTest, RebindingReachesEarlierFunctions) {
+    // Late binding: a top-level name is looked up when the call runs.
+    run("\\x [x 1 +] = f  \\x [x f] = h  0");
+    run("\\x [x 2 +] = f  0");
+    EXPECT_DOUBLE_EQ(run("5 h").f, 7.0);
+    run("5 = n  \\x [x n +] = addn  6 = n  0");
+    EXPECT_DOUBLE_EQ(run("1 addn").f, 7.0);
+}
+
+TEST_F(VMTest, RebindingInOneFileReachesFunctionsInIt) {
+    EXPECT_DOUBLE_EQ(run("\\x [x 1 +] = f  \\x [x f] = h  \\x [x 2 +] = f  5 h").f, 7.0);
+}
+
+TEST_F(VMTest, AnEditOfSeveralNamesLandsAtOnce) {
+    // A player thread takes each published version once per event, as PatternOps' run does,
+    // while the main thread rebinds f and g together. h = f + g: 11 or 22, never 12 or 21.
+    run("\\[1] = f  \\[10] = g  \\[f g +] = h  0");
+    V h = run("`h");
+    std::atomic<bool> done{false};
+    std::atomic<int64_t> mixed{0}, seen22{0}, calls{0};
+    std::thread player([&] {
+        Thread pt(th);
+        while (!done) {
+            pt.refreshWorkspace();
+            h.apply(pt);
+            double r = pt.pop().f;
+            if (r == 22.0) ++seen22;
+            else if (r != 11.0) ++mixed;
+            ++calls;
+        }
+    });
+    for (int i = 0; i < 20000; ++i)
+        run(i % 2 ? "\\[1] = f  \\[10] = g  0" : "\\[2] = f  \\[20] = g  0");
+    done = true;
+    player.join();
+    EXPECT_EQ(mixed.load(), 0);
+    EXPECT_GT(seen22.load(), 0);  // the player did take new versions
+    EXPECT_GT(calls.load(), 0);
+}
+
+TEST_F(VMTest, AnEvaluationIsNotSeenUntilItEnds) {
+    // Bindings made by an evaluation stay private to it until it publishes.
+    run("\\[1] = f  0");
+    Thread player(th);
+    P<Fun> fun;
+    ASSERT_TRUE(th.compile("\\[2] = f  0", fun, true));
+    fun->apply(th);
+    th.pop();
+    player.refreshWorkspace();
+    V f = player.mWorkspace->mustGet(player, V(getsym("f")));
+    f.apply(player);
+    EXPECT_DOUBLE_EQ(player.pop().f, 1.0);  // not yet published
+    th.publishWorkspace();
+    player.refreshWorkspace();
+    player.mWorkspace->mustGet(player, V(getsym("f"))).apply(player);
+    EXPECT_DOUBLE_EQ(player.pop().f, 2.0);
+}

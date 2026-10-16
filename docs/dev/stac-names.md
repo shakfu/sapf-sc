@@ -1,6 +1,6 @@
 # stac names: prefix stripping and short namespace names
 
-Decision record for open questions 5 and 6 in `stac.md`. Decided 2026-10-15: both are done together, as the last stage. Status: options laid out; names not chosen.
+Decision record for open questions 5 and 6 in `stac.md`. Decided 2026-10-15: both are done together, as the last stage. Status: superseded 2026-10-16 by `stac.md`, Namespaces, Proposal: canonical namespaces and import. Neither stripping nor short names is planned; this record keeps the counts.
 
 Counts below come from `helpall` in `build/stac` and `spec/sclang-reference.json`. 384 namespaced words exist; 155 are in `ug`.
 

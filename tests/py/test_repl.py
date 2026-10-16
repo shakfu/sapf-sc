@@ -49,8 +49,8 @@ def repl(sapf_bin, tmp_path):
 @pytest.mark.skipif(sys.platform == "win32", reason="needs a pty")
 @pytest.mark.parametrize("keys,shown", [
     (b"env.pe\t", "env.perc  (attackTime releaseTime --> env)"),  # completes, then hints
-    (b"ug.sinosc", "ug.sinosc  (freq --> out)"),                   # hint for a whole word
-    (b"pv_magf\t", "fft.pv_magfreeze"),                           # a plain prefix finds its namespace
+    (b"sc.sinosc", "sc.sinosc  (freq --> out)"),                   # hint for a whole word
+    (b"pv_magf\t", "sc.pv_magfreeze"),                           # a plain prefix finds its namespace
 ])
 def test_completion_and_hints(repl, keys, shown):
     assert shown in repl(keys)

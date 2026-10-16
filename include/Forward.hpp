@@ -33,6 +33,7 @@ class Object;
 class String;
 class Code;
 class GForm;
+class Scope;
 class GTable;
 class Form;
 class Table;
