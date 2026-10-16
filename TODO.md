@@ -16,6 +16,8 @@ In order of priority within each section. Design records are in docs/dev/; this 
 
 - [ ] `sapf.stac`'s 46 definitions are still lambdas. Convert them to typed `def`s as `std.stac` was, or record why not.
 
+- [ ] Dictionary: say that a zero-output UGen (Out, OffsetOut, ReplaceOut, XOut, LocalOut, SharedOut, SendTrig, AnalogOut, DigitalOut, BelaScopeOut) leaves a root, not a channel. Three parts: `gen_ugens.py` writes `--> root` as the effect of a zero-output class; one sentence in each of the 10 entries; a `localout` example with `play`.
+
 ### Namespaces and modules
 
 - [ ] `sc3p`: sc3-plugins' UGens. Needs a spec in `sclang-reference.json`'s format, from sclang with the plugins installed, and the plugin binaries in the embedded scsynth and on the SSP (docs/dev/stac.md, Proposal: canonical namespaces and import).
@@ -30,12 +32,24 @@ In order of priority within each section. Design records are in docs/dev/; this 
 
 - [ ] `ndef` keeps its bus for the session. SC's `clear` frees it; add `.clear`.
 
+- [ ] `play` sends a constant channel to the speakers unchecked: `[440 0 sinosc .1 *] play` under `prelude.stac` outputs DC 440 on channel 0. Warn when a channel is a constant outside -1..1.
+
 - [ ] `>sd` and `.write`: write the SSP `scsy` sidecar's `@p` lines alongside `name.scsyndef`.
   - Format, from `../ssp/plugins/scsynth/README.md`: `name.txt` beside `name.scsyndef`, lines `// @p1 cutoff 20 20000 Hz log cv 3` (slot, control name, min, max, unit, curve, CV input).
   - Without a sidecar, `scsy` maps `p1`..`p16` to the first 16 controls in def order, each ranged 0 to max(1, 2 x default). A sidecar is needed only for ranges, units, curves, CV or another slot order.
   - Open: where min, max and curve come from. Neither `ctl` nor a `synthdef` control declares them.
   - Open: slot order. `synthdef` keeps declaration order; `>sd` sorts parameters by name.
   - Note: a label that names no control fails the load in `scsy`, and `freq`, `velocity` and `gate` are reserved for MIDI.
+
+### Editor and REPL
+
+- [ ] Editor plugin for stac files: nvim first, with `tree-sitter-stac/queries/highlights.scm` so files take the editor theme's colours. Add `locals.scm`, `indents.scm` and `injections.scm`, which the REPL does not need. `STAC_COLORS` stays the REPL's interim override, not a theme system.
+
+- [ ] REPL highlighting parses each continuation line alone, so a `[` or `def` opened on an earlier line is not seen.
+
+- [ ] UGen colouring covers only words of the namespace `sc`. sapf's oscillators under `-p sapf.stac` are functions and show as library words. Decide whether "UGen" means any signal generator; that needs a tag in the dictionary, not a type test.
+
+- [ ] No differential test between `tree-sitter-stac` and `stactool.py`'s lexer; they could split a token differently and nothing would fail.
 
 ### sapf words
 
