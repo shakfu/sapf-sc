@@ -231,7 +231,7 @@ Starts a comment that runs to the end of the line.
 
 `"`
 
-Delimits a string: `"text"`. Backslashes and doubled quotes are not escapes.
+Delimits a string: `"text"`. A doubled quote, `""`, is a quote. Two backslashes and a letter are an escape: `\\n` a newline, `\\t` a tab; one backslash is itself.
 
 Use it for file names, messages and help strings.
 

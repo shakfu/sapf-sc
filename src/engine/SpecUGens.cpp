@@ -359,6 +359,8 @@ bool Sig::dot(Thread& th, Arg key, V& ioValue)
 	return false;
 }
 
+bool isUGenWord(Arg v) { return v.o() && dynamic_cast<UGenPrim*>(v.o()) != nullptr; }
+
 void AddSpecUGenOps();
 void AddSpecUGenOps()
 {

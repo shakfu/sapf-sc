@@ -1,0 +1,120 @@
+========================================
+lists, signals, forms and parens
+========================================
+
+[1 2] #[0 .5] {:freq 440 :amp .1} (3 4 +)
+
+----------------------------------------
+
+(source_file
+  (list
+    (number)
+    (number))
+  (signal
+    (number)
+    (number))
+  (form
+    (key
+      (word))
+    (number)
+    (key
+      (word))
+    (number))
+  (parens
+    (number)
+    (number)
+    (word)))
+
+========================================
+prefixes
+========================================
+
+'sym `inc f,key n.free sc.sinosc
+
+----------------------------------------
+
+(source_file
+  (quote
+    (word))
+  (backquote
+    (word))
+  (word)
+  (field
+    (word))
+  (word)
+  (member
+    (word))
+  (word)
+  (member
+    (word)))
+
+========================================
+bindings
+========================================
+
+3 = x
+[1 2] = [a b]
+1 2 = (c d)
+
+----------------------------------------
+
+(source_file
+  (number)
+  (binding
+    (word))
+  (list
+    (number)
+    (number))
+  (binding
+    (word)
+    (word))
+  (number)
+  (number)
+  (binding
+    (word)
+    (word)))
+
+========================================
+lambda with effects and help
+========================================
+
+\f 2.1 x "help" [x f !]
+
+----------------------------------------
+
+(source_file
+  (lambda
+    (word)
+    (stack_effect)
+    (word)
+    (string)
+    (list
+      (word)
+      (word)
+      (word))))
+
+========================================
+synthdef.new is a word
+========================================
+
+\freq [freq saw] {:freq 220} 'buzz synthdef.new = buzz
+
+----------------------------------------
+
+(source_file
+  (lambda
+    (word)
+    (list
+      (word)
+      (word)))
+  (form
+    (key
+      (word))
+    (number))
+  (quote
+    (word))
+  (word)
+  (member
+    (word))
+  (binding
+    (word)))

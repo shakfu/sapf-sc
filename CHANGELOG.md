@@ -25,6 +25,7 @@
 
 ### Added
 
+- Syntax highlighting in the REPL. [tree-sitter-stac/](tree-sitter-stac/) is a tree-sitter grammar for stac with a `highlights.scm` query in nvim-treesitter's capture names; the REPL compiles both in and colours the input line as it is typed. A word is coloured by where it is bound: bright magenta for a UGen of `sc`, bright blue for any other word of the VM or a prelude, bright cyan for the session or the line itself, so a prelude word turns cyan once rebound; a word nothing binds is red, as `stactool.py lint`'s W1, except the word at the cursor, whose prefixes are mostly unbound while it is typed. One grammar for the REPL and for editors, over a C++ tokenizer for the REPL alone, which an editor plugin could not use. The generated `parser.c` is committed, so the build needs no tree-sitter CLI; `make grammar` regenerates it. `STAC_COLORS` overrides a kind's colour with SGR codes, as `LS_COLORS` does, over a theme file format of stac's own; `NO_COLOR` turns colour off; `-DSAPF_TREESITTER=OFF` builds without it.
 - `reset` does `stop`, then `clear`: it frees every synth and empties the stack, so no `Node` from `play` outlives its synth.
 - [docs/dictionary/](docs/dictionary/): an entry for every word, 1330 in all: what it does, why and when to use it, and an example. `scripts/dictionary.py sync` adds an entry for each new word from `stac --words` and refreshes each entry's name and stack effect; `tests/py/test_dictionary.py` fails when a word has none and runs every example, checking each `;->` line's values. Generated from `--words` over hand-written as one document, so a new word cannot go undocumented.
 - `examples.txt`: about 100 lines to paste into the REPL, from a first tone to live edits; `tests/py/test_examples_txt.py` types them into the REPL in order.
@@ -84,6 +85,7 @@
 ### Fixed
 
 - A UGen with no outputs, such as `out`, `localout` or `sendtrig`, in a plain `[...] play` list was dropped from the graph; only a `synthdef` body kept it. Such a UGen now returns a `Root`, printed `<LocalOut>`, which `play`, `>sd`, `>sf` and `ndef` make a root of the graph. A `Root` is not a signal, so arithmetic on it fails; `pop` still drops it. The value carries the root, over a collector per REPL line, which would lose a root bound on one line and played on the next. A `synthdef` body that leaves only Roots no longer gets an `out` control.
+- `"a""b"` failed to parse: a doubled quote ended the string after adding the quote. It is now the string `a"b`. Upstream sapf has the same bug ([docs/dev/upstream-sapf-bugs.md](docs/dev/upstream-sapf-bugs.md)).
 - Workspace and built-in lookups matched a name by its 32-bit hash alone, so two names with the same hash read each other's bindings. They now compare the name too.
 
 - `sapf.evmerge` crashed stac on an event without `:dt`; it now reports it. `1 sapf.evrest` underflowed: it was declared with three arguments.

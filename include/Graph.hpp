@@ -97,6 +97,9 @@ public:
 inline bool isSig(Arg v) { return v.o() && dynamic_cast<Sig*>(v.o()) != nullptr; }
 inline int rateOf(Arg v) { return isSig(v) ? ((Sig*)v.o())->rate() : rateIR; }
 
+// Whether v is a word of the namespace sc, such as sinosc. Defined in SpecUGens.cpp.
+bool isUGenWord(Arg v);
+
 // A UGen with no outputs, such as Out. In a channel list it is a root of the graph, not a channel.
 class Root : public Object
 {

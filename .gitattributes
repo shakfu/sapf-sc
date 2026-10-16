@@ -1,0 +1,5 @@
+# tree-sitter generate writes these from tree-sitter-stac/grammar.js (make grammar)
+tree-sitter-stac/src/parser.c linguist-generated
+tree-sitter-stac/src/grammar.json linguist-generated
+tree-sitter-stac/src/node-types.json linguist-generated
+tree-sitter-stac/src/tree_sitter/** linguist-generated

@@ -1,0 +1,19 @@
+{
+  "grammars": [
+    {
+      "name": "stac",
+      "camelcase": "Stac",
+      "scope": "source.stac",
+      "path": ".",
+      "file-types": ["stac"],
+      "highlights": "queries/highlights.scm",
+      "injection-regex": "^stac$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "GPL-3.0-or-later",
+    "description": "stac grammar for tree-sitter",
+    "links": {"repository": "https://github.com/shakfu/sapf-sc"}
+  }
+}

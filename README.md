@@ -49,7 +49,7 @@ The design and its reasoning are in [docs/dev/stac.md](docs/dev/stac.md); [docs/
 build/stac [-p prelude] ... [-i] [file]
 ```
 
-- With no file, stac starts the REPL. Tab completes names; the hint shows a word's stack effect.
+- With no file, stac starts the REPL. Tab completes names; the hint shows a word's stack effect. The input line is coloured by syntax, with [tree-sitter-stac](tree-sitter-stac/); a word nothing binds is red once the cursor leaves it. `NO_COLOR=1` turns colour off.
 - With a file, stac runs it, plays what it plays and exits when that ends; `-i` enters the REPL afterwards.
 - `-p` loads a prelude and repeats: sapf programs run with `-p prelude.stac -p sapf.stac`. Without `-p`, stac loads `$STAC_PRELUDE`; with neither, only core words and qualified names such as `sc.sinosc` exist.
 - `--words` prints every word, after the preludes, as JSON, for editors.
@@ -66,6 +66,7 @@ build/stac [-p prelude] ... [-i] [file]
 | `STAC_SR` | its sample rate | the device's |
 | `STAC_PLUGINS` | its UGen plugin folder | `plugins/` beside the executable |
 | `STAC_LOG`, `STAC_HISTORY` | REPL log and history files | `~/stac-log.txt`, `~/stac-history.txt` |
+| `STAC_COLORS` | REPL colours, as `kind=SGR` pairs separated by `:`, e.g. `number=36:library=1;94`. Kinds: `comment string symbol number keyword operator bracket delimiter definition parameter type variable module property method library ugen bound unbound` | the terminal's 16 colours |
 
 Inputs default to 0: with an input stream, scsynth can hang at boot while another program holds the capture device.
 
@@ -107,11 +108,12 @@ How the sapf words map onto scsynth:
 make build                       # build/stac and build/plugins
 make test                        # ctest, then pytest (needs uv)
 make reference SAPF_ORIG=...     # regenerates tests/fixtures/ref with original sapf
+make grammar                     # regenerates tree-sitter-stac/src from grammar.js (needs the tree-sitter CLI)
 ```
 
-The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; `cmake/EmbeddedScsynth.cmake` says how to build offline. Tested on macOS and Linux; Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for a server over UDP only.
+The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; `cmake/EmbeddedScsynth.cmake` says how to build offline. Tested on macOS and Linux; Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for a server over UDP only. `-DSAPF_TREESITTER=OFF` builds without syntax highlighting.
 
-`make test` runs the C++ unit tests (interpreter, parser, completion) and 23 pytest suites. Among them:
+`make test` runs the C++ unit tests (interpreter, parser, completion, highlighting) and 26 pytest suites. Among them:
 
 - `test_scgf_parity.py` and `test_ugen_sweep.py`: stac's SynthDef bytes equal [nanosynth](../nanosynth)'s for the same graph.
 - `test_conformance.py`: scsynth renders sapf expressions offline, compared with original sapf's renders in `tests/fixtures/ref`.

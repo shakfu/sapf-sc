@@ -20,9 +20,13 @@
 #include "Opcode.hpp"
 #include "Parser.hpp"
 #include "Completion.hpp"
+#if SAPF_TREESITTER
+#include "Highlight.hpp"
+#endif
 #include "Namespace.hpp"
 #include "MultichannelExpansion.hpp"
 #include "elapsedTime.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <limits.h>
 #include <chrono>
@@ -298,6 +302,120 @@ static void hintCallback(const char* input, replxx_hints* out, int* contextLen, 
 }
 #endif
 
+#if USE_REPLXX && SAPF_TREESITTER
+// The terminal's 16 colours, so the user's theme applies.
+static ReplxxColor colorOf(Hl kind)
+{
+	switch (kind) {
+		case Hl::Comment:    return REPLXX_COLOR_GRAY;
+		case Hl::String:     return REPLXX_COLOR_GREEN;
+		case Hl::Symbol:     return REPLXX_COLOR_GREEN;
+		case Hl::Number:     return REPLXX_COLOR_CYAN;
+		case Hl::Keyword:    return replxx_color_bold(REPLXX_COLOR_MAGENTA);
+		case Hl::Operator:   return REPLXX_COLOR_BROWN;
+		case Hl::Definition: return replxx_color_bold(REPLXX_COLOR_BLUE);
+		case Hl::Parameter:  return REPLXX_COLOR_BRIGHTCYAN;
+		case Hl::Variable:   return REPLXX_COLOR_BRIGHTCYAN;
+		case Hl::Bound:      return REPLXX_COLOR_BRIGHTCYAN;
+		case Hl::Library:    return REPLXX_COLOR_BRIGHTBLUE;
+		case Hl::UGen:       return REPLXX_COLOR_BRIGHTMAGENTA;
+		case Hl::Type:       return REPLXX_COLOR_BROWN;
+		case Hl::Module:     return REPLXX_COLOR_BLUE;
+		case Hl::Property:   return REPLXX_COLOR_CYAN;
+		case Hl::Method:     return REPLXX_COLOR_BRIGHTBLUE;
+		case Hl::Unbound:    return REPLXX_COLOR_RED;
+		default:             return REPLXX_COLOR_DEFAULT;
+	}
+}
+
+// SGR codes as in LS_COLORS: 0, 30-37, 90-97, 39, 38;5;N, 1 (bold), 4 (underline). False on any other.
+static bool parseSgr(std::string const& codes, ReplxxColor& color)
+{
+	ReplxxColor c = REPLXX_COLOR_DEFAULT;
+	bool bold = false, underline = false;
+	std::vector<int> n;
+	for (size_t i = 0; i <= codes.size();) {
+		size_t j = codes.find(';', i);
+		if (j == std::string::npos) j = codes.size();
+		std::string part = codes.substr(i, j - i);
+		if (part.empty() || part.find_first_not_of("0123456789") != std::string::npos) return false;
+		n.push_back(atoi(part.c_str()));
+		i = j + 1;
+	}
+	for (size_t i = 0; i < n.size(); ++i) {
+		if (n[i] >= 30 && n[i] <= 37) c = (ReplxxColor)(n[i] - 30);
+		else if (n[i] >= 90 && n[i] <= 97) c = (ReplxxColor)(n[i] - 90 + 8);
+		else if (n[i] == 39 || n[i] == 0) c = REPLXX_COLOR_DEFAULT;
+		else if (n[i] == 1) bold = true;
+		else if (n[i] == 4) underline = true;
+		else if (n[i] == 38 && i + 2 < n.size() && n[i + 1] == 5 && n[i + 2] <= 255) {
+			int x = n[i + 2];
+			c = x < 16 ? (ReplxxColor)x
+			  : x < 232 ? replxx_color_rgb666((x - 16) / 36, (x - 16) / 6 % 6, (x - 16) % 6)
+			  : replxx_color_grayscale(x - 232);
+			i += 2;
+		} else return false;
+	}
+	if (bold) c = replxx_color_bold(c);
+	if (underline) c = replxx_color_underline(c);
+	color = c;
+	return true;
+}
+
+// colorOf, overridden by STAC_COLORS: kind=SGR pairs separated by ':', such as "number=36:library=1;94".
+static ReplxxColor const* palette()
+{
+	static const char* names[] = {"plain", "comment", "string", "number", "keyword", "operator", "bracket",
+		"delimiter", "definition", "parameter", "type", "variable", "module", "symbol", "property", "method",
+		"word", "library", "ugen", "bound", "unbound"};
+	constexpr size_t count = sizeof names / sizeof *names;
+	static_assert(count == (size_t)Hl::Unbound + 1, "a name per Hl kind");
+	static std::vector<ReplxxColor> colors = [] {
+		std::vector<ReplxxColor> c;
+		for (size_t i = 0; i < count; ++i) c.push_back(colorOf((Hl)i));
+		const char* spec = stacEnv("COLORS");
+		std::string all = spec ? spec : "";
+		for (size_t i = 0; i < all.size();) {
+			size_t j = all.find(':', i);
+			if (j == std::string::npos) j = all.size();
+			std::string entry = all.substr(i, j - i);
+			i = j + 1;
+			if (entry.empty()) continue;
+			size_t eq = entry.find('=');
+			size_t k = std::find_if(names, names + count, [&](const char* n) { return entry.compare(0, eq, n) == 0 && eq == strlen(n); }) - names;
+			if (eq == std::string::npos || k == count || !parseSgr(entry.substr(eq + 1), c[k]))
+				post("STAC_COLORS: ignored '%s'\n", entry.c_str());
+		}
+		return c;
+	}();
+	return colors.data();
+}
+
+// replxx takes a colour per code point: each takes the kind of its first byte.
+static void highlighterCallback(const char* input, ReplxxColor* colors, int size, void* th)
+{
+	std::string src(input);  // replxx_get_state refills the buffer input points to
+	Thread& t = *(Thread*)th;
+	std::vector<Hl> kinds = highlight(src, &t);
+	// getLine's commands, not words
+	for (const char* command : {"quit", ".."})
+		if (src.rfind(command, 0) == 0) std::fill(kinds.begin(), kinds.begin() + strlen(command), Hl::Keyword);
+	// The word being typed is not yet red: most of its prefixes are unbound.
+	ReplxxState state;
+	replxx_get_state(t.replxx, &state);
+	size_t cursor = 0;
+	for (int n = 0; cursor < src.size(); ++cursor)
+		if (((unsigned char)src[cursor] & 0xC0) != 0x80 && n++ == state.cursorPosition) break;
+	size_t a = cursor, b = cursor;
+	while (a > 0 && kinds[a - 1] == Hl::Unbound) --a;
+	while (b < kinds.size() && kinds[b] == Hl::Unbound) ++b;
+	std::fill(kinds.begin() + a, kinds.begin() + b, Hl::Plain);
+	int cp = 0;
+	for (size_t i = 0; i < src.size() && cp < size; ++i)
+		if (((unsigned char)src[i] & 0xC0) != 0x80) colors[cp++] = palette()[(size_t)kinds[i]];
+}
+#endif
+
 void Thread::getLine()
 {
 	if (fromString) return;
@@ -436,6 +554,10 @@ void Thread::repl(FILE* infile, const char* inLogfilename)
 	replxx_set_unique_history(replxx, 1);
 	replxx_set_completion_callback(replxx, completeCallback, this);
 	replxx_set_hint_callback(replxx, hintCallback, this);
+#if SAPF_TREESITTER
+	const char* noColor = getenv("NO_COLOR");  // no-color.org: set and not empty
+	if (!noColor || !*noColor) replxx_set_highlighter_callback(replxx, highlighterCallback, this);
+#endif
 	if (replxx_history_load(replxx, historyfilename) != 0 && legacyHistory[0])
 		replxx_history_load(replxx, legacyHistory);
 #endif

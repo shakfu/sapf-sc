@@ -22,6 +22,7 @@ Policy: sapf-sc computes what sapf's code and documentation describe, not what u
 | `evmerge` crashes on an event without `:dt` | fixed in `MergeEvents` |
 | `evrest` takes three arguments | fixed |
 | Names with equal hashes share a binding | fixed in `GTable` |
+| A doubled quote ends a string | fixed in `parseString` |
 
 ## Signal minus signal is reversed
 
@@ -88,6 +89,10 @@ Both popped their compare function with `popList`, which accepts only a list, so
 ## Names with equal hashes share a binding
 
 `GTable::get`, `getInner` and `putImpure` (`src/engine/Object.cpp`) matched a key by its 32-bit hash alone. Two names with the same hash read each other's bindings, and the second could not be bound. `TreeNode::putPure` compared the key, so the tree held both. Lookups now compare the key, by text for strings, since a string literal is not interned. Found reading the code. stac's 1467 built-in names, with and without their namespace, have no collision.
+
+## A doubled quote ends a string
+
+`"a""b"` should be the string `a"b`. `parseString` (`src/engine/Parser.cpp`) added the quote but left the second `"` as the current character, so the next pass of the loop ended the string; `b"` then parsed as code, and its `"` opened a string to the end of the input. Found writing the tree-sitter grammar, whose string token reads `""` as the code intends.
 
 ## Help lines that misstate behaviour
 

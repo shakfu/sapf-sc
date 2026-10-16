@@ -44,3 +44,9 @@ add_sapf_unit_test(test_errors test_errors.cpp)
 
 # REPL completion and hints
 add_sapf_unit_test(test_completion test_completion.cpp)
+
+# Syntax highlighting with tree-sitter-stac
+if(SAPF_TREESITTER)
+    add_sapf_unit_test(test_highlight test_highlight.cpp)
+    target_compile_definitions(test_highlight PRIVATE SAPF_SOURCE_ROOT="${SAPF_ROOT}")
+endif()

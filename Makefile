@@ -1,4 +1,4 @@
-.PHONY: all build test reference server clean
+.PHONY: all build test grammar reference server clean
 
 all: build
 
@@ -10,6 +10,10 @@ build:
 test: build
 	@cd build && ctest --output-on-failure
 	@uv run pytest -q
+
+# Regenerates tree-sitter-stac/src from grammar.js and runs its corpus; needs the tree-sitter CLI
+grammar:
+	@cd tree-sitter-stac && tree-sitter generate && tree-sitter test
 
 # Regenerates tests/fixtures/ref with original sapf: make reference SAPF_ORIG=/path/to/sapf
 reference:

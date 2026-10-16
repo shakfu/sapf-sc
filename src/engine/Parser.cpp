@@ -1024,8 +1024,9 @@ static String* parseString(Thread& th)
 			c = th.getc();
 		} else if (c == '"') {
 			if (th.c() == '"') {
-				c = th.getc();
+				th.getc();
 				str += '"';
+				c = th.getc();
 			} else {
 				break;
 			}

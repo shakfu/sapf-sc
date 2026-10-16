@@ -59,6 +59,6 @@ In order of priority within each section. Design records are in docs/dev/; this 
 
 - [ ] The Windows branches, e.g. `>sfo`'s `start`, are untested.
 
-- [ ] Report the 16 bugs in original sapf, docs/dev/upstream-sapf-bugs.md, upstream; undecided.
+- [ ] Report the 17 bugs in original sapf, docs/dev/upstream-sapf-bugs.md, upstream; undecided.
 
 - [ ] Pack tests/fixtures/ref, 3.6 MB of WAV, into one `.npz`.

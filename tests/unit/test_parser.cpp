@@ -145,6 +145,17 @@ TEST_F(ParserTest, ParseStringWithNumbers) {
     EXPECT_STREQ(((String*)result.o())->cstr(), "test123");
 }
 
+TEST_F(ParserTest, DoubledQuoteIsAQuote) {
+    // The doubled quote ended the string after adding '"', so "a""b" left b" to parse as code.
+    EXPECT_STREQ(((String*)parseAndRun("\"a\"\"b\"").o())->cstr(), "a\"b");
+    EXPECT_STREQ(((String*)parseAndRun("\"\"\"\"").o())->cstr(), "\"");
+}
+
+TEST_F(ParserTest, DoubleBackslashEscapes) {
+    EXPECT_STREQ(((String*)parseAndRun("\"a\\\\nb\"").o())->cstr(), "a\nb");
+    EXPECT_STREQ(((String*)parseAndRun("\"a\\b\"").o())->cstr(), "a\\b");  // one backslash is itself
+}
+
 //==============================================================================
 // Array parsing
 //==============================================================================

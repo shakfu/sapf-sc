@@ -1,0 +1,2 @@
+tree-sitter v0.27.1 runtime (lib/include, lib/src) from https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.27.1.tar.gz
+Not vendored: lib/src/wasm-stdlib, used only with TREE_SITTER_FEATURE_WASM or TREE_SITTER_WASM_STDLIB.

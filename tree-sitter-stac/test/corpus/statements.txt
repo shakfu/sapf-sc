@@ -1,0 +1,115 @@
+========================================
+def with results
+========================================
+
+def dbl x --> num "doubles x." [x 2 *]
+
+----------------------------------------
+
+(source_file
+  (def_statement
+    (word)
+    (word)
+    (results
+      (word))
+    (string)
+    (list
+      (word)
+      (number)
+      (word))))
+
+========================================
+def with varying results
+========================================
+
+def many n --> ... [n 0 X]
+
+----------------------------------------
+
+(source_file
+  (def_statement
+    (word)
+    (word)
+    (results)
+    (list
+      (word)
+      (number)
+      (word))))
+
+========================================
+synthdef with defaults
+========================================
+
+synthdef ping freq:880 amp:.1 "a sine." [freq sinosc amp *]
+
+----------------------------------------
+
+(source_file
+  (synthdef_statement
+    (word)
+    (control
+      (word)
+      (number))
+    (control
+      (word)
+      (number))
+    (string)
+    (list
+      (word)
+      (word)
+      (word)
+      (word))))
+
+========================================
+const
+========================================
+
+const hrt "sqrt(2)/2." [.5 sqrt]
+
+----------------------------------------
+
+(source_file
+  (const_statement
+    (word)
+    (string)
+    (list
+      (number)
+      (word))))
+
+========================================
+import ends at the line
+========================================
+
+import sc.* std.padz sapf
+440 sinosc
+
+----------------------------------------
+
+(source_file
+  (import_statement
+    (import_item
+      (word)
+      (word))
+    (import_item
+      (word)
+      (word))
+    (import_item
+      (word)))
+  (number)
+  (word))
+
+========================================
+import before a comment
+========================================
+
+import sc ; the namespace alone
+1
+
+----------------------------------------
+
+(source_file
+  (import_statement
+    (import_item
+      (word)))
+  (comment)
+  (number))

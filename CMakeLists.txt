@@ -53,6 +53,24 @@ if(SAPF_REPLXX)
 	add_subdirectory(thirdparty/replxx)
 endif()
 
+# Syntax highlighting in the REPL with tree-sitter and tree-sitter-stac/, whose generated parser.c is
+# committed, so the build needs no tree-sitter CLI
+option(SAPF_TREESITTER "Syntax highlighting with tree-sitter" ON)
+if(SAPF_TREESITTER)
+	add_library(tree-sitter STATIC thirdparty/tree-sitter/lib/src/lib.c)
+	target_include_directories(tree-sitter PUBLIC thirdparty/tree-sitter/lib/include PRIVATE thirdparty/tree-sitter/lib/src)
+	target_compile_definitions(tree-sitter PRIVATE _POSIX_C_SOURCE=200112L _DEFAULT_SOURCE)
+	set_target_properties(tree-sitter PROPERTIES C_STANDARD 11)
+	add_library(tree-sitter-stac STATIC tree-sitter-stac/src/parser.c tree-sitter-stac/src/scanner.c)
+	target_include_directories(tree-sitter-stac PRIVATE tree-sitter-stac/src)
+	target_link_libraries(tree-sitter-stac PUBLIC tree-sitter)
+	set_target_properties(tree-sitter-stac PROPERTIES C_STANDARD 11)
+	if(NOT MSVC)
+		target_compile_options(tree-sitter PRIVATE -w)
+		target_compile_options(tree-sitter-stac PRIVATE -w)
+	endif()
+endif()
+
 add_subdirectory(src/engine)
 
 # scsynth in the executable, so play needs no server; off for builds that only write defs

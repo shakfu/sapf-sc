@@ -109,14 +109,15 @@ void SapfEngine::loadPrelude(Thread& th) const
 {
 	if (!config_.preludeFiles.empty()) {
 		for (auto& file : config_.preludeFiles) loadFile(th, file.c_str());
-		return;
+	} else {
+		if (!vm.prelude_file) {
+			vm.prelude_file = stacEnv("PRELUDE");
+		}
+		if (vm.prelude_file) {
+			loadFile(th, vm.prelude_file);
+		}
 	}
-	if (!vm.prelude_file) {
-		vm.prelude_file = stacEnv("PRELUDE");
-	}
-	if (vm.prelude_file) {
-		loadFile(th, vm.prelude_file);
-	}
+	th.mLibrary = th.mWorkspace;
 }
 
 const char* SapfEngine::versionString() const

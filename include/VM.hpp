@@ -167,6 +167,7 @@ public:
 	P<Fun> fun;
 	P<GForm> mWorkspace;     // this thread's view of mScope: its own bindings while it evaluates there
 	P<Scope> mScope;         // the top-level scope this thread evaluates in
+	P<GForm> mLibrary;       // mWorkspace after the preludes; its words highlight as Hl::Library
 	int64_t mScopeVersion = 0;  // the published version mWorkspace derives from
 	// Other scopes' published versions, such as modules', so a lookup takes no lock unless one changed.
 	struct ScopeView {

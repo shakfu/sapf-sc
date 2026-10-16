@@ -67,6 +67,18 @@ else()
 	)
 endif()
 
+# highlights.scm, compiled in, so the REPL and editors read one query
+if(SAPF_TREESITTER)
+	set(STAC_HIGHLIGHTS ${SAPF_ROOT}/tree-sitter-stac/queries/highlights.scm)
+	file(READ ${STAC_HIGHLIGHTS} STAC_HIGHLIGHTS_SCM)
+	configure_file(${SAPF_ROOT}/cmake/StacHighlights.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/StacHighlights.h @ONLY)
+	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${STAC_HIGHLIGHTS})
+	target_sources(sapf_engine PRIVATE Highlight.cpp)
+	target_include_directories(sapf_engine PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+	target_compile_definitions(sapf_engine PUBLIC SAPF_TREESITTER=1)
+	target_link_libraries(sapf_engine PUBLIC tree-sitter-stac)
+endif()
+
 if(SAPF_REPLXX)
 	target_include_directories(sapf_engine PUBLIC ${SAPF_ROOT}/thirdparty/replxx/include)
 	target_link_libraries(sapf_engine PUBLIC replxx)
