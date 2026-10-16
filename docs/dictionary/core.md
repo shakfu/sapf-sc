@@ -5799,6 +5799,20 @@ Use it to silence everything at once.
 stop
 ```
 
+### reset
+
+`reset (... -->)`
+
+Does `stop`, then `clear`: frees every synth, ends every player, and empties the stack.
+
+Use it between sketches at the REPL. `play` pushes a `Node`, and after `stop` that Node names a freed synth.
+
+```stac
+[440 sinosc .1 *] play
+reset
+stackDepth        ;-> 0
+```
+
 ## namespaces
 
 ### sc

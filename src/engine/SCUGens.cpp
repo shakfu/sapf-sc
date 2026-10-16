@@ -1054,6 +1054,13 @@ static void stop_(Thread& th, Prim* prim)
 	scsynthSend(oscMessage("/g_deepFree", {{OscArg::Int, 0, ""}}));
 }
 
+// stop, then clear: play's Nodes name synths stop freed.
+static void reset_(Thread& th, Prim* prim)
+{
+	stop_(th, prim);
+	th.clearStack();
+}
+
 // Files go to $STAC_SYNTHDEFS, or the current directory when it is unset.
 static void writeFile(const char* word, const std::string& name, const std::string& bytes)
 {
@@ -1304,4 +1311,5 @@ void AddSCUGenOps()
 	vm.def("play", 1, 0, sapfplay_, "(channels -->) as play, leaving nothing. (events --> player) as play.");
 	}
 	vm.def("stop", 0, 0, stop_, "(-->) frees every synth on the scsynth that play uses.");
+	vm.def("reset", 0, 0, reset_, "(... -->) stop, then clear: frees every synth and empties the stack.");
 }

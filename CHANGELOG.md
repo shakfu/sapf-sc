@@ -25,6 +25,7 @@
 
 ### Added
 
+- `reset` does `stop`, then `clear`: it frees every synth and empties the stack, so no `Node` from `play` outlives its synth.
 - [docs/dictionary/](docs/dictionary/): an entry for every word, 1330 in all: what it does, why and when to use it, and an example. `scripts/dictionary.py sync` adds an entry for each new word from `stac --words` and refreshes each entry's name and stack effect; `tests/py/test_dictionary.py` fails when a word has none and runs every example, checking each `;->` line's values. Generated from `--words` over hand-written as one document, so a new word cannot go undocumented.
 - `examples.txt`: about 100 lines to paste into the REPL, from a first tone to live edits; `tests/py/test_examples_txt.py` types them into the REPL in order.
 - [docs/phrasebook.md](docs/phrasebook.md): 31 everyday phrases in sclang and stac, from a test tone to editing a helper while a pattern plays. `tests/py/test_phrasebook.py` runs every stac block.

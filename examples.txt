@@ -5,46 +5,47 @@
 ;;     build/stac -p prelude.stac
 ;;
 ;; Paste one line at a time. Each line stands alone, or uses what a line above it in its
-;; section bound. The REPL prints the stack after each line; `clear` empties it, and `stop`
-;; silences everything. Tab completes a name; the hint after a word shows what it takes and
-;; leaves. Every word is in docs/dictionary/; docs/phrasebook.md sets sclang beside stac.
+;; section bound. The REPL prints the stack after each line; `clear` empties it, `stop`
+;; silences everything, and `reset` does both. Tab completes a name; the hint after a word
+;; shows what it takes and leaves. Every word is in docs/dictionary/; docs/phrasebook.md sets
+;; sclang beside stac.
 ;; tests/py/test_examples_txt.py runs this file through the REPL.
 
 
 ;;;; 1. First sounds
 
 [440 sinosc .1 *] play                              ; a sine, 440 Hz
-stop clear
+reset
 [[440 442] sinosc .1 *] play                        ; two channels: a list of frequencies
-stop clear
+reset
 [440 sinosc .1 *] play = n                          ; keep the synth's node
 n.free                                              ; and free that one synth
 [[1 2 3 4] 200 * sinosc [1 .5 .33 .25] * +/ .05 *] play   ; 4 partials, summed with +/
-stop clear
+reset
 
 
 ;;;; 2. Oscillators and noise
 
 [110 saw .05 *] play
-stop clear
+reset
 [110 .3 pulse .05 *] play                           ; pulse width .3
-stop clear
+reset
 [pinknoise .05 *] play
-stop clear
+reset
 [[100 100.5 99.7 200.3] saw [-1 -.33 .33 1] pan2 +/ .03 *] play   ; 4 voices across the stereo field
-stop clear
+reset
 
 
 ;;;; 3. Filters and LFOs
 
 [110 saw 800 .2 rlpf .1 *] play                     ; resonant low-pass at 800 Hz
-stop clear
+reset
 [110 saw  2 lfnoise1.kr 300 3000 bilin  .2 rlpf  .1 *] play   ; the cutoff wanders, 2 Hz
-stop clear
+reset
 [whitenoise  .5 sinosc.kr 400 4000 biexp  .1 bpf  .3 *] play   ; a swept band of noise
-stop clear
+reset
 [2 lfnoise1.kr.poll 200 * 400 + sinosc .1 *] play   ; .poll prints the LFO on scsynth's console
-stop clear
+reset
 
 
 ;;;; 4. SynthDefs, synths and controls
@@ -74,9 +75,9 @@ a.release
 v.free
 clear
 [2 dust .01 .2 decay2 800 sinosc * = s  s s .5 .375 4 combc + .2 *] play   ; clicks and their echo
-stop clear
+reset
 [100 saw 8 * tanh .05 *] play                       ; tanh distortion
-stop clear
+reset
 
 
 ;;;; 6. Patterns
@@ -112,9 +113,9 @@ clear
 ;;;; 8. Sequencing inside a synth
 
 [8 impulse.kr 0 [60 63 67 70] inf dseq demand.kr nnhz saw .05 *] play   ; a step sequence, 8 steps a second
-stop clear
+reset
 [6 impulse.kr 0 48 72 inf diwhite demand.kr nnhz sinosc .1 *] play      ; random MIDI notes, 48 to 72
-stop clear
+reset
 
 
 ;;;; 9. The language without sound
@@ -145,7 +146,7 @@ def detune f --> num [f 1.01 *]
 {:instrument \f [f f detune 2ple sinosc .01 .4 env.perc 1 envgen.kr.done * .05 *] :f [220 330] cyc :dur .5} pbind play = live
 def detune f --> num [f 1.05 *]                     ; the next note uses the new detune
 live.stop
-stop clear
+reset
 
 
 ;;;; 11. Files

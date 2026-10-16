@@ -62,6 +62,14 @@ def test_play_starts_a_synth_and_stop_frees_it(server, sapf):
     assert synths(server) == 0
 
 
+def test_reset_frees_synths_and_clears_the_stack(server, sapf):
+    out = sapf("440 0 sinosc 0 * stac.play stackDepth pr cr reset stackDepth pr cr")
+    assert "error" not in out, out
+    assert "\n1\n0\n" in out, out
+    time.sleep(0.2)
+    assert synths(server) == 0
+
+
 def test_finite_signal_frees_itself(server, sapf):
     sapf("440 0 sinosc 0 * .2 T play")
     assert synths(server) == 1
