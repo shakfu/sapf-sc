@@ -46,6 +46,13 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libraries" FORCE)
 
+# The CLAP plugin, examples/clap; needs the embedded scsynth. Its static libraries go into a
+# shared module, so everything is position-independent.
+option(STAC_BUILD_CLAP "Build the stac CLAP plugin" ON)
+if(STAC_BUILD_CLAP)
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 # Replxx for the REPL's line editing; off for an embedding host, such as the SSP plugin
 option(SAPF_REPLXX "Line editing with replxx" ON)
 if(SAPF_REPLXX)
@@ -89,3 +96,10 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 add_subdirectory(thirdparty/googletest)
 
 add_subdirectory(tests)
+
+if(STAC_BUILD_CLAP AND SAPF_EMBED_SCSYNTH)
+	set(RTAUDIO_BUILD_TESTING OFF CACHE BOOL "" FORCE)  # rtaudio is the dev host's audio output
+	set(RTAUDIO_TARGETNAME_UNINSTALL "rtaudio_uninstall" CACHE STRING "" FORCE)
+	add_subdirectory(thirdparty/rtaudio)
+	add_subdirectory(examples/clap)
+endif()

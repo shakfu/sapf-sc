@@ -67,6 +67,8 @@ if(NOT APPLE)
 	set(SYSTEM_PORTAUDIO OFF CACHE BOOL "" FORCE)
 endif()
 FetchContent_MakeAvailable(supercollider)
+# SC_NewAudioDriver: the host-driven driver for a plugin, else the device driver
+target_sources(libscsynth PRIVATE ${SAPF_ROOT}/src/server/HostAudioDriver.cpp)
 
 set(SAPF_SC_PLUGINS
 	BinaryOpUGens ChaosUGens DelayUGens DemandUGens DynNoiseUGens FilterUGens GendynUGens GrainUGens

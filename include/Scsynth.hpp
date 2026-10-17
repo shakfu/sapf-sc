@@ -62,4 +62,7 @@ std::string scsynthAddress();
 // The server's time: ScsynthServer::now, or the wall clock for a server over UDP.
 double scsynthNow();
 
+// What `stop` does: ends textures and event streams, drops scheduled bundles, frees every synth.
+void stopPlaying();
+
 #endif

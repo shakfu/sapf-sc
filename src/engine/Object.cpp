@@ -20,6 +20,7 @@
 #include "MathOps.hpp"
 #include "Opcode.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <functional>
 #include <string>
@@ -53,6 +54,12 @@ void zprintf(std::string& out, const char* fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(s, 1024, fmt, args);
 	out += s;
+}
+
+// x86 0/0 sets the NaN sign bit, which glibc prints as "-nan" and macOS as "nan".
+static void zprintNum(std::string& out, double x)
+{
+	zprintf(out, "%g", std::isnan(x) ? std::fabs(x) : x);
 }
 
 #pragma mark ERROR HANDLING
@@ -949,7 +956,7 @@ void List::print(Thread& th, std::string& out, int depth)
 				a->v()[j].print(th, out, depth+1);
 			} else {
 			
-				zprintf(out, "%g", a->z()[j]);
+				zprintNum(out, a->z()[j]);
 			}
 		}
 		if (i >= vm.printLength) {
@@ -967,19 +974,19 @@ void List::print(Thread& th, std::string& out, int depth)
 
 void V::print(Thread& th, std::string& out, int depth) const
 {
-	if (!o) zprintf(out, "%g", f);
+	if (!o) zprintNum(out, f);
 	else o->print(th, out, depth);
 }
 
 void V::printShort(Thread& th, std::string& out, int depth) const
 {
-	if (!o) zprintf(out, "%g", f);
+	if (!o) zprintNum(out, f);
 	else o->printShort(th, out, depth);
 }
 
 void V::printDebug(Thread& th, std::string& out, int depth) const
 {
-	if (!o) zprintf(out, "%g", f);
+	if (!o) zprintNum(out, f);
 	else o->printDebug(th, out, depth);
 }
 

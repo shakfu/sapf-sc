@@ -7,9 +7,14 @@
 
 #include "EmbeddedServer.hpp"
 #include "Environment.hpp"
+#include "Patterns.hpp"
 #include "Scsynth.hpp"
+#include "Texture.hpp"
 
+#include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
@@ -20,6 +25,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #if defined(__APPLE__)
@@ -31,12 +37,20 @@
 #include <sndfile.h>
 #include "SC_ReplyImpl.hpp"
 
+// HostAudioDriver.cpp, in libscsynth
+extern "C" void World_SetHostDriven(bool on);
+extern "C" void World_HostRunBlock(World* world, float* const* out, int numOut, int64_t oscTime);
+
 namespace {
+
+const int kBlockFrames = 64;   // scsynth's block size, which the host driver renders at a time
+std::string gPluginDir;        // a host's, in place of plugins/ beside the executable
 
 std::string pluginDir()
 {
 	const char* env = stacEnv("PLUGINS");
 	if (env && *env) return env;
+	if (!gPluginDir.empty()) return gPluginDir;
 	std::error_code ec;
 #if defined(__APPLE__)
 	char buf[4096];
@@ -99,13 +113,13 @@ public:
 	std::string sendSync(const std::vector<std::string>& packets, int timeoutMs) override
 	{
 		std::string error;
-		if (!boot(error)) return error;
 		std::unique_lock<std::mutex> lock(mutex_);
 		replies_.clear();
 		lock.unlock();
-		for (const std::string& p : packets) sendPacket(p);
+		for (const std::string& p : packets)
+			if (!sendPacket(p, error)) return error;
 		const int syncID = 7301;
-		sendPacket(oscMessage("/sync", {{OscArg::Int, syncID, ""}}));
+		if (!sendPacket(oscMessage("/sync", {{OscArg::Int, syncID, ""}}), error)) return error;
 		lock.lock();
 		auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
 		for (;;) {
@@ -128,10 +142,72 @@ public:
 	void send(const std::string& packet) override
 	{
 		std::string error;
-		if (boot(error)) sendPacket(packet);
+		sendPacket(packet, error);
 	}
 
 	std::string address() override { return "this process"; }
+
+	// Host-driven: counts the frames the host has rendered since startHost.
+	double now() override
+	{
+		double rate = hostRate_;
+		if (rate <= 0.) return ScsynthServer::now();
+		return hostStart_ + (double)hostFrames_ / rate;
+	}
+
+	// Refuses sends until startHost.
+	void useHost()
+	{
+		std::lock_guard<std::mutex> lock(worldMutex_);
+		hostDriven_ = true;
+		World_SetHostDriven(true);
+	}
+
+	// Called while the host does not render. The World starts on the first send, as in device mode.
+	void startHost(double sampleRate, int outputs)
+	{
+		stopHost();
+		std::lock_guard<std::mutex> lock(worldMutex_);
+		hostOutputs_ = outputs;
+		block_.assign((size_t)outputs * kBlockFrames, 0.f);
+		blockPtrs_.clear();
+		for (int k = 0; k < outputs; ++k) blockPtrs_.push_back(block_.data() + k * kBlockFrames);
+		blockPos_ = kBlockFrames;
+		hostStart_ = ScsynthServer::now();
+		hostFrames_ = 0;
+		hostRate_ = sampleRate;
+		closed_ = false;
+	}
+
+	// Frees the synths and stops the World, as shutdown does, and refuses sends until startHost.
+	void stopHost()
+	{
+		shutdown();
+		while (rendering_) std::this_thread::yield();
+	}
+
+	// On the host's audio thread. Silence until the World starts.
+	void renderHost(float* const* out, int channels, int frames)
+	{
+		rendering_ = true;
+		World* world = hostWorld_;
+		for (int i = 0; i < frames;) {
+			if (blockPos_ == kBlockFrames) {
+				if (world) World_HostRunBlock(world, blockPtrs_.data(), hostOutputs_, oscTime(now()));
+				else std::fill(block_.begin(), block_.end(), 0.f);
+				hostFrames_ += kBlockFrames;
+				blockPos_ = 0;
+			}
+			int n = std::min(kBlockFrames - blockPos_, frames - i);
+			for (int k = 0; k < channels; ++k) {
+				if (k < hostOutputs_) std::copy_n(blockPtrs_[k] + blockPos_, n, out[k] + i);
+				else std::fill_n(out[k] + i, n, 0.f);
+			}
+			i += n;
+			blockPos_ += n;
+		}
+		rendering_ = false;
+	}
 
 	std::string render(const std::string& score, const std::string& path, int channels, int64_t frames,
 		double sr) override
@@ -173,11 +249,15 @@ public:
 	// The synths running, from /status.reply's third argument; -1 if the server is not running.
 	int synths()
 	{
-		if (!world_) return -1;
+		{
+			std::lock_guard<std::mutex> lock(worldMutex_);
+			if (!world_) return -1;
+		}
 		std::unique_lock<std::mutex> lock(mutex_);
 		replies_.clear();
 		lock.unlock();
-		sendPacket(oscMessage("/status", {}));
+		std::string error;
+		if (!sendPacket(oscMessage("/status", {}), error)) return -1;
 		lock.lock();
 		auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
 		for (;;) {
@@ -197,10 +277,14 @@ public:
 	}
 
 private:
+	// Starts the World on first use. The caller holds worldMutex_.
 	bool boot(std::string& error)
 	{
-		std::lock_guard<std::mutex> lock(bootMutex_);
 		if (world_) return true;
+		if (closed_ || (hostDriven_ && hostRate_ <= 0.)) {
+			error = hostDriven_ ? "the host is not running audio" : "scsynth has shut down";
+			return false;
+		}
 		std::string plugins = pluginDir(), device;
 		if (const char* d = stacEnv("DEVICE")) device = d;
 		WorldOptions o;
@@ -208,6 +292,13 @@ private:
 		o.mNumOutputBusChannels = envInt("OUTPUTS", 2);
 		o.mNumInputBusChannels = envInt("INPUTS", 0);  // an input stream can block boot when another client holds the device
 		o.mPreferredSampleRate = envInt("SR", 0);
+		o.mBufLength = kBlockFrames;
+		if (hostDriven_) {
+			o.mNumOutputBusChannels = hostOutputs_;
+			o.mNumInputBusChannels = 0;
+			o.mPreferredSampleRate = (uint32_t)std::lround(hostRate_);
+			device.clear();
+		}
 		o.mUGensPluginPath = plugins.c_str();
 		o.mLoadGraphDefs = 0;  // else it loads every def in SC's default folders
 		o.mRendezvous = false;
@@ -221,15 +312,39 @@ private:
 			error = "scsynth did not start; check the audio device, or set STAC_SCSYNTH to use a running server";
 			return false;
 		}
-		gWorld = world_;
-		std::atexit(quit);
+		if (hostDriven_) {
+			hostWorld_ = world_;
+			return true;  // the host stops it: onExit's _exit would end the host's process
+		}
+		gSelf = this;
+		std::atexit(onExit);
 		return true;
 	}
 
-	void sendPacket(const std::string& packet)
+	// The lock keeps shutdown from freeing the World while a player thread sends to it.
+	bool sendPacket(const std::string& packet, std::string& error)
 	{
+		std::lock_guard<std::mutex> lock(worldMutex_);
+		if (!boot(error)) return false;
 		std::string copy = packet;  // World_SendPacket takes a mutable buffer and copies it
 		World_SendPacketWithContext(world_, (int)copy.size(), copy.data(), onReply, this);
+		return true;
+	}
+
+	// Refuses later sends and boots, then stops the audio, frees the synths and unloads the
+	// plugins, running their unload hooks; patch-supercollider.sh fixes World_Cleanup's order.
+	// Host-driven, the plugins stay loaded: the host may start another World, whose units would
+	// call the unloaded code.
+	void shutdown()
+	{
+		World* world;
+		{
+			std::lock_guard<std::mutex> lock(worldMutex_);
+			closed_ = true;
+			world = std::exchange(world_, nullptr);
+			hostWorld_ = nullptr;
+		}
+		if (world) World_Cleanup(world, !hostDriven_);
 	}
 
 	static void onReply(ReplyAddress* addr, char* buf, int size)
@@ -240,32 +355,76 @@ private:
 		self->cv_.notify_all();
 	}
 
-	// CoreAudio's static destructors can crash after the World stops, so on macOS the process
-	// ends here, after flushing what it printed, as nanosynth does.
-	static void quit()
+	// Players stop first, so none reports a failed send. CoreAudio's static destructors can crash
+	// after the World stops, so on macOS the process ends here, as nanosynth does.
+	static void onExit()
 	{
+		stopTextures();
+		stopEventStreams();
+		gSelf->shutdown();
 		fflush(nullptr);
 #if defined(__APPLE__)
 		_exit(0);
-#else
-		World_Cleanup(gWorld, true);
 #endif
 	}
 
-	static inline World* gWorld = nullptr;
+	// OSC time, NTP 32.32 fixed point, of `seconds` since 1970, as oscBundle writes it.
+	static int64_t oscTime(double seconds)
+	{
+		double t = seconds + 2208988800.;
+		double whole = std::floor(t);
+		return (int64_t)(((uint64_t)whole << 32) + (uint64_t)std::llround((t - whole) * 4294967296.));
+	}
+
+	static inline EmbeddedServer* gSelf = nullptr;
 	World* world_ = nullptr;
-	std::mutex bootMutex_, mutex_;
+	bool closed_ = false;
+	std::mutex worldMutex_, mutex_;
 	std::condition_variable cv_;
 	std::deque<std::string> replies_;
+
+	bool hostDriven_ = false;
+	std::atomic<double> hostRate_{0.}, hostStart_{0.};
+	int hostOutputs_ = 0;
+	std::atomic<int64_t> hostFrames_{0};
+	std::atomic<World*> hostWorld_{nullptr};
+	std::atomic<bool> rendering_{false};
+	// the audio thread's block, of which it has played blockPos_ frames
+	std::vector<float> block_;
+	std::vector<float*> blockPtrs_;
+	int blockPos_ = kBlockFrames;
 };
 
 } // namespace
 
-static EmbeddedServer gServer;
+// Never destroyed: detached player threads may still send while the process exits.
+static EmbeddedServer& gServer = *new EmbeddedServer;
 
 void registerEmbeddedScsynth()
 {
 	setEmbeddedScsynth(&gServer);
+}
+
+void registerHostDrivenScsynth(const std::string& pluginDir)
+{
+	gPluginDir = pluginDir;
+	gServer.useHost();
+	setEmbeddedScsynth(&gServer);
+}
+
+void startHostDrivenScsynth(double sampleRate, int outputs)
+{
+	gServer.startHost(sampleRate, outputs);
+}
+
+void stopHostDrivenScsynth()
+{
+	gServer.stopHost();
+}
+
+void renderHostDrivenScsynth(float* const* out, int channels, int frames)
+{
+	gServer.renderHost(out, channels, frames);
 }
 
 void waitForEmbeddedScsynth()

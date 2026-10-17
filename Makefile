@@ -1,4 +1,4 @@
-.PHONY: all build test grammar reference server clean
+.PHONY: all build test grammar reference server editor clean
 
 all: build
 
@@ -23,6 +23,10 @@ reference:
 PORT ?= 57110
 server:
 	@uv run python scripts/server.py --port $(PORT)
+
+# The CLAP plugin's editor in a minimal host, with audio to the default output
+editor: build
+	@./build/examples/clap/stac_dev_host
 
 clean:
 	@rm -rf build

@@ -1,0 +1,76 @@
+name: Build and Test
+
+# No paths-ignore for Markdown: test_dictionary.py and test_phrasebook.py run the examples in docs/.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macos
+          - os: ubuntu-latest
+            name: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set short SHA
+        shell: bash
+        run: echo "SHORT_SHA=${SHA::7}" >> "$GITHUB_ENV"
+        env:
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      # ALSA for scsynth's PortAudio and the dev host's rtaudio; X11 and OpenGL for the CLAP editor
+      - name: Install Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libgl1-mesa-dev
+
+      # Compiler output, not build/: CMakeLists.txt uses ccache when present, and a restored build
+      # tree would keep stale CMake state and SC's patched source.
+      - name: Cache compilation
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.name }}
+          max-size: 1G
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -Wno-dev
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run ctest
+        run: ctest --test-dir build --output-on-failure
+
+      # Tests that need an audio device skip themselves
+      - name: Run pytest
+        run: uv run pytest -q
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: stac-${{ matrix.name }}-${{ env.SHORT_SHA }}
+          path: |
+            build/stac
+            build/plugins/
+            build/examples/clap/stac.clap
+            build/examples/clap/stac/
+          retention-days: 14

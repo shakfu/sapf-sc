@@ -1046,12 +1046,17 @@ static void sapfplay_(Thread& th, Prim* prim)
 	if (!events) th.pop();
 }
 
-static void stop_(Thread& th, Prim* prim)
+void stopPlaying()
 {
 	stopTextures();
 	stopEventStreams();
 	scsynthSend(oscMessage("/clearSched", {})); // ola voices already sent for later
 	scsynthSend(oscMessage("/g_deepFree", {{OscArg::Int, 0, ""}}));
+}
+
+static void stop_(Thread& th, Prim* prim)
+{
+	stopPlaying();
 }
 
 // stop, then clear: play's Nodes name synths stop freed.

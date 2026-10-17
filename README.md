@@ -109,7 +109,10 @@ make build                       # build/stac and build/plugins
 make test                        # ctest, then pytest (needs uv)
 make reference SAPF_ORIG=...     # regenerates tests/fixtures/ref with original sapf
 make grammar                     # regenerates tree-sitter-stac/src from grammar.js (needs the tree-sitter CLI)
+make editor                      # the CLAP plugin's editor in a minimal host
 ```
+
+`make build` also builds a CLAP instrument, `build/examples/clap/stac.clap`, with scsynth inside; see [examples/clap/README.md](examples/clap/README.md). On Linux it needs X11 and OpenGL headers; `-DSTAC_BUILD_CLAP=OFF` skips it.
 
 The first build downloads SuperCollider 3.14.1's source and libsndfile 1.2.2 as pinned release tarballs, checked by SHA-256, and builds scsynth's library and core UGens with them; `cmake/EmbeddedScsynth.cmake` says how to build offline. Tested on macOS and Linux; Linux needs ALSA's headers (`libasound2-dev` or `alsa-lib-devel`). `-DSAPF_EMBED_SCSYNTH=OFF` builds without scsynth, for a server over UDP only. `-DSAPF_TREESITTER=OFF` builds without syntax highlighting.
 
